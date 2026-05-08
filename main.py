@@ -40,8 +40,6 @@ def main():
     river_popup_active = False
     assign_popup_active = False
     assign_popup_city = None
-    assign_popup_inputs = {}
-    assign_popup_focused = None
 
     running = True
     while running:
@@ -54,24 +52,6 @@ def main():
                     if event.key == pygame.K_ESCAPE:
                         assign_popup_active = False
                         assign_popup_city = None
-                        assign_popup_inputs = {}
-                        assign_popup_focused = None
-                    elif event.key == pygame.K_RETURN:
-                        for job in assign_popup_city.jobs:
-                            val_str = assign_popup_inputs.get(job.job_type, '0')
-                            try:
-                                val = max(0, int(val_str))
-                            except ValueError:
-                                val = 0
-                            assign_popup_city.set_job_assignment(job, val)
-                        assign_popup_active = False
-                        assign_popup_city = None
-                        assign_popup_inputs = {}
-                        assign_popup_focused = None
-                    elif assign_popup_focused and event.key == pygame.K_BACKSPACE:
-                        assign_popup_inputs[assign_popup_focused] = assign_popup_inputs.get(assign_popup_focused, '')[:-1]
-                    elif assign_popup_focused and event.unicode.isdigit():
-                        assign_popup_inputs[assign_popup_focused] = assign_popup_inputs.get(assign_popup_focused, '') + event.unicode
                 elif save_popup_active:
                     if event.key == pygame.K_RETURN and save_popup_text.strip():
                         name = save_popup_text.strip().replace(' ', '_')
@@ -99,20 +79,15 @@ def main():
                 if assign_popup_active:
                     for job_type, rect in renderer.assign_input_rects.items():
                         if rect.collidepoint(pos):
-                            assign_popup_focused = job_type
+                            job = next((j for j in assign_popup_city.jobs if j.job_type == job_type), None)
+                            if job:
+                                for pop in assign_popup_city.pops:
+                                    if pop.assigned_job is None and job.available_slots > 0:
+                                        pop.assigned_job = job
+                                        job.assigned += 1
+                            assign_popup_active = False
+                            assign_popup_city = None
                             break
-                    if renderer.assign_confirm_rect and renderer.assign_confirm_rect.collidepoint(pos):
-                        for job in assign_popup_city.jobs:
-                            val_str = assign_popup_inputs.get(job.job_type, '0')
-                            try:
-                                val = max(0, int(val_str))
-                            except ValueError:
-                                val = 0
-                            assign_popup_city.set_job_assignment(job, val)
-                        assign_popup_active = False
-                        assign_popup_city = None
-                        assign_popup_inputs = {}
-                        assign_popup_focused = None
 
                 elif terrain_popup_active:
                     for terrain, rect in renderer.terrain_option_rects.items():
@@ -153,8 +128,6 @@ def main():
                     if city and city.jobs:
                         assign_popup_active = True
                         assign_popup_city = city
-                        assign_popup_inputs = {job.job_type: str(job.assigned) for job in city.jobs}
-                        assign_popup_focused = city.jobs[0].job_type
 
                 elif renderer.save_map_button_rect and renderer.save_map_button_rect.collidepoint(pos):
                     save_popup_active = True
@@ -191,13 +164,7 @@ def main():
                     selected_tile = renderer.get_tile_at(*pos)
 
         moving_unit = game_map.get_unit(selected_tile.row, selected_tile.col) if move_mode and selected_tile else None
-        assign_popup_data = None
-        if assign_popup_active and assign_popup_city:
-            assign_popup_data = {
-                'city': assign_popup_city,
-                'inputs': assign_popup_inputs,
-                'focused': assign_popup_focused,
-            }
+        assign_popup_data = {'city': assign_popup_city} if assign_popup_active and assign_popup_city else None
         renderer.draw(selected_tile, reachable, move_mode,
                       save_popup_active, save_popup_text,
                       terrain_popup_active, river_popup_active,

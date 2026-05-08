@@ -1,6 +1,7 @@
 import math
 import os
 import pygame
+from src.game.city import STOCKPILE_MAX
 from src.game.map import TERRAIN_TYPES
 
 _ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'assets')
@@ -396,9 +397,36 @@ class Renderer:
             self.screen.blit(surf, (x + 4, y))
             y += surf.get_height() + 4
 
-            surf = self.font_body.render(f"Food: {city.food_stockpile:.1f}", True, TEXT_COLOR)
-            self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 4
+            bar_w = PANEL_WIDTH - pad * 2
+            bar_h = 8
+            bar_x = panel_x + pad
+
+            # Food stockpile bar (fills to STOCKPILE_MAX)
+            food_max = STOCKPILE_MAX
+            label = self.font_small.render("Food", True, TEXT_COLOR)
+            val = self.font_small.render(f"{int(city.food_stockpile)}/{food_max}", True, TEXT_COLOR)
+            self.screen.blit(label, (bar_x, y))
+            self.screen.blit(val, (bar_x + bar_w - val.get_width(), y))
+            y += label.get_height() + 2
+            pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
+            fill_w = int(bar_w * min(city.food_stockpile, food_max) / food_max)
+            if fill_w > 0:
+                pygame.draw.rect(self.screen, (120, 190, 80), (bar_x, y, fill_w, bar_h), border_radius=2)
+            pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
+            y += bar_h + 8
+
+            # Growth progress bar
+            label = self.font_small.render("Growth", True, TEXT_COLOR)
+            val = self.font_small.render(f"{int(city.growth_progress)}/100", True, TEXT_COLOR)
+            self.screen.blit(label, (bar_x, y))
+            self.screen.blit(val, (bar_x + bar_w - val.get_width(), y))
+            y += label.get_height() + 2
+            pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
+            fill_w = int(bar_w * min(city.growth_progress, 100) / 100)
+            if fill_w > 0:
+                pygame.draw.rect(self.screen, (55, 120, 30), (bar_x, y, fill_w, bar_h), border_radius=2)
+            pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
+            y += bar_h + 8
 
             surf = self.font_body.render(f"Unassigned: {city.unassigned_pops}", True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
@@ -432,16 +460,14 @@ class Renderer:
 
     def _draw_assign_popup(self, data):
         city = data['city']
-        inputs = data['inputs']
-        focused = data['focused']
 
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 160))
         self.screen.blit(overlay, (0, 0))
 
-        row_h = 32
+        row_h = 36
         W = 260
-        H = 50 + len(city.jobs) * row_h + 52
+        H = 50 + len(city.jobs) * row_h + 28
         sx = (self.screen.get_width() - W) // 2
         sy = (self.screen.get_height() - H) // 2
         pygame.draw.rect(self.screen, (40, 40, 55), (sx, sy, W, H), border_radius=6)
@@ -451,33 +477,13 @@ class Renderer:
         self.screen.blit(surf, (sx + 16, sy + 14))
 
         self.assign_input_rects = {}
-        input_w = 50
+        self.assign_confirm_rect = None
         y = sy + 42
         for job in city.jobs:
-            label_surf = self.font_body.render(job.label, True, TEXT_COLOR)
-            self.screen.blit(label_surf, (sx + 16, y + (row_h - label_surf.get_height()) // 2))
-
-            max_surf = self.font_body.render(f"/ {job.slots}", True, (130, 130, 150))
-            max_x = sx + W - 16 - input_w - 6 - max_surf.get_width()
-            self.screen.blit(max_surf, (max_x, y + (row_h - max_surf.get_height()) // 2))
-
-            input_rect = pygame.Rect(sx + W - 16 - input_w, y + 4, input_w, row_h - 8)
-            is_focused = focused == job.job_type
-            pygame.draw.rect(self.screen, (25, 25, 35), input_rect, border_radius=3)
-            pygame.draw.rect(self.screen, COLOR_SELECTED if is_focused else PANEL_DIVIDER,
-                             input_rect, 1, border_radius=3)
-            text = inputs.get(job.job_type, '') + ('|' if is_focused else '')
-            t_surf = self.font_body.render(text, True, TEXT_COLOR)
-            self.screen.blit(t_surf, (
-                input_rect.x + input_rect.width - t_surf.get_width() - 6,
-                input_rect.y + (input_rect.height - t_surf.get_height()) // 2,
-            ))
-
-            self.assign_input_rects[job.job_type] = input_rect
+            label = f"{job.label}   {job.assigned} / {job.slots} slots"
+            rect = self._draw_button(sx + 16, y, W - 32, row_h - 6, label)
+            self.assign_input_rects[job.job_type] = rect
             y += row_h
-
-        btn_y = sy + H - 44
-        self.assign_confirm_rect = self._draw_button(sx + 16, btn_y, W - 32, 26, "Confirm")
 
         hint = self.font_body.render("Esc to cancel", True, (110, 110, 130))
         self.screen.blit(hint, (sx + 16, sy + H - 18))

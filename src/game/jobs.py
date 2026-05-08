@@ -25,16 +25,13 @@ class Job:
 class FarmJob(Job):
     job_type = 'farm'
     label = 'Farm'
-    YIELD_PER_POP = 1.25
+    YIELD_PER_POP = 130
 
     def __init__(self, slots=0):
         super().__init__(slots)
 
     def food_yield(self):
         return self.assigned * self.YIELD_PER_POP
-
-    def on_turn(self, city):
-        city.food_stockpile += self.food_yield()
 
     def yield_display(self):
         return f"{self.food_yield():.1f} food/turn"
