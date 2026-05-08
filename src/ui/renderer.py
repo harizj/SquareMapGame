@@ -12,14 +12,21 @@ PANEL_WIDTH = 220
 COLOR_PARCHMENT = (240, 220, 185)
 
 TERRAIN_COLORS = {
+    # original
     # 'desert':   (210, 180, 100),
     # 'hills':    (139, 100,  60),
     # 'river':    (100, 180,  80),
     # 'mountain': (140, 140, 140),
+    # 20% desaturated
     'desert':   (200, 175, 115),
     'hills':    (130, 102,  68),
     'river':    (105, 168,  88),
     'mountain': (140, 140, 140),
+    # 50% blended with parchment (240, 220, 185)
+    # 'desert':   (220, 197, 150),
+    # 'hills':    (185, 161, 126),
+    # 'river':    (172, 194, 136),
+    # 'mountain': (190, 180, 162),
 }
 COLOR_RIVER_LINE  = (60, 120, 200)
 COLOR_CITY        = (220, 200, 140)
@@ -54,7 +61,6 @@ RIVER_DIR_GRID = [('NW', 'NE'), ('W', 'E'), ('SW', 'SE')]
 # Maps terrain name → image filename stem when they differ
 _TERRAIN_IMG_FILES = {
     'mountain': 'mountains',
-    'river':    'grass',
 }
 
 ICON_SIZE   = 40
@@ -81,10 +87,14 @@ class Renderer:
         terrain_dir = os.path.join(_ASSETS_DIR, 'terrain')
         for name in TERRAIN_TYPES:
             img_file = _TERRAIN_IMG_FILES.get(name, name)
-            path = os.path.join(terrain_dir, f'{img_file}.png')
-            if os.path.exists(path):
-                img = pygame.image.load(path).convert_alpha()
-                self.terrain_images[name] = pygame.transform.scale(img, (hex_w, hex_h))
+            variants = []
+            for i in range(1, 5):
+                path = os.path.join(terrain_dir, f'{img_file}{i}.png')
+                if os.path.exists(path):
+                    img = pygame.image.load(path).convert_alpha()
+                    variants.append(pygame.transform.scale(img, (hex_w, hex_h)))
+            if variants:
+                self.terrain_images[name] = variants
         self.icons = {}
         icons_dir = os.path.join(_ASSETS_DIR, 'icons')
         for icon_name in ('castle', 'sword'):
@@ -207,8 +217,9 @@ class Renderer:
         # Pass 1b: terrain images over fills
         for r in range(self.map.rows):
             for c in range(self.map.cols):
-                img = self.terrain_images.get(self.map.tiles[r][c].terrain)
-                if img:
+                variants = self.terrain_images.get(self.map.tiles[r][c].terrain)
+                if variants:
+                    img = variants[(r * 7 + c * 13) % len(variants)]
                     cx, cy = all_centers[(r, c)]
                     self.screen.blit(img, (int(cx) - img.get_width() // 2, int(cy) - img.get_height() // 2))
 
