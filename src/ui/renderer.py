@@ -336,7 +336,7 @@ class Renderer:
         max_lines = (self.screen.get_height() - y - 8) // line_h
         visible = game_log[-max_lines:] if len(game_log) > max_lines else game_log
         max_w = LOG_PANEL_WIDTH - pad * 2
-        for msg in visible:
+        for msg in reversed(visible):
             surf = self.font_small.render(msg, True, TEXT_COLOR)
             if surf.get_width() > max_w:
                 while surf.get_width() > max_w and msg:

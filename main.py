@@ -171,7 +171,7 @@ def main():
 
                 elif renderer.end_turn_button_rect and renderer.end_turn_button_rect.collidepoint(pos):
                     turn += 1
-                    game_log.append(f"\nTURN {turn}")
+                    game_log.append("")
                     for unit in game_map.units.values():
                         unit.reset_moves()
                     for city in game_map.cities.values():
@@ -179,6 +179,7 @@ def main():
                             game_log.append(f"{msg}")
                     move_mode = False
                     reachable = {}
+                    game_log.append(f"TURN {turn}")
 
                 elif move_mode:
                     tile = renderer.get_tile_at(*pos)
