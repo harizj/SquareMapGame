@@ -84,6 +84,7 @@ class Renderer:
         self.font_header = pygame.font.SysFont('segoeui', 13, bold=True)
         self.font_body = pygame.font.SysFont('segoeui', 13)
         self.font_small = pygame.font.SysFont('segoeui', 10)
+        self.font_city = pygame.font.SysFont('tempussansitc', 12, bold=True)
         hex_w = int(math.sqrt(3) * HEX_SIZE)
         hex_h = 2 * HEX_SIZE
         self.terrain_images = {}
@@ -279,17 +280,26 @@ class Renderer:
                                 all_corners[(selected_tile.row, selected_tile.col)], 2)
 
         # Pass 6: city markers
-        for (r, c) in self.map.cities:
+        for (r, c), city in self.map.cities.items():
             cx, cy = all_centers[(r, c)]
             icon = self.icons.get('castle')
             if icon:
                 self.screen.blit(icon, (int(cx) - ICON_OFFSET - icon.get_width() // 2,
                                         int(cy) - icon.get_height() // 2))
+                name_y = int(cy) + icon.get_height() // 2 - 12
             else:
                 s = 6
                 rect = pygame.Rect(int(cx) - s, int(cy) - s, s * 2, s * 2)
                 pygame.draw.rect(self.screen, COLOR_CITY, rect)
                 pygame.draw.rect(self.screen, COLOR_CITY_BORDER, rect, 1)
+                name_y = int(cy) + s + 2
+            label = f"{city.name.upper()}  {len(city.pops)}"
+            name_surf = self.font_city.render(label, True, (255, 255, 255))
+            shadow_surf = self.font_city.render(label, True, (0, 0, 0))
+            nx = int(cx) - name_surf.get_width() // 2
+            for dx, dy in ((-1,-1),(0,-1),(1,-1),(-1,0),(1,0),(-1,1),(0,1),(1,1)):
+                self.screen.blit(shadow_surf, (nx + dx, name_y + dy))
+            self.screen.blit(name_surf, (nx, name_y))
 
         # Pass 7: unit markers
         for (r, c) in self.map.units:
