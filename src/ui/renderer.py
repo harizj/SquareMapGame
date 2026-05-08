@@ -64,18 +64,20 @@ _TERRAIN_IMG_FILES = {
     'mountain': 'mountains',
 }
 
-ICON_SIZE   = 40
-ICON_OFFSET = 10
+ICON_SIZE      = 40
+ICON_OFFSET    = 10
 RIVER_IMG_SCALE = 1.2  # bleed past tile edge so adjacent river images connect
+LOG_PANEL_WIDTH = 180
 
 
 class Renderer:
     def __init__(self, game_map):
         self.map = game_map
         w = math.sqrt(3) * HEX_SIZE
-        self.map_w = int(game_map.cols * w + w / 2 + 2 * MARGIN)
+        map_area_w = int(game_map.cols * w + w / 2 + 2 * MARGIN)
+        self.map_w = LOG_PANEL_WIDTH + map_area_w
         screen_h = int((game_map.rows - 1) * HEX_SIZE * 1.5 + 2 * HEX_SIZE + 2 * MARGIN)
-        self.offset_x = MARGIN + w / 2
+        self.offset_x = LOG_PANEL_WIDTH + MARGIN + w / 2
         self.offset_y = MARGIN + HEX_SIZE
         self.screen = pygame.display.set_mode((self.map_w + PANEL_WIDTH, screen_h))
         pygame.display.set_caption("HexGame")
@@ -195,7 +197,8 @@ class Renderer:
     def draw(self, selected_tile=None, reachable=None, move_mode=False,
              save_popup_active=False, save_popup_text="",
              terrain_popup_active=False, river_popup_active=False,
-             moves_remaining=None, assign_popup_data=None):
+             moves_remaining=None, assign_popup_data=None, game_log=None,
+             console_active=False, console_input=""):
         if reachable is None:
             reachable = {}
         self.screen.fill(BG_COLOR)
@@ -298,6 +301,7 @@ class Renderer:
             else:
                 self._draw_unit_marker(int(cx), int(cy))
 
+        self._draw_log_panel(game_log or [])
         self._draw_panel(selected_tile, move_mode)
 
         self.terrain_option_rects = {}
@@ -311,7 +315,35 @@ class Renderer:
         elif save_popup_active:
             self._draw_save_popup(save_popup_text)
 
+        if console_active:
+            self._draw_console_overlay(console_input)
+
         pygame.display.flip()
+
+    def _draw_log_panel(self, game_log):
+        pygame.draw.rect(self.screen, PANEL_BG, (0, 0, LOG_PANEL_WIDTH, self.screen.get_height()))
+        pygame.draw.line(self.screen, PANEL_DIVIDER,
+                         (LOG_PANEL_WIDTH - 1, 0), (LOG_PANEL_WIDTH - 1, self.screen.get_height()), 1)
+        pad = 10
+        y = 16
+        surf = self.font_header.render("LOG", True, HEADER_TEXT_COLOR)
+        self.screen.blit(surf, (pad, y))
+        y += surf.get_height() + 6
+        pygame.draw.line(self.screen, PANEL_DIVIDER, (pad, y), (LOG_PANEL_WIDTH - pad, y), 1)
+        y += 8
+
+        line_h = self.font_small.get_height() + 3
+        max_lines = (self.screen.get_height() - y - 8) // line_h
+        visible = game_log[-max_lines:] if len(game_log) > max_lines else game_log
+        max_w = LOG_PANEL_WIDTH - pad * 2
+        for msg in visible:
+            surf = self.font_small.render(msg, True, TEXT_COLOR)
+            if surf.get_width() > max_w:
+                while surf.get_width() > max_w and msg:
+                    msg = msg[:-1]
+                    surf = self.font_small.render(msg + '…', True, TEXT_COLOR)
+            self.screen.blit(surf, (pad, y))
+            y += line_h
 
     def _draw_panel(self, tile, move_mode=False):
         self.move_button_rect = None
@@ -487,6 +519,30 @@ class Renderer:
 
         hint = self.font_body.render("Esc to cancel", True, (110, 110, 130))
         self.screen.blit(hint, (sx + 16, sy + H - 18))
+
+    def _draw_console_overlay(self, console_input):
+        sw = self.screen.get_width()
+        sh = self.screen.get_height()
+        bar_h = 38
+        bar_y = sh - bar_h
+
+        pygame.draw.rect(self.screen, (18, 18, 28), (0, bar_y, sw, bar_h))
+        pygame.draw.line(self.screen, PANEL_DIVIDER, (0, bar_y), (sw, bar_y), 1)
+
+        pad = 10
+        prompt = self.font_body.render("> ", True, HEADER_TEXT_COLOR)
+        self.screen.blit(prompt, (pad, bar_y + (bar_h - prompt.get_height()) // 2))
+
+        input_x = pad + prompt.get_width()
+        input_surf = self.font_body.render(console_input + "|", True, TEXT_COLOR)
+        self.screen.blit(input_surf, (input_x, bar_y + (bar_h - input_surf.get_height()) // 2))
+
+        hint = self.font_small.render(
+            "Enter to run  •  Esc to close  •  e.g. len(list(game_map.cities.values())[0].pops)",
+            True, (90, 90, 110)
+        )
+        self.screen.blit(hint, (sw - hint.get_width() - pad,
+                                bar_y + (bar_h - hint.get_height()) // 2))
 
     def _draw_save_popup(self, text):
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)

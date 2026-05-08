@@ -40,6 +40,10 @@ def main():
     river_popup_active = False
     assign_popup_active = False
     assign_popup_city = None
+    game_log = []
+    turn = 0
+    console_active = False
+    console_input = ""
 
     running = True
     while running:
@@ -48,7 +52,29 @@ def main():
                 running = False
 
             elif event.type == pygame.KEYDOWN:
-                if assign_popup_active:
+                if event.key == pygame.K_BACKQUOTE:
+                    console_active = not console_active
+                    console_input = ""
+                elif console_active:
+                    if event.key == pygame.K_RETURN and console_input.strip():
+                        cmd = console_input.strip()
+                        try:
+                            result = eval(cmd, {'game_map': game_map})
+                            game_log.append(f"> {cmd}")
+                            game_log.append(f"  {result}")
+                        except Exception as e:
+                            game_log.append(f"> {cmd}")
+                            game_log.append(f"  Error: {e}")
+                        console_input = ""
+                        console_active = False
+                    elif event.key == pygame.K_ESCAPE:
+                        console_active = False
+                        console_input = ""
+                    elif event.key == pygame.K_BACKSPACE:
+                        console_input = console_input[:-1]
+                    elif event.unicode.isprintable():
+                        console_input += event.unicode
+                elif assign_popup_active:
                     if event.key == pygame.K_ESCAPE:
                         assign_popup_active = False
                         assign_popup_city = None
@@ -144,10 +170,13 @@ def main():
                             reachable = game_map.get_reachable(unit)
 
                 elif renderer.end_turn_button_rect and renderer.end_turn_button_rect.collidepoint(pos):
+                    turn += 1
+                    game_log.append(f"\nTURN {turn}")
                     for unit in game_map.units.values():
                         unit.reset_moves()
                     for city in game_map.cities.values():
-                        city.end_turn()
+                        for msg in city.end_turn():
+                            game_log.append(f"{msg}")
                     move_mode = False
                     reachable = {}
 
@@ -169,7 +198,10 @@ def main():
                       save_popup_active, save_popup_text,
                       terrain_popup_active, river_popup_active,
                       moves_remaining=moving_unit.moves_remaining if moving_unit else None,
-                      assign_popup_data=assign_popup_data)
+                      assign_popup_data=assign_popup_data,
+                      game_log=game_log,
+                      console_active=console_active,
+                      console_input=console_input)
         clock.tick(60)
 
     pygame.quit()
