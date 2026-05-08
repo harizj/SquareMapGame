@@ -9,10 +9,16 @@ HEX_SIZE = 32
 MARGIN = 40
 PANEL_WIDTH = 220
 
+COLOR_PARCHMENT = (240, 220, 185)
+
 TERRAIN_COLORS = {
-    'desert':   (210, 180, 100),
-    'hills':    (139, 100,  60),
-    'river':    (100, 180,  80),
+    # 'desert':   (210, 180, 100),
+    # 'hills':    (139, 100,  60),
+    # 'river':    (100, 180,  80),
+    # 'mountain': (140, 140, 140),
+    'desert':   (200, 175, 115),
+    'hills':    (130, 102,  68),
+    'river':    (105, 168,  88),
     'mountain': (140, 140, 140),
 }
 COLOR_RIVER_LINE  = (60, 120, 200)
@@ -53,6 +59,7 @@ _TERRAIN_IMG_FILES = {
 
 ICON_SIZE   = 40
 ICON_OFFSET = 10
+RIVER_IMG_SCALE = 1.2  # bleed past tile edge so adjacent river images connect
 
 
 class Renderer:
@@ -85,6 +92,26 @@ class Renderer:
             if os.path.exists(path):
                 img = pygame.image.load(path).convert_alpha()
                 self.icons[icon_name] = pygame.transform.scale(img, (ICON_SIZE, ICON_SIZE))
+        self.river_imgs = {}
+        for img_file, entries in (
+            ('sw2ne_2',   [(frozenset({'W',  'E'}),  -30),
+                       (frozenset({'NW', 'SE'}),   -90),
+                       (frozenset({'NE', 'SW'}),  30)]),
+            ('nw2s',  [(frozenset({'NW', 'SW'}),  -30),
+                       (frozenset({'NE', 'W'}),   -90),
+                       (frozenset({'NW', 'E'}),   -150)]),
+            ('ne2s',  [(frozenset({'E',  'SW'}),  -30),
+                       (frozenset({'SE', 'W'}),   -90),
+                       (frozenset({'NE', 'SE'}),  30)]),
+        ):
+            path = os.path.join(_ASSETS_DIR, 'rivers', f'{img_file}.png')
+            if os.path.exists(path):
+                base = pygame.transform.scale(
+                    pygame.image.load(path).convert_alpha(),
+                    (int(hex_w * RIVER_IMG_SCALE), int(hex_h * RIVER_IMG_SCALE))
+                )
+                for key, angle in entries:
+                    self.river_imgs[key] = pygame.transform.rotate(base, angle)
         self.move_button_rect = None
         self.end_turn_button_rect = None
         self.save_map_button_rect = None
@@ -185,12 +212,19 @@ class Renderer:
                     cx, cy = all_centers[(r, c)]
                     self.screen.blit(img, (int(cx) - img.get_width() // 2, int(cy) - img.get_height() // 2))
 
-        # Pass 2: river lines on top of fills
+        # Pass 2: river images (straight) / lines (bends) on top of fills
         for r in range(self.map.rows):
             for c in range(self.map.cols):
                 tile = self.map.tiles[r][c]
-                if tile.river_edges:
-                    cx, cy = all_centers[(r, c)]
+                if not tile.river_edges:
+                    continue
+                cx, cy = all_centers[(r, c)]
+                straight_img = self.river_imgs.get(frozenset(tile.river_edges))
+                if straight_img:
+                    self.screen.blit(straight_img,
+                                     (int(cx) - straight_img.get_width() // 2,
+                                      int(cy) - straight_img.get_height() // 2))
+                else:
                     for direction in tile.river_edges:
                         angle = RIVER_DIR_ANGLES[direction]
                         ex = cx + apothem * math.cos(angle)
