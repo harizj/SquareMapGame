@@ -8,9 +8,9 @@ from src.game.unit import Unit
 GRID_COLS = 14
 GRID_ROWS = 14
 
-MOVE_COSTS = {'desert': 1.0, 'hills': 1.5, 'with_river': 1.0, 'cross_river': 2.0}
+MOVE_COSTS = {'desert': 1.0, 'hills': 1.5, 'forest': 1.5, 'with_river': 1.0, 'cross_river': 2.0}
 IMPASSABLE_TERRAINS = {'mountain'}
-TERRAIN_TYPES = ['desert', 'hills', 'river', 'mountain']
+TERRAIN_TYPES = ['desert', 'hills', 'forest', 'river', 'mountain']
 
 # Neighbor offsets (dr, dc) for odd-r offset hex grid, keyed by row parity.
 _NEIGHBORS = {
@@ -165,7 +165,9 @@ class Map:
             m.tiles.append(row)
         m.units = {(5, 5): Unit(5, 5)}
         m._city_name_idx = 0
-        m.cities = {(4, 4): City(4, 4, m._take_city_name())}
+        m.cities = {(7, 2): City(7, 2, m._take_city_name()),
+            (3, 6): City(3, 6, m._take_city_name()),
+            (9, 5): City(9, 5, m._take_city_name())}
         for city in m.cities.values():
             m.setup_city(city)
         # m.units = {}

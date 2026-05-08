@@ -21,6 +21,7 @@ TERRAIN_COLORS = {
     # 20% desaturated
     'desert':   (200, 175, 115),
     'hills':    (130, 102,  68),
+    'forest':   (105, 168,  88),
     'river':    (105, 168,  88),
     'mountain': (140, 140, 140),
     # 50% blended with parchment (240, 220, 185)
@@ -284,7 +285,7 @@ class Renderer:
             cx, cy = all_centers[(r, c)]
             icon = self.icons.get('castle')
             if icon:
-                self.screen.blit(icon, (int(cx) - ICON_OFFSET - icon.get_width() // 2,
+                self.screen.blit(icon, (int(cx) - icon.get_width() // 2,
                                         int(cy) - icon.get_height() // 2))
                 name_y = int(cy) + icon.get_height() // 2 - 12
             else:
@@ -306,7 +307,7 @@ class Renderer:
             cx, cy = all_centers[(r, c)]
             icon = self.icons.get('sword')
             if icon:
-                self.screen.blit(icon, (int(cx) + ICON_OFFSET - icon.get_width() // 2,
+                self.screen.blit(icon, (int(cx) - icon.get_width() // 2,
                                         int(cy) - icon.get_height() // 2))
             else:
                 self._draw_unit_marker(int(cx), int(cy))

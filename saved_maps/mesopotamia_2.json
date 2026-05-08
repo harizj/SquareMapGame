@@ -1,0 +1,907 @@
+{
+  "tiles": [
+    [
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "E",
+          "SW"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "E"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "E"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "SE"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "E",
+          "SW"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "E"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "NE"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NW",
+          "SW"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NE",
+          "SW"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "E",
+          "SW"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "NE"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NE",
+          "SW"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NE",
+          "SE"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "E",
+          "SW"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "NE"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NW",
+          "SE"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "E"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "NE"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NW",
+          "SE"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NW",
+          "SW"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NE",
+          "SW"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NE",
+          "SE"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NW",
+          "E"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "SE"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NW",
+          "SE"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": []
+      }
+    ]
+  ],
+  "units": [
+    {
+      "row": 5,
+      "col": 5,
+      "unit_type": "warrior",
+      "max_moves": 3.0,
+      "moves_remaining": 3.0
+    }
+  ],
+  "cities": [
+    {
+      "row": 4,
+      "col": 4,
+      "name": "Babylon"
+    }
+  ]
+}

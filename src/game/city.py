@@ -14,7 +14,7 @@ class City:
         self.row = row
         self.col = col
         self.name = name
-        self.pops = [Pop() for _ in range(19)]
+        self.pops = [Pop() for _ in range(20)]
         self.jobs = []
         self.food_stockpile = 0.0
         self.growth_progress = 0.0
