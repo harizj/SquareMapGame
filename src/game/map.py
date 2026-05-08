@@ -20,6 +20,12 @@ _NEIGHBORS = {
 
 _TERRAIN_MIGRATION = {'plains': 'desert'}
 
+CITY_NAMES = [
+    'Babylon', 'Nippur', 'Kish', 'Sippar', 'Uruk', 'Ur', 'Lagash',
+    'Eridu', 'Akkad', 'Adab', 'Umma', 'Girsu', 'Eshnunna', 'Isin',
+    'Larsa', 'Mari', 'Assur', 'Nineveh', 'Calah', 'Dur-Kurigalzu',
+]
+
 
 class Map:
     def __init__(self):
@@ -35,9 +41,15 @@ class Map:
         ]
         center_r, center_c = self.rows // 2, self.cols // 2
         self.units = {(center_r, center_c): Unit(center_r, center_c)}
-        self.cities = {(4, 4): City(4, 4)}
+        self._city_name_idx = 0
+        self.cities = {(4, 4): City(4, 4, self._take_city_name())}
         for city in self.cities.values():
             self.setup_city(city)
+
+    def _take_city_name(self):
+        name = CITY_NAMES[self._city_name_idx % len(CITY_NAMES)]
+        self._city_name_idx += 1
+        return name
 
     def get_unit(self, row, col):
         return self.units.get((row, col))
@@ -152,7 +164,8 @@ class Map:
                 row.append(t)
             m.tiles.append(row)
         m.units = {(5, 5): Unit(5, 5)}
-        m.cities = {(4, 4): City(4, 4)}
+        m._city_name_idx = 0
+        m.cities = {(4, 4): City(4, 4, m._take_city_name())}
         for city in m.cities.values():
             m.setup_city(city)
         # m.units = {}
