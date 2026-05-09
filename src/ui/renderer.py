@@ -470,21 +470,25 @@ class Renderer:
             btn_w2 = PANEL_WIDTH - pad * 2
             btn_h2 = 22
             self.rebalance_pops_button_rect = self._draw_button(panel_x + pad, y, btn_w2, btn_h2, "Rebalance Pops")
-            y += btn_h2 + 8
+            y += btn_h2 + 10
 
-            surf = self.font_body.render(f"Unassigned: {city.unassigned_pops}", True, TEXT_COLOR)
-            self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 6
-
+            surf = self.font_header.render("POPS", True, HEADER_TEXT_COLOR)
+            self.screen.blit(surf, (x, y))
+            y += surf.get_height() + 4
             for job in city.jobs:
-                surf = self.font_body.render(f"{job.label}: {job.assigned}/{job.slots} slots", True, TEXT_COLOR)
+                surf = self.font_body.render(f"{job.assigned} {job.label.lower()}", True, TEXT_COLOR)
                 self.screen.blit(surf, (x + 4, y))
                 y += surf.get_height() + 2
-                yd = job.yield_display()
-                if yd:
-                    surf = self.font_body.render(yd, True, TEXT_COLOR)
+            y += 6
+
+            surf = self.font_header.render("AVAILABLE JOBS", True, HEADER_TEXT_COLOR)
+            self.screen.blit(surf, (x, y))
+            y += surf.get_height() + 4
+            for job in city.jobs:
+                if job.job_type == 'farm':
+                    surf = self.font_body.render(f"{job.available_slots} {job.label.lower()}", True, TEXT_COLOR)
                     self.screen.blit(surf, (x + 4, y))
-                    y += surf.get_height() + 6
+                    y += surf.get_height() + 2
 
         # End Turn button anchored to bottom
         btn_w = PANEL_WIDTH - pad * 2
