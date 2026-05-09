@@ -141,6 +141,7 @@ def main():
                         for label, rect in renderer.city_focus_rects.items():
                             if rect.collidepoint(pos):
                                 city.city_focus = label
+                                city.rebalance_pops()
                                 break
 
                 elif renderer.admin_minus_rect and renderer.admin_minus_rect.collidepoint(pos):

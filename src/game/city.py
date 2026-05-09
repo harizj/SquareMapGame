@@ -30,7 +30,10 @@ class City:
         consumption = num_pops * POP_FOOD_CONSUMPTION
         min_stockpile = min(consumption, self._stockpile_max())
         food_needed_for_min_stockpile = min_stockpile - self.food_stockpile
-        growth_food = num_pops * GROWTH_FOOD_REQUIREMENT
+        if self.city_focus == 'Production':
+            growth_food = 0
+        else:
+            growth_food = num_pops * GROWTH_FOOD_REQUIREMENT
         return consumption + food_needed_for_min_stockpile + growth_food
 
     def _stockpile_max(self):
@@ -66,10 +69,16 @@ class City:
         # Farm: target food for all pops regardless of role
         if farm_job and farm_job.slots > 0:
             remaining_pops = len(self.pops) - (admin_job.assigned if admin_job else 0)
-            pops_for_farm = min(
-                math.ceil(self._food_target() / FarmJob.YIELD_PER_POP),
-                min(farm_job.slots, remaining_pops)
-            )
+        
+            if self.city_focus == 'Stockpile':
+                # All pops put on food production if filling stockpile
+                pops_for_farm = remaining_pops
+            else:
+                # Otherwise only those needed for growth
+                pops_for_farm = min(
+                    math.ceil(self._food_target() / FarmJob.YIELD_PER_POP),
+                    min(farm_job.slots, remaining_pops)
+                )
             count = 0
             for pop in self.pops:
                 if pop.assigned_job is not None:
