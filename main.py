@@ -38,8 +38,6 @@ def main():
     save_popup_text = ""
     terrain_popup_active = False
     river_popup_active = False
-    assign_popup_active = False
-    assign_popup_city = None
     game_log = []
     turn = 0
     console_active = False
@@ -74,10 +72,6 @@ def main():
                         console_input = console_input[:-1]
                     elif event.unicode.isprintable():
                         console_input += event.unicode
-                elif assign_popup_active:
-                    if event.key == pygame.K_ESCAPE:
-                        assign_popup_active = False
-                        assign_popup_city = None
                 elif save_popup_active:
                     if event.key == pygame.K_RETURN and save_popup_text.strip():
                         name = save_popup_text.strip().replace(' ', '_')
@@ -102,20 +96,7 @@ def main():
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 pos = event.pos
 
-                if assign_popup_active:
-                    for job_type, rect in renderer.assign_input_rects.items():
-                        if rect.collidepoint(pos):
-                            job = next((j for j in assign_popup_city.jobs if j.job_type == job_type), None)
-                            if job:
-                                for pop in assign_popup_city.pops:
-                                    if pop.assigned_job is None and job.available_slots > 0:
-                                        pop.assigned_job = job
-                                        job.assigned += 1
-                            assign_popup_active = False
-                            assign_popup_city = None
-                            break
-
-                elif terrain_popup_active:
+                if terrain_popup_active:
                     for terrain, rect in renderer.terrain_option_rects.items():
                         if rect.collidepoint(pos):
                             selected_tile.terrain = terrain
@@ -149,11 +130,10 @@ def main():
                 elif renderer.change_terrain_button_rect and renderer.change_terrain_button_rect.collidepoint(pos):
                     terrain_popup_active = True
 
-                elif renderer.assign_pops_button_rect and renderer.assign_pops_button_rect.collidepoint(pos):
+                elif renderer.rebalance_pops_button_rect and renderer.rebalance_pops_button_rect.collidepoint(pos):
                     city = game_map.cities.get((selected_tile.row, selected_tile.col)) if selected_tile else None
-                    if city and city.jobs:
-                        assign_popup_active = True
-                        assign_popup_city = city
+                    if city:
+                        city.rebalance_pops()
 
                 elif renderer.save_map_button_rect and renderer.save_map_button_rect.collidepoint(pos):
                     save_popup_active = True
@@ -174,9 +154,9 @@ def main():
                     game_log.append("")
                     for unit in game_map.units.values():
                         unit.reset_moves()
-                    # for city in game_map.cities.values():
-                    #     for msg in city.end_turn():
-                    #         game_log.append(f"{msg}")
+                    for city in game_map.cities.values():
+                        for msg in city.end_turn():
+                            game_log.append(f"T{turn} {msg}")
                     move_mode = False
                     reachable = {}
                     game_log.append(f"TURN {turn}")
@@ -194,12 +174,10 @@ def main():
                     selected_tile = renderer.get_tile_at(*pos)
 
         moving_unit = game_map.get_unit(selected_tile.row, selected_tile.col) if move_mode and selected_tile else None
-        assign_popup_data = {'city': assign_popup_city} if assign_popup_active and assign_popup_city else None
         renderer.draw(selected_tile, reachable, move_mode,
                       save_popup_active, save_popup_text,
                       terrain_popup_active, river_popup_active,
                       moves_remaining=moving_unit.moves_remaining if moving_unit else None,
-                      assign_popup_data=assign_popup_data,
                       game_log=game_log,
                       console_active=console_active,
                       console_input=console_input)

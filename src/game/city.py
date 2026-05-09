@@ -1,5 +1,6 @@
+import math
 from src.game.pop import Pop
-from src.game.jobs import FarmJob
+from src.game.jobs import FarmJob, ProductionJob
 
 STOCKPILE_MAX = 20
 GROWTH_NEEDED_FOR_NEW_POP = 100
@@ -22,13 +23,52 @@ class City:
     def unassigned_pops(self):
         return sum(1 for p in self.pops if p.assigned_job is None)
 
+    def _food_target(self):
+        num_pops = len(self.pops)
+        consumption = num_pops * POP_FOOD_CONSUMPTION
+        min_stockpile = min(consumption, STOCKPILE_MAX)
+        food_needed_for_min_stockpile = min_stockpile - self.food_stockpile
+        growth_food = num_pops * GROWTH_FOOD_REQUIREMENT
+        return consumption + food_needed_for_min_stockpile + growth_food
+
+    def rebalance_pops(self):
+        for pop in self.pops:
+            pop.assigned_job = None
+        for job in self.jobs:
+            job.assigned = 0
+
+        farm_job = next((j for j in self.jobs if j.job_type == 'farm'), None)
+        prod_job = next((j for j in self.jobs if j.job_type == 'production'), None)
+
+        if farm_job and farm_job.slots > 0:
+            pops_for_farm = min(
+                math.ceil(self._food_target() / FarmJob.YIELD_PER_POP),
+                min(farm_job.slots, len(self.pops))
+            )
+            count = 0
+            for pop in self.pops:
+                if count >= pops_for_farm:
+                    break
+                pop.assigned_job = farm_job
+                farm_job.assigned += 1
+                count += 1
+
+        if prod_job:
+            for pop in self.pops:
+                if pop.assigned_job is None and prod_job.available_slots > 0:
+                    pop.assigned_job = prod_job
+                    prod_job.assigned += 1
+
     def setup_jobs(self, river_tile_count):
         farm_slots = river_tile_count * 5
-        existing = next((j for j in self.jobs if j.job_type == 'farm'), None)
-        if existing:
-            existing.slots = farm_slots
+        existing_farm = next((j for j in self.jobs if j.job_type == 'farm'), None)
+        if existing_farm:
+            existing_farm.slots = farm_slots
         else:
             self.jobs.append(FarmJob(farm_slots))
+        if not any(j.job_type == 'production' for j in self.jobs):
+            self.jobs.append(ProductionJob())
+        self.rebalance_pops()
 
     def set_job_assignment(self, job, target):
         for pop in self.pops:
@@ -86,14 +126,13 @@ class City:
         log.insert(0, f"{self.name}: {self.food_stockpile:.0f} food in stockpile")
 
         # Step 6: spawn new pops for every 100 growth accumulated
+        spawned = 0
         while self.growth_progress >= GROWTH_NEEDED_FOR_NEW_POP:
             self.growth_progress -= GROWTH_NEEDED_FOR_NEW_POP
-            new_pop = Pop()
-            farm_job = next((j for j in self.jobs if j.job_type == 'farm' and j.available_slots > 0), None)
-            if farm_job:
-                new_pop.assigned_job = farm_job
-                farm_job.assigned += 1
-            self.pops.append(new_pop)
-            log.append(f"{self.name}: new pop! ({len(self.pops)} total)")
+            self.pops.append(Pop())
+            spawned += 1
+        if spawned:
+            self.rebalance_pops()
+            log.append(f"{self.name}: {spawned} new pop(s)! ({len(self.pops)} total)")
 
         return log

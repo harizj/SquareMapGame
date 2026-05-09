@@ -35,3 +35,11 @@ class FarmJob(Job):
 
     def yield_display(self):
         return f"{self.food_yield():.1f} food/turn"
+
+
+class ProductionJob(Job):
+    job_type = 'production'
+    label = 'Production'
+
+    def __init__(self):
+        super().__init__(slots=100)

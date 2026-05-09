@@ -132,9 +132,7 @@ class Renderer:
         self.save_map_button_rect = None
         self.change_terrain_button_rect = None
         self.draw_river_button_rect = None
-        self.assign_pops_button_rect = None
-        self.assign_input_rects = {}
-        self.assign_confirm_rect = None
+        self.rebalance_pops_button_rect = None
         self.terrain_option_rects = {}
         self.river_option_rects = {}
 
@@ -199,7 +197,7 @@ class Renderer:
     def draw(self, selected_tile=None, reachable=None, move_mode=False,
              save_popup_active=False, save_popup_text="",
              terrain_popup_active=False, river_popup_active=False,
-             moves_remaining=None, assign_popup_data=None, game_log=None,
+             moves_remaining=None, game_log=None,
              console_active=False, console_input=""):
         if reachable is None:
             reachable = {}
@@ -317,9 +315,7 @@ class Renderer:
 
         self.terrain_option_rects = {}
         self.river_option_rects = {}
-        if assign_popup_data is not None:
-            self._draw_assign_popup(assign_popup_data)
-        elif river_popup_active:
+        if river_popup_active:
             self._draw_river_popup(selected_tile)
         elif terrain_popup_active:
             self._draw_terrain_popup(selected_tile)
@@ -471,18 +467,14 @@ class Renderer:
             pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
             y += bar_h + 8
 
+            btn_w2 = PANEL_WIDTH - pad * 2
+            btn_h2 = 22
+            self.rebalance_pops_button_rect = self._draw_button(panel_x + pad, y, btn_w2, btn_h2, "Rebalance Pops")
+            y += btn_h2 + 8
+
             surf = self.font_body.render(f"Unassigned: {city.unassigned_pops}", True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
             y += surf.get_height() + 6
-
-            btn_w2 = PANEL_WIDTH - pad * 2
-            btn_h2 = 22
-            has_jobs = bool(city.jobs)
-            if has_jobs:
-                self.assign_pops_button_rect = self._draw_button(panel_x + pad, y, btn_w2, btn_h2, "Assign Pops")
-            else:
-                self._draw_button(panel_x + pad, y, btn_w2, btn_h2, "Assign Pops", disabled=True)
-            y += btn_h2 + 8
 
             for job in city.jobs:
                 surf = self.font_body.render(f"{job.label}: {job.assigned}/{job.slots} slots", True, TEXT_COLOR)
@@ -500,36 +492,6 @@ class Renderer:
         self.end_turn_button_rect = self._draw_button(
             panel_x + pad, self.screen.get_height() - pad - btn_h, btn_w, btn_h, "End Turn"
         )
-
-    def _draw_assign_popup(self, data):
-        city = data['city']
-
-        overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 160))
-        self.screen.blit(overlay, (0, 0))
-
-        row_h = 36
-        W = 260
-        H = 50 + len(city.jobs) * row_h + 28
-        sx = (self.screen.get_width() - W) // 2
-        sy = (self.screen.get_height() - H) // 2
-        pygame.draw.rect(self.screen, (40, 40, 55), (sx, sy, W, H), border_radius=6)
-        pygame.draw.rect(self.screen, PANEL_DIVIDER, (sx, sy, W, H), 1, border_radius=6)
-
-        surf = self.font_header.render("ASSIGN POPS", True, HEADER_TEXT_COLOR)
-        self.screen.blit(surf, (sx + 16, sy + 14))
-
-        self.assign_input_rects = {}
-        self.assign_confirm_rect = None
-        y = sy + 42
-        for job in city.jobs:
-            label = f"{job.label}   {job.assigned} / {job.slots} slots"
-            rect = self._draw_button(sx + 16, y, W - 32, row_h - 6, label)
-            self.assign_input_rects[job.job_type] = rect
-            y += row_h
-
-        hint = self.font_body.render("Esc to cancel", True, (110, 110, 130))
-        self.screen.blit(hint, (sx + 16, sy + H - 18))
 
     def _draw_console_overlay(self, console_input):
         sw = self.screen.get_width()
