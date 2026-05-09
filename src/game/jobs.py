@@ -40,9 +40,13 @@ class FarmJob(Job):
 class ProductionJob(Job):
     job_type = 'production'
     label = 'Laborers'
+    YIELD_PER_POP = 1
 
     def __init__(self):
         super().__init__(slots=100)
+
+    def production_yield(self):
+        return self.assigned * self.YIELD_PER_POP
 
 
 class AdminJob(Job):

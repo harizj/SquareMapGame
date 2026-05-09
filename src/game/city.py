@@ -6,7 +6,7 @@ STOCKPILE_MAX = 20
 STOCKPILE_PER_ADMIN = 20
 GROWTH_NEEDED_FOR_NEW_POP = 100
 POP_FOOD_CONSUMPTION = 1
-GROWTH_FOOD_REQUIREMENT = .1
+GROWTH_FOOD_REQUIREMENT = .2
 GROWTH_RATE = 2
 
 
@@ -19,6 +19,7 @@ class City:
         self.jobs = []
         self.food_stockpile = 0.0
         self.growth_progress = 0.0
+        self.construction_progress = 0.0
         self.city_focus = 'Growth'
 
     @property
@@ -164,7 +165,12 @@ class City:
         log.insert(0, f"{self.name}: {food:.0f} leftover food, added to stockpile")
         log.insert(0, f"{self.name}: {self.food_stockpile:.0f} food in stockpile")
 
-        # Step 6: spawn new pops for every 100 growth accumulated
+        # Step 6: construction from laborers
+        prod_job = next((j for j in self.jobs if j.job_type == 'production'), None)
+        if prod_job:
+            self.construction_progress = min(self.construction_progress + prod_job.production_yield(), 1000)
+
+        # Step 7: spawn new pops for every 100 growth accumulated
         spawned = 0
         while self.growth_progress >= GROWTH_NEEDED_FOR_NEW_POP:
             self.growth_progress -= GROWTH_NEEDED_FOR_NEW_POP

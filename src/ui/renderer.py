@@ -470,6 +470,19 @@ class Renderer:
             pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
             y += bar_h + 8
 
+            # Construction progress bar
+            label = self.font_small.render("Construction", True, TEXT_COLOR)
+            val = self.font_small.render(f"{int(city.construction_progress)}/1000", True, TEXT_COLOR)
+            self.screen.blit(label, (bar_x, y))
+            self.screen.blit(val, (bar_x + bar_w - val.get_width(), y))
+            y += label.get_height() + 2
+            pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
+            fill_w = int(bar_w * city.construction_progress / 1000)
+            if fill_w > 0:
+                pygame.draw.rect(self.screen, (130, 130, 140), (bar_x, y, fill_w, bar_h), border_radius=2)
+            pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
+            y += bar_h + 8
+
             btn_w2 = PANEL_WIDTH - pad * 2
             btn_h2 = 22
             self.rebalance_pops_button_rect = self._draw_button(panel_x + pad, y, btn_w2, btn_h2, "Rebalance Pops")
