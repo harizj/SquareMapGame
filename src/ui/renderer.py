@@ -356,6 +356,8 @@ class Renderer:
         self.move_button_rect = None
         self.save_map_button_rect = None
         self.change_terrain_button_rect = None
+        self.admin_minus_rect = None
+        self.admin_plus_rect = None
         self.draw_river_button_rect = None
         self.assign_pops_button_rect = None
         panel_x = self.map_w
@@ -440,8 +442,8 @@ class Renderer:
             bar_h = 8
             bar_x = panel_x + pad
 
-            # Food stockpile bar (fills to STOCKPILE_MAX)
-            food_max = STOCKPILE_MAX
+            # Food stockpile bar (fills to current stockpile max)
+            food_max = city._stockpile_max()
             label = self.font_small.render("Food", True, TEXT_COLOR)
             val = self.font_small.render(f"{int(city.food_stockpile)}/{food_max}", True, TEXT_COLOR)
             self.screen.blit(label, (bar_x, y))
@@ -475,10 +477,21 @@ class Renderer:
             surf = self.font_header.render("POPS", True, HEADER_TEXT_COLOR)
             self.screen.blit(surf, (x, y))
             y += surf.get_height() + 4
+            btn_s = 16
             for job in city.jobs:
-                surf = self.font_body.render(f"{job.assigned} {job.label.lower()}", True, TEXT_COLOR)
-                self.screen.blit(surf, (x + 4, y))
-                y += surf.get_height() + 2
+                if job.job_type == 'administrator':
+                    label_surf = self.font_body.render(
+                        f"{job.assigned} {job.label.lower()}", True, TEXT_COLOR)
+                    self.screen.blit(label_surf, (x + 4, y + (btn_s - label_surf.get_height()) // 2))
+                    self.admin_plus_rect = self._draw_button(
+                        panel_x + PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "+")
+                    self.admin_minus_rect = self._draw_button(
+                        panel_x + PANEL_WIDTH - pad - btn_s * 2 - 3, y, btn_s, btn_s, "-")
+                    y += btn_s + 4
+                else:
+                    surf = self.font_body.render(f"{job.assigned} {job.label.lower()}", True, TEXT_COLOR)
+                    self.screen.blit(surf, (x + 4, y))
+                    y += surf.get_height() + 2
             y += 6
 
             surf = self.font_header.render("AVAILABLE JOBS", True, HEADER_TEXT_COLOR)

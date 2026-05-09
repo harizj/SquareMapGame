@@ -25,7 +25,7 @@ class Job:
 class FarmJob(Job):
     job_type = 'farm'
     label = 'Peasants'
-    YIELD_PER_POP = 1.3
+    YIELD_PER_POP = 1.4
 
     def __init__(self, slots=0):
         super().__init__(slots)
@@ -40,6 +40,14 @@ class FarmJob(Job):
 class ProductionJob(Job):
     job_type = 'production'
     label = 'Laborers'
+
+    def __init__(self):
+        super().__init__(slots=100)
+
+
+class AdminJob(Job):
+    job_type = 'administrator'
+    label = 'Administrators'
 
     def __init__(self):
         super().__init__(slots=100)
