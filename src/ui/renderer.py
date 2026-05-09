@@ -358,6 +358,7 @@ class Renderer:
         self.change_terrain_button_rect = None
         self.admin_minus_rect = None
         self.admin_plus_rect = None
+        self.city_focus_rects = {}
         self.draw_river_button_rect = None
         self.assign_pops_button_rect = None
         panel_x = self.map_w
@@ -473,6 +474,20 @@ class Renderer:
             btn_h2 = 22
             self.rebalance_pops_button_rect = self._draw_button(panel_x + pad, y, btn_w2, btn_h2, "Rebalance Pops")
             y += btn_h2 + 10
+
+            surf = self.font_header.render("CITY FOCUS", True, HEADER_TEXT_COLOR)
+            self.screen.blit(surf, (x, y))
+            y += surf.get_height() + 4
+            focus_btn_h = 20
+            focus_widths = [52, 72, 60]  # Growth, Production, Stockpile
+            focus_x = panel_x + pad
+            self.city_focus_rects = {}
+            for label, fw in zip(("Growth", "Production", "Stockpile"), focus_widths):
+                rect = self._draw_button(focus_x, y, fw, focus_btn_h, label,
+                                         active=(label == city.city_focus))
+                self.city_focus_rects[label] = rect
+                focus_x += fw + 2
+            y += focus_btn_h + 10
 
             surf = self.font_header.render("POPS", True, HEADER_TEXT_COLOR)
             self.screen.blit(surf, (x, y))

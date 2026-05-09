@@ -19,6 +19,7 @@ class City:
         self.jobs = []
         self.food_stockpile = 0.0
         self.growth_progress = 0.0
+        self.city_focus = 'Growth'
 
     @property
     def unassigned_pops(self):

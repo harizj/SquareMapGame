@@ -135,6 +135,14 @@ def main():
                     if city:
                         city.rebalance_pops()
 
+                elif any(r.collidepoint(pos) for r in renderer.city_focus_rects.values()):
+                    city = game_map.cities.get((selected_tile.row, selected_tile.col)) if selected_tile else None
+                    if city:
+                        for label, rect in renderer.city_focus_rects.items():
+                            if rect.collidepoint(pos):
+                                city.city_focus = label
+                                break
+
                 elif renderer.admin_minus_rect and renderer.admin_minus_rect.collidepoint(pos):
                     city = game_map.cities.get((selected_tile.row, selected_tile.col)) if selected_tile else None
                     if city:
