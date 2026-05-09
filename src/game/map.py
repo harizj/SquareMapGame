@@ -165,9 +165,9 @@ class Map:
             m.tiles.append(row)
         m.units = {(5, 5): Unit(5, 5)}
         m._city_name_idx = 0
-        m.cities = {(7, 2): City(7, 2, m._take_city_name())}
-            # (3, 6): City(3, 6, m._take_city_name()),
-            # (9, 5): City(9, 5, m._take_city_name())}
+        m.cities = {(7, 2): City(7, 2, m._take_city_name()),
+            (3, 6): City(3, 6, m._take_city_name()),
+            (9, 5): City(9, 5, m._take_city_name())}
         for city in m.cities.values():
             m.setup_city(city)
         # m.units = {}

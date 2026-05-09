@@ -300,6 +300,26 @@ class Renderer:
                 self.screen.blit(shadow_surf, (nx + dx, name_y + dy))
             self.screen.blit(name_surf, (nx, name_y))
 
+            mini_bar_w = 80
+            mini_bar_h = 3
+            mini_gap = 1
+            mini_pad = 2
+            block_w = mini_bar_w + mini_pad * 2
+            block_h = mini_bar_h * 3 + mini_gap * 2 + mini_pad * 2
+            bx = int(cx) - block_w // 2
+            by = name_y + name_surf.get_height() - 2
+            pygame.draw.rect(self.screen, (0, 0, 0), (bx, by, block_w, block_h))
+            food_max = city._stockpile_max()
+            bars = [
+                (city.food_stockpile, food_max if food_max > 0 else 1, (120, 190, 80)),
+                (city.growth_progress, 100, (55, 120, 30)),
+                (city.construction_progress, 1000, (130, 130, 140)),
+            ]
+            for i, (val, mx, color) in enumerate(bars):
+                bar_y = by + mini_pad + i * (mini_bar_h + mini_gap)
+                fill = int(mini_bar_w * min(val, mx) / mx)
+                pygame.draw.rect(self.screen, color, (bx + mini_pad, bar_y, mini_bar_w, mini_bar_h))
+
         # Pass 7: unit markers
         for (r, c) in self.map.units:
             cx, cy = all_centers[(r, c)]

@@ -125,6 +125,7 @@ class City:
                 count += 1
 
     def end_turn(self):
+        self.rebalance_pops()
         num_pops = len(self.pops)
         log = []
         log.insert(0, f"{self.name}: {self.food_stockpile:.0f} food in stockpile")
