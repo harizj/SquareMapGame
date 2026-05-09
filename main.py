@@ -174,9 +174,9 @@ def main():
                     game_log.append("")
                     for unit in game_map.units.values():
                         unit.reset_moves()
-                    for city in game_map.cities.values():
-                        for msg in city.end_turn():
-                            game_log.append(f"{msg}")
+                    # for city in game_map.cities.values():
+                    #     for msg in city.end_turn():
+                    #         game_log.append(f"{msg}")
                     move_mode = False
                     reachable = {}
                     game_log.append(f"TURN {turn}")
