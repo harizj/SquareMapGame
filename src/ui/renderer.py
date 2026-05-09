@@ -455,6 +455,10 @@ class Renderer:
             if fill_w > 0:
                 pygame.draw.rect(self.screen, (120, 190, 80), (bar_x, y, fill_w, bar_h), border_radius=2)
             pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
+            min_stockpile = min(len(city.pops), food_max)
+            if food_max > 0 and 0 < min_stockpile < food_max:
+                tick_x = bar_x + int(bar_w * min_stockpile / food_max)
+                pygame.draw.line(self.screen, (255, 255, 255), (tick_x, y - 2), (tick_x, y + bar_h + 1), 2)
             y += bar_h + 8
 
             # Growth progress bar
