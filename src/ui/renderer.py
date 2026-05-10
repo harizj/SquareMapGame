@@ -119,16 +119,14 @@ class Renderer:
                 self.terrain_images[name] = variants
         self.icons = {}
         icons_dir = os.path.join(_ASSETS_DIR, 'icons')
-        for icon_name in ('castle', 'sword'):
-            path = os.path.join(icons_dir, f'{icon_name}.png')
+        castle_size = int(ICON_SIZE * 1.4)
+        for icon_name, file_name in (('castle', 'city'), ('sword', 'sword')):
+            path = os.path.join(icons_dir, f'{file_name}.png')
             if os.path.exists(path):
                 img = pygame.image.load(path).convert_alpha()
-                self.icons[icon_name] = pygame.transform.scale(img, (ICON_SIZE, ICON_SIZE))
-        self.icons_tinted = {}
-        for name, icon in self.icons.items():
-            tinted = icon.copy()
-            tinted.fill((180, 210, 255), special_flags=pygame.BLEND_RGBA_MULT)
-            self.icons_tinted[name] = tinted
+                size = castle_size if icon_name == 'castle' else ICON_SIZE
+                self.icons[icon_name] = pygame.transform.scale(img, (size, size))
+        self.icons_tinted = self.icons
         self.river_imgs = {}
         for img_file, entries in (
             ('sw2ne_2',   [(frozenset({'W',  'E'}),  -30),
@@ -318,7 +316,7 @@ class Renderer:
                                          (int(p1[0]), int(p1[1])),
                                          (int(p2[0]), int(p2[1])), 4)
                         glow_steps = 10
-                        glow_reach = 0.15
+                        glow_reach = 0.30
                         for k in range(1, glow_steps + 1):
                             t = k / glow_steps
                             g1 = (p1[0] + (cx - p1[0]) * t * glow_reach,
@@ -326,7 +324,7 @@ class Renderer:
                             g2 = (p2[0] + (cx - p2[0]) * t * glow_reach,
                                   p2[1] + (cy - p2[1]) * t * glow_reach)
                             alpha = int(90 * (1 - t))
-                            alpha = int(90)
+                            #alpha = int(90)
                             pygame.draw.line(self._glow_surf, (40, 70, 160, alpha),
                                              (int(g1[0]), int(g1[1])),
                                              (int(g2[0]), int(g2[1])), 2)
@@ -379,9 +377,10 @@ class Renderer:
                 pygame.draw.polygon(self.screen, (255, 210, 50), corners, 3)
             icon = self.icons_tinted.get('castle')
             if icon:
-                self.screen.blit(icon, (int(cx) - icon.get_width() // 2,
-                                        int(cy) - icon.get_height() // 2))
-                name_y = int(cy) + icon.get_height() // 2 - 12
+                ix = int(cx) - icon.get_width() // 2
+                iy = int(cy) - HEX_SIZE - 3.5
+                self.screen.blit(icon, (ix, iy))
+                name_y = iy + icon.get_height() - 15
             else:
                 s = 6
                 rect = pygame.Rect(int(cx) - s, int(cy) - s, s * 2, s * 2)
