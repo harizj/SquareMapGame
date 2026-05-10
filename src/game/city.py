@@ -24,6 +24,7 @@ class City:
         self.growth_progress = 0.0
         self.construction_progress = 0.0
         self.city_focus = 'Growth'
+        self.trade_routes = []
 
     @property
     def unassigned_pops(self):

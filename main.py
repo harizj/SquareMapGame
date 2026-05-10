@@ -3,6 +3,7 @@ import os
 import pygame
 from src.game.map import Map
 from src.game.save_load import load_map_data, save_map
+from src.game.trade_route import TradeRoute
 from src.ui.renderer import Renderer
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
@@ -156,16 +157,32 @@ def main():
                 elif any(r.collidepoint(pos) for r in renderer.trade_route_import_rects.values()):
                     for label, rect in renderer.trade_route_import_rects.items():
                         if rect.collidepoint(pos):
-                            renderer.trade_route_import = label if renderer.trade_route_import != label else None
+                            key = label.lower()
+                            renderer.trade_route_import = key if renderer.trade_route_import != key else None
                             break
 
                 elif any(r.collidepoint(pos) for r in renderer.trade_route_export_rects.values()):
                     for label, rect in renderer.trade_route_export_rects.items():
                         if rect.collidepoint(pos):
-                            renderer.trade_route_export = label if renderer.trade_route_export != label else None
+                            key = label.lower()
+                            renderer.trade_route_export = key if renderer.trade_route_export != key else None
                             break
 
                 elif renderer.trade_route_confirm_rect and renderer.trade_route_confirm_rect.collidepoint(pos):
+                    city_a, city_b = renderer.trade_route_pending
+                    route = TradeRoute(
+                        city_a=city_a,
+                        city_b=city_b,
+                        pops=renderer.trade_route_pops,
+                        export_material=renderer.trade_route_export,
+                        export_amount=renderer.trade_route_export_amount,
+                        max_export=renderer.trade_route_max_export,
+                        import_material=renderer.trade_route_import,
+                        import_amount=renderer.trade_route_import_amount,
+                        max_import=renderer.trade_route_max_import,
+                    )
+                    city_a.trade_routes.append(route)
+                    city_b.trade_routes.append(route)
                     renderer.trade_route_pending = None
                     renderer.adding_trade_route = False
 

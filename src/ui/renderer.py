@@ -168,6 +168,8 @@ class Renderer:
         self.trade_route_import_amount = 0
         self.trade_route_import_slider_rect = None
         self._import_slider_dragging = False
+        self.trade_route_max_export = 0.0
+        self.trade_route_max_import = 0.0
         self._glow_surf = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
         self.terrain_option_rects = {}
         self.river_option_rects = {}
@@ -630,6 +632,31 @@ class Renderer:
         self.screen.blit(surf, (x, y))
         y += surf.get_height() + 6
 
+        def _fmt_amt(v):
+            return str(int(v)) if v == int(v) else f"{v:.1f}"
+
+        for route in city.trade_routes:
+            is_origin = route.city_a == city
+            other = route.city_b if is_origin else route.city_a
+            name_surf = self.font_body.render(other.name, True, TEXT_COLOR)
+            self.screen.blit(name_surf, (x + 4, y))
+            y += name_surf.get_height() + 1
+            parts = []
+            if is_origin:
+                parts.append(f"{route.pops} pops in caravan")
+                if route.import_material:
+                    parts.append(f"+{_fmt_amt(route.import_amount)} {route.import_material}")
+                if route.export_material:
+                    parts.append(f"-{_fmt_amt(route.export_amount)} {route.export_material}")
+            else:
+                if route.export_material:
+                    parts.append(f"+{_fmt_amt(route.export_amount)} {route.export_material}")
+                if route.import_material:
+                    parts.append(f"-{_fmt_amt(route.import_amount)} {route.import_material}")
+            detail_surf = self.font_small.render(", ".join(parts) if parts else "—", True, PANEL_DIVIDER)
+            self.screen.blit(detail_surf, (x + 4, y))
+            y += detail_surf.get_height() + 6
+
         if self.trade_route_pending:
             city_a, city_b = self.trade_route_pending
             surf = self.font_body.render(f"{city_a.name} <-> {city_b.name}", True, TEXT_COLOR)
@@ -672,7 +699,7 @@ class Renderer:
             bx = pad
             for export_label in ('Food', 'Wood', 'Iron'):
                 rect = self._draw_button(bx, y, export_btn_w, 20, export_label,
-                                         active=(self.trade_route_export == export_label))
+                                         active=(self.trade_route_export == export_label.lower()))
                 self.trade_route_export_rects[export_label] = rect
                 bx += export_btn_w + 2
             y += 28
@@ -685,6 +712,7 @@ class Renderer:
 
             # Export amount slider
             ex_steps, ex_max = self._amount_steps(dist, self.trade_route_pops, 2)
+            self.trade_route_max_export = ex_max
             ex_val = min(self.trade_route_export_amount, ex_max)
             ex_str = str(int(ex_val)) if ex_val == int(ex_val) else f"{ex_val:.1f}"
             surf = self.font_small.render(f"Export amount: {ex_str}", True, TEXT_COLOR)
@@ -703,13 +731,14 @@ class Renderer:
             bx = pad
             for import_label in ('Food', 'Wood', 'Iron'):
                 rect = self._draw_button(bx, y, import_btn_w, 20, import_label,
-                                         active=(self.trade_route_import == import_label))
+                                         active=(self.trade_route_import == import_label.lower()))
                 self.trade_route_import_rects[import_label] = rect
                 bx += import_btn_w + 2
             y += 28
 
             # Import amount slider
             im_steps, im_max = self._amount_steps(dist, self.trade_route_pops, 1)
+            self.trade_route_max_import = im_max
             im_val = min(self.trade_route_import_amount, im_max)
             im_str = str(int(im_val)) if im_val == int(im_val) else f"{im_val:.1f}"
             surf = self.font_small.render(f"Import amount: {im_str}", True, TEXT_COLOR)
