@@ -93,6 +93,21 @@ def main():
                 elif event.key == pygame.K_ESCAPE:
                     running = False
 
+            elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                renderer._slider_dragging = False
+                renderer._amount_slider_dragging = False
+                renderer._import_slider_dragging = False
+
+            elif event.type == pygame.MOUSEMOTION:
+                if renderer._slider_dragging and renderer.trade_route_slider_rect:
+                    sr = renderer.trade_route_slider_rect
+                    t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
+                    renderer.trade_route_pops = max(1, min(8, round(1 + t * 7)))
+                if renderer._amount_slider_dragging:
+                    renderer.snap_export_amount(event.pos[0])
+                if renderer._import_slider_dragging:
+                    renderer.snap_import_amount(event.pos[0])
+
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 pos = event.pos
 
@@ -123,6 +138,32 @@ def main():
 
                 elif save_popup_active:
                     pass
+
+                elif renderer.trade_route_import_slider_rect and renderer.trade_route_import_slider_rect.collidepoint(pos):
+                    renderer.snap_import_amount(pos[0])
+                    renderer._import_slider_dragging = True
+
+                elif renderer.trade_route_amount_slider_rect and renderer.trade_route_amount_slider_rect.collidepoint(pos):
+                    renderer.snap_export_amount(pos[0])
+                    renderer._amount_slider_dragging = True
+
+                elif renderer.trade_route_slider_rect and renderer.trade_route_slider_rect.collidepoint(pos):
+                    sr = renderer.trade_route_slider_rect
+                    t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
+                    renderer.trade_route_pops = max(1, min(8, round(1 + t * 7)))
+                    renderer._slider_dragging = True
+
+                elif any(r.collidepoint(pos) for r in renderer.trade_route_import_rects.values()):
+                    for label, rect in renderer.trade_route_import_rects.items():
+                        if rect.collidepoint(pos):
+                            renderer.trade_route_import = label if renderer.trade_route_import != label else None
+                            break
+
+                elif any(r.collidepoint(pos) for r in renderer.trade_route_export_rects.values()):
+                    for label, rect in renderer.trade_route_export_rects.items():
+                        if rect.collidepoint(pos):
+                            renderer.trade_route_export = label if renderer.trade_route_export != label else None
+                            break
 
                 elif renderer.trade_route_confirm_rect and renderer.trade_route_confirm_rect.collidepoint(pos):
                     renderer.trade_route_pending = None
@@ -202,6 +243,11 @@ def main():
                         clicked_city = game_map.cities.get((tile.row, tile.col))
                         if clicked_city and clicked_city is not current_city:
                             renderer.trade_route_pending = (current_city, clicked_city)
+                            renderer.trade_route_pops = 1
+                            renderer.trade_route_export = None
+                            renderer.trade_route_export_amount = 0
+                            renderer.trade_route_import = None
+                            renderer.trade_route_import_amount = 0
                     renderer.adding_trade_route = False
 
                 elif move_mode:
