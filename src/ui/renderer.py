@@ -142,6 +142,7 @@ class Renderer:
         self.change_terrain_button_rect = None
         self.draw_river_button_rect = None
         self.rebalance_pops_button_rect = None
+        self._glow_surf = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
         self.terrain_option_rects = {}
         self.river_option_rects = {}
 
@@ -265,12 +266,14 @@ class Renderer:
                     continue
                 pygame.draw.polygon(self.screen, COLOR_OUTLINE, all_corners[(r, c)], 1)
 
-        # Pass 3b: city territory borders
+        # Pass 3b: city territory borders + inner glow
+        self._glow_surf.fill((0, 0, 0, 0))
         for r in range(self.map.rows):
             for c in range(self.map.cols):
                 tile = self.map.tiles[r][c]
                 if tile.owning_city is None:
                     continue
+                cx, cy = all_centers[(r, c)]
                 corners = all_corners[(r, c)]
                 for i, (dr, dc) in enumerate(_RENDER_NEIGHBORS[r % 2]):
                     nr, nc = r + dr, c + dc
@@ -280,9 +283,24 @@ class Renderer:
                         neighbor_city = self.map.tiles[nr][nc].owning_city
                     if neighbor_city is not tile.owning_city:
                         ci, cj = _NEIGHBOR_EDGE_CORNERS[i]
+                        p1 = corners[ci]
+                        p2 = corners[cj]
                         pygame.draw.line(self.screen, (40, 70, 160),
-                                         (int(corners[ci][0]), int(corners[ci][1])),
-                                         (int(corners[cj][0]), int(corners[cj][1])), 4)
+                                         (int(p1[0]), int(p1[1])),
+                                         (int(p2[0]), int(p2[1])), 4)
+                        glow_steps = 10
+                        glow_reach = 0.25
+                        for k in range(1, glow_steps + 1):
+                            t = k / glow_steps
+                            g1 = (p1[0] + (cx - p1[0]) * t * glow_reach,
+                                  p1[1] + (cy - p1[1]) * t * glow_reach)
+                            g2 = (p2[0] + (cx - p2[0]) * t * glow_reach,
+                                  p2[1] + (cy - p2[1]) * t * glow_reach)
+                            alpha = int(90 * (1 - t))
+                            pygame.draw.line(self._glow_surf, (40, 70, 160, alpha),
+                                             (int(g1[0]), int(g1[1])),
+                                             (int(g2[0]), int(g2[1])), 2)
+        self.screen.blit(self._glow_surf, (0, 0))
 
         # Pass 4: reachable borders
         for (r, c) in reachable:
