@@ -77,7 +77,8 @@ _TERRAIN_IMG_FILES = {
 ICON_SIZE      = 40
 ICON_OFFSET    = 10
 RIVER_IMG_SCALE = 1.2  # bleed past tile edge so adjacent river images connect
-LOG_PANEL_WIDTH = 180
+LOG_PANEL_WIDTH = 0
+CITY_PANEL_WIDTH = 220
 
 
 class Renderer:
@@ -85,9 +86,9 @@ class Renderer:
         self.map = game_map
         w = math.sqrt(3) * HEX_SIZE
         map_area_w = int(game_map.cols * w + w / 2 + 2 * MARGIN)
-        self.map_w = LOG_PANEL_WIDTH + map_area_w
+        self.map_w = CITY_PANEL_WIDTH + map_area_w
         screen_h = int((game_map.rows - 1) * HEX_SIZE * 1.5 + 2 * HEX_SIZE + 2 * MARGIN)
-        self.offset_x = LOG_PANEL_WIDTH + MARGIN + w / 2
+        self.offset_x = CITY_PANEL_WIDTH + MARGIN + w / 2
         self.offset_y = MARGIN + HEX_SIZE
         self.screen = pygame.display.set_mode((self.map_w + PANEL_WIDTH, screen_h))
         pygame.display.set_caption("HexGame")
@@ -147,6 +148,9 @@ class Renderer:
         self.change_terrain_button_rect = None
         self.draw_river_button_rect = None
         self.rebalance_pops_button_rect = None
+        self.admin_minus_rect = None
+        self.admin_plus_rect = None
+        self.city_focus_rects = {}
         self._glow_surf = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
         self.terrain_option_rects = {}
         self.river_option_rects = {}
@@ -402,7 +406,7 @@ class Renderer:
             else:
                 self._draw_unit_marker(int(cx), int(cy))
 
-        self._draw_log_panel(game_log or [])
+        self._draw_city_panel(selected_tile)
         self._draw_panel(selected_tile, move_mode)
 
         self.terrain_option_rects = {}
@@ -419,40 +423,128 @@ class Renderer:
 
         pygame.display.flip()
 
-    def _draw_log_panel(self, game_log):
-        pygame.draw.rect(self.screen, PANEL_BG, (0, 0, LOG_PANEL_WIDTH, self.screen.get_height()))
+    def _draw_city_panel(self, tile):
+        pad = 16
+        pygame.draw.rect(self.screen, PANEL_BG, (0, 0, CITY_PANEL_WIDTH, self.screen.get_height()))
         pygame.draw.line(self.screen, PANEL_DIVIDER,
-                         (LOG_PANEL_WIDTH - 1, 0), (LOG_PANEL_WIDTH - 1, self.screen.get_height()), 1)
-        pad = 10
-        y = 16
-        surf = self.font_header.render("LOG", True, HEADER_TEXT_COLOR)
-        self.screen.blit(surf, (pad, y))
-        y += surf.get_height() + 6
-        pygame.draw.line(self.screen, PANEL_DIVIDER, (pad, y), (LOG_PANEL_WIDTH - pad, y), 1)
-        y += 8
+                         (CITY_PANEL_WIDTH - 1, 0), (CITY_PANEL_WIDTH - 1, self.screen.get_height()), 1)
 
-        line_h = self.font_small.get_height() + 3
-        max_lines = (self.screen.get_height() - y - 8) // line_h
-        visible = game_log[-max_lines:] if len(game_log) > max_lines else game_log
-        max_w = LOG_PANEL_WIDTH - pad * 2
-        for msg in reversed(visible):
-            surf = self.font_small.render(msg, True, TEXT_COLOR)
-            if surf.get_width() > max_w:
-                while surf.get_width() > max_w and msg:
-                    msg = msg[:-1]
-                    surf = self.font_small.render(msg + '…', True, TEXT_COLOR)
-            self.screen.blit(surf, (pad, y))
-            y += line_h
+        x = pad
+        bar_w = CITY_PANEL_WIDTH - pad * 2
+        bar_h = 8
+        bar_x = pad
+        y = 20
+
+        surf = self.font_header.render("CITY", True, HEADER_TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        y += surf.get_height() + 6
+
+        city = self.map.cities.get((tile.row, tile.col)) if tile else None
+        if not city:
+            return
+
+        surf = self.font_body.render(city.name, True, TEXT_COLOR)
+        self.screen.blit(surf, (x + 4, y))
+        y += surf.get_height() + 8
+
+        # Food stockpile bar
+        food_max = city._stockpile_max()
+        label = self.font_small.render("Food", True, TEXT_COLOR)
+        val = self.font_small.render(f"{int(city.food_stockpile)}/{food_max}", True, TEXT_COLOR)
+        self.screen.blit(label, (bar_x, y))
+        self.screen.blit(val, (bar_x + bar_w - val.get_width(), y))
+        y += label.get_height() + 2
+        pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
+        if food_max > 0:
+            fill_w = int(bar_w * min(city.food_stockpile, food_max) / food_max)
+            if fill_w > 0:
+                pygame.draw.rect(self.screen, (120, 190, 80), (bar_x, y, fill_w, bar_h), border_radius=2)
+            min_stockpile = min(len(city.pops), food_max)
+            if 0 < min_stockpile < food_max:
+                tick_x = bar_x + int(bar_w * min_stockpile / food_max)
+                pygame.draw.line(self.screen, (255, 255, 255), (tick_x, y - 2), (tick_x, y + bar_h + 1), 2)
+        pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
+        y += bar_h + 8
+
+        # Growth bar
+        label = self.font_small.render("Growth", True, TEXT_COLOR)
+        val = self.font_small.render(f"{int(city.growth_progress)}/100", True, TEXT_COLOR)
+        self.screen.blit(label, (bar_x, y))
+        self.screen.blit(val, (bar_x + bar_w - val.get_width(), y))
+        y += label.get_height() + 2
+        pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
+        fill_w = int(bar_w * min(city.growth_progress, 100) / 100)
+        if fill_w > 0:
+            pygame.draw.rect(self.screen, (55, 120, 30), (bar_x, y, fill_w, bar_h), border_radius=2)
+        pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
+        y += bar_h + 8
+
+        # Construction bar
+        label = self.font_small.render("Construction", True, TEXT_COLOR)
+        val = self.font_small.render(f"{int(city.construction_progress)}/1000", True, TEXT_COLOR)
+        self.screen.blit(label, (bar_x, y))
+        self.screen.blit(val, (bar_x + bar_w - val.get_width(), y))
+        y += label.get_height() + 2
+        pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
+        fill_w = int(bar_w * city.construction_progress / 1000)
+        if fill_w > 0:
+            pygame.draw.rect(self.screen, (130, 130, 140), (bar_x, y, fill_w, bar_h), border_radius=2)
+        pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
+        y += bar_h + 12
+
+        btn_w2 = CITY_PANEL_WIDTH - pad * 2
+        btn_h2 = 22
+        self.rebalance_pops_button_rect = self._draw_button(pad, y, btn_w2, btn_h2, "Rebalance Pops")
+        y += btn_h2 + 10
+
+        surf = self.font_header.render("CITY FOCUS", True, HEADER_TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        y += surf.get_height() + 4
+        focus_btn_h = 20
+        focus_widths = [52, 72, 60]
+        focus_x = pad
+        self.city_focus_rects = {}
+        for label, fw in zip(("Growth", "Production", "Stockpile"), focus_widths):
+            rect = self._draw_button(focus_x, y, fw, focus_btn_h, label,
+                                     active=(label == city.city_focus))
+            self.city_focus_rects[label] = rect
+            focus_x += fw + 2
+        y += focus_btn_h + 10
+
+        surf = self.font_header.render("POPS", True, HEADER_TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        y += surf.get_height() + 4
+        btn_s = 16
+        for job in city.jobs:
+            if job.job_type == 'administrator':
+                label_surf = self.font_body.render(f"{job.assigned} {job.label.lower()}", True, TEXT_COLOR)
+                self.screen.blit(label_surf, (x + 4, y + (btn_s - label_surf.get_height()) // 2))
+                self.admin_plus_rect = self._draw_button(
+                    CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "+")
+                self.admin_minus_rect = self._draw_button(
+                    CITY_PANEL_WIDTH - pad - btn_s * 2 - 3, y, btn_s, btn_s, "-")
+                y += btn_s + 4
+            else:
+                surf = self.font_body.render(f"{job.assigned} {job.label.lower()}", True, TEXT_COLOR)
+                self.screen.blit(surf, (x + 4, y))
+                y += surf.get_height() + 2
+        surf = self.font_body.render(f"{city.total_farm_assigned} peasants", True, TEXT_COLOR)
+        self.screen.blit(surf, (x + 4, y))
+        y += surf.get_height() + 8
+
+        surf = self.font_header.render("AVAILABLE JOBS", True, HEADER_TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        y += surf.get_height() + 4
+        available_farm = city.total_farm_slots - city.total_farm_assigned
+        surf = self.font_body.render(f"{available_farm} peasants", True, TEXT_COLOR)
+        self.screen.blit(surf, (x + 4, y))
+        y += surf.get_height() + 2
 
     def _draw_panel(self, tile, move_mode=False):
         self.move_button_rect = None
         self.save_map_button_rect = None
         self.change_terrain_button_rect = None
-        self.admin_minus_rect = None
-        self.admin_plus_rect = None
-        self.city_focus_rects = {}
         self.draw_river_button_rect = None
-        self.assign_pops_button_rect = None
         panel_x = self.map_w
         pad = 16
         pygame.draw.rect(self.screen, PANEL_BG, (panel_x, 0, PANEL_WIDTH, self.screen.get_height()))
@@ -527,122 +619,6 @@ class Renderer:
             surf = self.font_body.render(f"Moves: {unit.moves_remaining:g} / {unit.max_moves:g}", True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
             y += surf.get_height() + 12
-        else:
-            surf = self.font_body.render("No unit in tile", True, TEXT_COLOR)
-            self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 12
-
-        # City section
-        city = self.map.cities.get((tile.row, tile.col)) if tile else None
-        if city:
-            pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (panel_x + PANEL_WIDTH - pad, y), 1)
-            y += 14
-            surf = self.font_header.render("CITY", True, HEADER_TEXT_COLOR)
-            self.screen.blit(surf, (x, y))
-            y += surf.get_height() + 6
-
-            surf = self.font_body.render(city.name, True, TEXT_COLOR)
-            self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 4
-
-            bar_w = PANEL_WIDTH - pad * 2
-            bar_h = 8
-            bar_x = panel_x + pad
-
-            # Food stockpile bar (fills to current stockpile max)
-            food_max = city._stockpile_max()
-            label = self.font_small.render("Food", True, TEXT_COLOR)
-            val = self.font_small.render(f"{int(city.food_stockpile)}/{food_max}", True, TEXT_COLOR)
-            self.screen.blit(label, (bar_x, y))
-            self.screen.blit(val, (bar_x + bar_w - val.get_width(), y))
-            y += label.get_height() + 2
-            pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
-            fill_w = int(bar_w * min(city.food_stockpile, food_max) / food_max)
-            if fill_w > 0:
-                pygame.draw.rect(self.screen, (120, 190, 80), (bar_x, y, fill_w, bar_h), border_radius=2)
-            pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
-            min_stockpile = min(len(city.pops), food_max)
-            if food_max > 0 and 0 < min_stockpile < food_max:
-                tick_x = bar_x + int(bar_w * min_stockpile / food_max)
-                pygame.draw.line(self.screen, (255, 255, 255), (tick_x, y - 2), (tick_x, y + bar_h + 1), 2)
-            y += bar_h + 8
-
-            # Growth progress bar
-            label = self.font_small.render("Growth", True, TEXT_COLOR)
-            val = self.font_small.render(f"{int(city.growth_progress)}/100", True, TEXT_COLOR)
-            self.screen.blit(label, (bar_x, y))
-            self.screen.blit(val, (bar_x + bar_w - val.get_width(), y))
-            y += label.get_height() + 2
-            pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
-            fill_w = int(bar_w * min(city.growth_progress, 100) / 100)
-            if fill_w > 0:
-                pygame.draw.rect(self.screen, (55, 120, 30), (bar_x, y, fill_w, bar_h), border_radius=2)
-            pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
-            y += bar_h + 8
-
-            # Construction progress bar
-            label = self.font_small.render("Construction", True, TEXT_COLOR)
-            val = self.font_small.render(f"{int(city.construction_progress)}/1000", True, TEXT_COLOR)
-            self.screen.blit(label, (bar_x, y))
-            self.screen.blit(val, (bar_x + bar_w - val.get_width(), y))
-            y += label.get_height() + 2
-            pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
-            fill_w = int(bar_w * city.construction_progress / 1000)
-            if fill_w > 0:
-                pygame.draw.rect(self.screen, (130, 130, 140), (bar_x, y, fill_w, bar_h), border_radius=2)
-            pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
-            y += bar_h + 8
-
-            btn_w2 = PANEL_WIDTH - pad * 2
-            btn_h2 = 22
-            self.rebalance_pops_button_rect = self._draw_button(panel_x + pad, y, btn_w2, btn_h2, "Rebalance Pops")
-            y += btn_h2 + 10
-
-            surf = self.font_header.render("CITY FOCUS", True, HEADER_TEXT_COLOR)
-            self.screen.blit(surf, (x, y))
-            y += surf.get_height() + 4
-            focus_btn_h = 20
-            focus_widths = [52, 72, 60]  # Growth, Production, Stockpile
-            focus_x = panel_x + pad
-            self.city_focus_rects = {}
-            for label, fw in zip(("Growth", "Production", "Stockpile"), focus_widths):
-                rect = self._draw_button(focus_x, y, fw, focus_btn_h, label,
-                                         active=(label == city.city_focus))
-                self.city_focus_rects[label] = rect
-                focus_x += fw + 2
-            y += focus_btn_h + 10
-
-            surf = self.font_header.render("POPS", True, HEADER_TEXT_COLOR)
-            self.screen.blit(surf, (x, y))
-            y += surf.get_height() + 4
-            btn_s = 16
-            for job in city.jobs:
-                if job.job_type == 'administrator':
-                    label_surf = self.font_body.render(
-                        f"{job.assigned} {job.label.lower()}", True, TEXT_COLOR)
-                    self.screen.blit(label_surf, (x + 4, y + (btn_s - label_surf.get_height()) // 2))
-                    self.admin_plus_rect = self._draw_button(
-                        panel_x + PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "+")
-                    self.admin_minus_rect = self._draw_button(
-                        panel_x + PANEL_WIDTH - pad - btn_s * 2 - 3, y, btn_s, btn_s, "-")
-                    y += btn_s + 4
-                else:
-                    surf = self.font_body.render(f"{job.assigned} {job.label.lower()}", True, TEXT_COLOR)
-                    self.screen.blit(surf, (x + 4, y))
-                    y += surf.get_height() + 2
-            farm_assigned = city.total_farm_assigned
-            surf = self.font_body.render(f"{farm_assigned} peasants", True, TEXT_COLOR)
-            self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 2
-            y += 6
-
-            surf = self.font_header.render("AVAILABLE JOBS", True, HEADER_TEXT_COLOR)
-            self.screen.blit(surf, (x, y))
-            y += surf.get_height() + 4
-            available_farm = city.total_farm_slots - city.total_farm_assigned
-            surf = self.font_body.render(f"{available_farm} peasants", True, TEXT_COLOR)
-            self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 2
 
         # End Turn button anchored to bottom
         btn_w = PANEL_WIDTH - pad * 2

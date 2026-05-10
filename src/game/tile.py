@@ -20,8 +20,8 @@ FARM_YIELD_BY_DISTANCE = {
 TILE_FARM_SLOTS = {
     'river':    5,
     'hills':    2,
-    'desert':   1,
-    'forest':   1,
+    'desert':   0,
+    'forest':   2,
     'mountain': 0,
 }
 

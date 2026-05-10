@@ -171,7 +171,7 @@ class Map:
         m._city_name_idx = 0
         m.cities = {(7, 2): City(7, 2, m._take_city_name()),
             (3, 6): City(3, 6, m._take_city_name()),
-            (9, 5): City(9, 5, m._take_city_name())}
+            (9, 4): City(9, 4, m._take_city_name())}
         for city in m.cities.values():
             m.setup_city(city)
         # m.units = {}
