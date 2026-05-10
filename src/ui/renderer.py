@@ -441,6 +441,10 @@ class Renderer:
 
         city = self.map.cities.get((tile.row, tile.col)) if tile else None
         if not city:
+            pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
+            y += 10
+            surf = self.font_header.render("TRADE ROUTES", True, HEADER_TEXT_COLOR)
+            self.screen.blit(surf, (x, y))
             return
 
         surf = self.font_body.render(city.name, True, TEXT_COLOR)
@@ -538,7 +542,16 @@ class Renderer:
         available_farm = city.total_farm_slots - city.total_farm_assigned
         surf = self.font_body.render(f"{available_farm} peasants", True, TEXT_COLOR)
         self.screen.blit(surf, (x + 4, y))
-        y += surf.get_height() + 2
+        y += surf.get_height() + 12
+
+        pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
+        y += 10
+        surf = self.font_header.render("TRADE ROUTES", True, HEADER_TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        y += surf.get_height() + 6
+        self.add_trade_route_button_rect = self._draw_button(
+            pad, y, CITY_PANEL_WIDTH - pad * 2, 22, "Add New Route")
+        y += 28
 
     def _draw_panel(self, tile, move_mode=False):
         self.move_button_rect = None
