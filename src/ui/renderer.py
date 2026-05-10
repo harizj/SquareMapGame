@@ -151,6 +151,9 @@ class Renderer:
         self.admin_minus_rect = None
         self.admin_plus_rect = None
         self.city_focus_rects = {}
+        self.adding_trade_route = False
+        self.trade_route_pending = None
+        self.trade_route_confirm_rect = None
         self._glow_surf = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
         self.terrain_option_rects = {}
         self.river_option_rects = {}
@@ -350,8 +353,12 @@ class Renderer:
                     pygame.draw.circle(self.screen, (40, 70, 160), (dx, dy + i * dot_spacing), dot_radius)
 
         # Pass 6: city markers
+        selected_city_pos = (selected_tile.row, selected_tile.col) if selected_tile else None
         for (r, c), city in self.map.cities.items():
             cx, cy = all_centers[(r, c)]
+            if self.adding_trade_route and (r, c) != selected_city_pos:
+                corners = [(int(px), int(py)) for px, py in self._hex_corners(cx, cy)]
+                pygame.draw.polygon(self.screen, (255, 210, 50), corners, 3)
             icon = self.icons_tinted.get('castle')
             if icon:
                 self.screen.blit(icon, (int(cx) - icon.get_width() // 2,
@@ -425,6 +432,8 @@ class Renderer:
 
     def _draw_city_panel(self, tile):
         pad = 16
+        self.add_trade_route_button_rect = None
+        self.trade_route_confirm_rect = None
         pygame.draw.rect(self.screen, PANEL_BG, (0, 0, CITY_PANEL_WIDTH, self.screen.get_height()))
         pygame.draw.line(self.screen, PANEL_DIVIDER,
                          (CITY_PANEL_WIDTH - 1, 0), (CITY_PANEL_WIDTH - 1, self.screen.get_height()), 1)
@@ -549,9 +558,25 @@ class Renderer:
         surf = self.font_header.render("TRADE ROUTES", True, HEADER_TEXT_COLOR)
         self.screen.blit(surf, (x, y))
         y += surf.get_height() + 6
-        self.add_trade_route_button_rect = self._draw_button(
-            pad, y, CITY_PANEL_WIDTH - pad * 2, 22, "Add New Route")
-        y += 28
+
+        if self.trade_route_pending:
+            city_a, city_b = self.trade_route_pending
+            surf = self.font_body.render(f"{city_a.name} <-> {city_b.name}", True, TEXT_COLOR)
+            self.screen.blit(surf, (x + 4, y))
+            y += surf.get_height() + 4
+            dist = self.map.get_travel_cost(city_a.row, city_a.col, city_b.row, city_b.col)
+            dist_text = f"Distance: {dist:.1f}" if dist is not None else "Distance: N/A"
+            surf = self.font_body.render(dist_text, True, TEXT_COLOR)
+            self.screen.blit(surf, (x + 4, y))
+            y += surf.get_height() + 8
+            self.trade_route_confirm_rect = self._draw_button(
+                pad, y, CITY_PANEL_WIDTH - pad * 2, 22, "Confirm")
+            y += 28
+        else:
+            self.add_trade_route_button_rect = self._draw_button(
+                pad, y, CITY_PANEL_WIDTH - pad * 2, 22, "Add New Route",
+                active=self.adding_trade_route)
+            y += 28
 
     def _draw_panel(self, tile, move_mode=False):
         self.move_button_rect = None

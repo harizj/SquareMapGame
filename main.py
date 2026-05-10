@@ -124,6 +124,15 @@ def main():
                 elif save_popup_active:
                     pass
 
+                elif renderer.trade_route_confirm_rect and renderer.trade_route_confirm_rect.collidepoint(pos):
+                    renderer.trade_route_pending = None
+                    renderer.adding_trade_route = False
+
+                elif renderer.add_trade_route_button_rect and renderer.add_trade_route_button_rect.collidepoint(pos):
+                    renderer.adding_trade_route = not renderer.adding_trade_route
+                    if not renderer.adding_trade_route:
+                        renderer.trade_route_pending = None
+
                 elif renderer.draw_river_button_rect and renderer.draw_river_button_rect.collidepoint(pos):
                     river_popup_active = True
 
@@ -185,6 +194,15 @@ def main():
                     move_mode = False
                     reachable = {}
                     game_log.append(f"TURN {turn}")
+
+                elif renderer.adding_trade_route and pos[0] < renderer.map_w:
+                    tile = renderer.get_tile_at(*pos)
+                    current_city = game_map.cities.get((selected_tile.row, selected_tile.col)) if selected_tile else None
+                    if tile is not None:
+                        clicked_city = game_map.cities.get((tile.row, tile.col))
+                        if clicked_city and clicked_city is not current_city:
+                            renderer.trade_route_pending = (current_city, clicked_city)
+                    renderer.adding_trade_route = False
 
                 elif move_mode:
                     tile = renderer.get_tile_at(*pos)
