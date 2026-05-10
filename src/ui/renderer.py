@@ -60,6 +60,15 @@ RIVER_DIR_ANGLES = {
 }
 RIVER_DIR_GRID = [('NW', 'NE'), ('W', 'E'), ('SW', 'SE')]
 
+# Neighbor offsets per row parity (matches map.py _NEIGHBORS)
+_RENDER_NEIGHBORS = {
+    0: [(-1, -1), (-1, 0), (0, -1), (0, 1), (1, -1), (1, 0)],
+    1: [(-1,  0), (-1, 1), (0, -1), (0, 1), (1,  0), (1, 1)],
+}
+# Corner index pairs for each neighbor direction (same for both parities)
+# Corners: 0=top-right, 1=bottom-right, 2=bottom, 3=bottom-left, 4=top-left, 5=top
+_NEIGHBOR_EDGE_CORNERS = [(4, 5), (5, 0), (3, 4), (0, 1), (2, 3), (1, 2)]
+
 # Maps terrain name → image filename stem when they differ
 _TERRAIN_IMG_FILES = {
     'mountain': 'mountains',
@@ -255,6 +264,25 @@ class Renderer:
                 if (r, c) in reachable:
                     continue
                 pygame.draw.polygon(self.screen, COLOR_OUTLINE, all_corners[(r, c)], 1)
+
+        # Pass 3b: city territory borders
+        for r in range(self.map.rows):
+            for c in range(self.map.cols):
+                tile = self.map.tiles[r][c]
+                if tile.owning_city is None:
+                    continue
+                corners = all_corners[(r, c)]
+                for i, (dr, dc) in enumerate(_RENDER_NEIGHBORS[r % 2]):
+                    nr, nc = r + dr, c + dc
+                    if not (0 <= nr < self.map.rows and 0 <= nc < self.map.cols):
+                        neighbor_city = None
+                    else:
+                        neighbor_city = self.map.tiles[nr][nc].owning_city
+                    if neighbor_city is not tile.owning_city:
+                        ci, cj = _NEIGHBOR_EDGE_CORNERS[i]
+                        pygame.draw.line(self.screen, (40, 70, 160),
+                                         (int(corners[ci][0]), int(corners[ci][1])),
+                                         (int(corners[cj][0]), int(corners[cj][1])), 4)
 
         # Pass 4: reachable borders
         for (r, c) in reachable:
