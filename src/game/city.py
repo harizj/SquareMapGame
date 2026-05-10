@@ -1,3 +1,4 @@
+import bisect
 import math
 from src.game.pop import Pop
 from src.game.jobs import FarmJob, ProductionJob, AdminJob
@@ -18,6 +19,7 @@ class City:
         self.pops = [Pop() for _ in range(20)]
         self.jobs = []
         self.owned_tiles = []
+        self.cumulative_farm_yield = [0.0]
         self.food_stockpile = 0.0
         self.growth_progress = 0.0
         self.construction_progress = 0.0
@@ -51,18 +53,30 @@ class City:
         admin_count = admin_job.assigned if admin_job else 0
         return admin_count * STOCKPILE_PER_ADMIN
 
-    def _tile_farm_jobs(self):
+    def _sorted_tile_farm_jobs(self):
+        """Tile farm jobs sorted nearest-first (matches cumulative_farm_yield order)."""
         return [
-            j
+            (tile, j)
             for tile in sorted(self.owned_tiles, key=lambda t: t.city_distance or 0)
             for j in tile.jobs
             if j.job_type == 'farm'
         ]
 
+    def _build_cumulative_farm_yield(self):
+        """Precompute cumulative food yield for n pops assigned to the best available slots."""
+        self.cumulative_farm_yield = [0.0]
+        total = 0.0
+        for tile in sorted(self.owned_tiles, key=lambda t: t.city_distance or 0):
+            for j in tile.jobs:
+                if j.job_type == 'farm':
+                    for _ in range(j.slots):
+                        total += tile.farm_yield
+                        self.cumulative_farm_yield.append(total)
+
     def rebalance_pops(self):
         admin_job = next((j for j in self.jobs if j.job_type == 'administrator'), None)
         prod_job = next((j for j in self.jobs if j.job_type == 'production'), None)
-        tile_farm_jobs = self._tile_farm_jobs()
+        tile_farm_jobs = self._sorted_tile_farm_jobs()
 
         # Preserve player-set admin count before reset
         admin_count = admin_job.assigned if admin_job else 0
@@ -73,7 +87,7 @@ class City:
             pop.assigned_job = None
         for job in self.jobs:
             job.assigned = 0
-        for j in tile_farm_jobs:
+        for _, j in tile_farm_jobs:
             j.assigned = 0
 
         # Admin first (player-controlled)
@@ -86,19 +100,19 @@ class City:
                 admin_job.assigned += 1
                 count += 1
 
-        # Farm: fill nearest tiles first
+        # Farm: use cumulative yield list to find minimum pops needed
         remaining_pops = len(self.pops) - (admin_job.assigned if admin_job else 0)
-        total_farm_slots = sum(j.slots for j in tile_farm_jobs)
+        total_farm_slots = len(self.cumulative_farm_yield) - 1
         if total_farm_slots > 0:
             if self.city_focus == 'Stockpile':
                 pops_for_farm = min(remaining_pops, total_farm_slots)
             else:
-                pops_for_farm = min(
-                    math.ceil(self._food_target() / FarmJob.YIELD_PER_POP),
-                    min(total_farm_slots, remaining_pops)
-                )
+                food_target = self._food_target()
+                pops_for_farm = bisect.bisect_left(self.cumulative_farm_yield, food_target)
+                pops_for_farm = min(pops_for_farm, total_farm_slots, remaining_pops)
+
             assigned_to_farm = 0
-            for j in tile_farm_jobs:
+            for tile, j in tile_farm_jobs:
                 if assigned_to_farm >= pops_for_farm:
                     break
                 for pop in self.pops:
@@ -121,6 +135,7 @@ class City:
             self.jobs.insert(0, AdminJob())
         if not any(j.job_type == 'production' for j in self.jobs):
             self.jobs.append(ProductionJob())
+        self._build_cumulative_farm_yield()
         self.rebalance_pops()
 
     def set_job_assignment(self, job, target):
@@ -143,8 +158,13 @@ class City:
         log = []
         log.insert(0, f"{self.name}: {self.food_stockpile:.0f} food in stockpile")
 
-        # Step 1: total food production from tile farm jobs
-        food = sum(j.food_yield() for tile in self.owned_tiles for j in tile.jobs if hasattr(j, 'food_yield'))
+        # Step 1: food from tile farm jobs using effective per-tile yield
+        food = sum(
+            j.assigned * tile.farm_yield
+            for tile in self.owned_tiles
+            for j in tile.jobs
+            if j.job_type == 'farm'
+        )
         log.insert(0, f"{self.name}: {food:.0f} food produced")
 
         # Step 2: basic consumption — 1 per pop, from production then stockpile
