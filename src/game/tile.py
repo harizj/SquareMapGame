@@ -38,6 +38,11 @@ class Tile:
         self._init_jobs()
 
     @property
+    def worked_farms(self):
+        farm_job = next((j for j in self.jobs if j.job_type == 'farm'), None)
+        return farm_job.assigned if farm_job else 0
+
+    @property
     def farm_yield(self):
         if self.city_distance is None:
             return FarmJob.YIELD_PER_POP

@@ -116,6 +116,11 @@ class Renderer:
             if os.path.exists(path):
                 img = pygame.image.load(path).convert_alpha()
                 self.icons[icon_name] = pygame.transform.scale(img, (ICON_SIZE, ICON_SIZE))
+        self.icons_tinted = {}
+        for name, icon in self.icons.items():
+            tinted = icon.copy()
+            tinted.fill((180, 210, 255), special_flags=pygame.BLEND_RGBA_MULT)
+            self.icons_tinted[name] = tinted
         self.river_imgs = {}
         for img_file, entries in (
             ('sw2ne_2',   [(frozenset({'W',  'E'}),  -30),
@@ -324,10 +329,26 @@ class Renderer:
             pygame.draw.polygon(self.screen, COLOR_SELECTED,
                                 all_corners[(selected_tile.row, selected_tile.col)], 2)
 
+        # Pass 5b: worked farm dots (top-left of each tile, one dot per assigned pop)
+        dot_radius = 2
+        dot_spacing = 5
+        dot_offset_x = int(apothem * 0.72)
+        dot_start_y_offset = int(HEX_SIZE * 0.35)
+        for r in range(self.map.rows):
+            for c in range(self.map.cols):
+                tile = self.map.tiles[r][c]
+                if tile.worked_farms <= 0:
+                    continue
+                cx, cy = all_centers[(r, c)]
+                dx = int(cx) - dot_offset_x
+                dy = int(cy) - dot_start_y_offset
+                for i in range(tile.worked_farms):
+                    pygame.draw.circle(self.screen, (40, 70, 160), (dx, dy + i * dot_spacing), dot_radius)
+
         # Pass 6: city markers
         for (r, c), city in self.map.cities.items():
             cx, cy = all_centers[(r, c)]
-            icon = self.icons.get('castle')
+            icon = self.icons_tinted.get('castle')
             if icon:
                 self.screen.blit(icon, (int(cx) - icon.get_width() // 2,
                                         int(cy) - icon.get_height() // 2))
@@ -369,7 +390,7 @@ class Renderer:
         # Pass 7: unit markers
         for (r, c) in self.map.units:
             cx, cy = all_centers[(r, c)]
-            icon = self.icons.get('sword')
+            icon = self.icons_tinted.get('sword')
             if icon:
                 self.screen.blit(icon, (int(cx) - icon.get_width() // 2,
                                         int(cy) - icon.get_height() // 2))
@@ -473,7 +494,10 @@ class Renderer:
             y += dist_surf.get_height() + 2
             yield_surf = self.font_body.render(f"Effective yield {tile.farm_yield:.2f}", True, TEXT_COLOR)
             self.screen.blit(yield_surf, (x + 4, y))
-            y += yield_surf.get_height() + 4
+            y += yield_surf.get_height() + 2
+            farms_surf = self.font_body.render(f"{tile.worked_farms} farms", True, TEXT_COLOR)
+            self.screen.blit(farms_surf, (x + 4, y))
+            y += farms_surf.get_height() + 4
         y += 6
 
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (panel_x + PANEL_WIDTH - pad, y), 1)
