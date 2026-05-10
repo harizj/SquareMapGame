@@ -417,7 +417,12 @@ class Renderer:
             self.change_terrain_button_rect = self._draw_button(panel_x + pad, y, btn_w, btn_h, "Change Terrain")
             y += btn_h + 6
         self.save_map_button_rect = self._draw_button(panel_x + pad, y, btn_w, btn_h, "Save Map")
-        y += btn_h + 12
+        y += btn_h + 6
+        if tile and tile.owning_city:
+            owned_surf = self.font_body.render(f"Owned by {tile.owning_city.name} ({tile.city_distance:g})", True, TEXT_COLOR)
+            self.screen.blit(owned_surf, (x + 4, y))
+            y += owned_surf.get_height() + 4
+        y += 6
 
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (panel_x + PANEL_WIDTH - pad, y), 1)
         y += 16

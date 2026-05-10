@@ -114,6 +114,9 @@ class Map:
             1 for (r, c) in city_range
             if self.tiles[r][c].terrain == 'river'
         )
+        for (r, c), cost in city_range.items():
+            self.tiles[r][c].owning_city = city
+            self.tiles[r][c].city_distance = cost
         city.setup_jobs(river_count)
 
     def move_unit(self, unit, row, col, cost):
