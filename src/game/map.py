@@ -110,14 +110,13 @@ class Map:
 
     def setup_city(self, city):
         city_range = self.get_city_range(city)
-        river_count = sum(
-            1 for (r, c) in city_range
-            if self.tiles[r][c].terrain == 'river'
-        )
+        city.owned_tiles = []
         for (r, c), cost in city_range.items():
-            self.tiles[r][c].owning_city = city
-            self.tiles[r][c].city_distance = cost
-        city.setup_jobs(river_count)
+            tile = self.tiles[r][c]
+            tile.owning_city = city
+            tile.city_distance = cost
+            city.owned_tiles.append(tile)
+        city.setup_jobs()
 
     def move_unit(self, unit, row, col, cost):
         del self.units[(unit.row, unit.col)]

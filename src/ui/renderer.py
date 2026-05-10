@@ -595,16 +595,19 @@ class Renderer:
                     surf = self.font_body.render(f"{job.assigned} {job.label.lower()}", True, TEXT_COLOR)
                     self.screen.blit(surf, (x + 4, y))
                     y += surf.get_height() + 2
+            farm_assigned = city.total_farm_assigned
+            surf = self.font_body.render(f"{farm_assigned} peasants", True, TEXT_COLOR)
+            self.screen.blit(surf, (x + 4, y))
+            y += surf.get_height() + 2
             y += 6
 
             surf = self.font_header.render("AVAILABLE JOBS", True, HEADER_TEXT_COLOR)
             self.screen.blit(surf, (x, y))
             y += surf.get_height() + 4
-            for job in city.jobs:
-                if job.job_type == 'farm':
-                    surf = self.font_body.render(f"{job.available_slots} {job.label.lower()}", True, TEXT_COLOR)
-                    self.screen.blit(surf, (x + 4, y))
-                    y += surf.get_height() + 2
+            available_farm = city.total_farm_slots - city.total_farm_assigned
+            surf = self.font_body.render(f"{available_farm} peasants", True, TEXT_COLOR)
+            self.screen.blit(surf, (x + 4, y))
+            y += surf.get_height() + 2
 
         # End Turn button anchored to bottom
         btn_w = PANEL_WIDTH - pad * 2
