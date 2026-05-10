@@ -31,6 +31,7 @@ TERRAIN_COLORS = {
     # 'river':    (172, 194, 136),
     # 'mountain': (190, 180, 162),
 }
+TERRAIN_COLORS_DARK = {k: tuple(int(v * 0.68) for v in rgb) for k, rgb in TERRAIN_COLORS.items()}
 COLOR_RIVER_LINE  = (60, 120, 200)
 COLOR_CITY        = (220, 200, 140)
 COLOR_CITY_BORDER = (100,  80,  40)
@@ -254,7 +255,10 @@ class Renderer:
                 corners = self._hex_corners(cx, cy)
                 all_corners[(r, c)] = corners
                 all_centers[(r, c)] = (cx, cy)
-                pygame.draw.polygon(self.screen, TERRAIN_COLORS.get(tile.terrain, BG_COLOR), corners)
+                dark_color = TERRAIN_COLORS_DARK.get(tile.terrain, BG_COLOR)
+                pygame.draw.polygon(self.screen, dark_color, corners)
+                inner = [(cx + 0.9 * (px - cx), cy + 0.9 * (py - cy)) for px, py in corners]
+                pygame.draw.polygon(self.screen, TERRAIN_COLORS.get(tile.terrain, BG_COLOR), inner)
 
         # Pass 1b: terrain images over fills
         for r in range(self.map.rows):
@@ -317,7 +321,7 @@ class Renderer:
                                          (int(p1[0]), int(p1[1])),
                                          (int(p2[0]), int(p2[1])), 4)
                         glow_steps = 10
-                        glow_reach = 0.25
+                        glow_reach = 0.15
                         for k in range(1, glow_steps + 1):
                             t = k / glow_steps
                             g1 = (p1[0] + (cx - p1[0]) * t * glow_reach,
@@ -325,6 +329,7 @@ class Renderer:
                             g2 = (p2[0] + (cx - p2[0]) * t * glow_reach,
                                   p2[1] + (cy - p2[1]) * t * glow_reach)
                             alpha = int(90 * (1 - t))
+                            alpha = int(90)
                             pygame.draw.line(self._glow_surf, (40, 70, 160, alpha),
                                              (int(g1[0]), int(g1[1])),
                                              (int(g2[0]), int(g2[1])), 2)

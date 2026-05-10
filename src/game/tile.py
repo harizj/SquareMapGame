@@ -21,7 +21,7 @@ TILE_FARM_SLOTS = {
     'river':    5,
     'hills':    2,
     'desert':   0,
-    'forest':   2,
+    'forest':   1,
     'mountain': 0,
 }
 
