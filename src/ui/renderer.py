@@ -25,6 +25,11 @@ TERRAIN_COLORS = {
     'forest':   (105, 168,  88),
     'river':    (105, 168,  88),
     'mountain': (140, 140, 140),
+    # 'desert':   (255, 255, 255),
+    # 'hills':    (255, 255, 255),
+    # 'forest':   (255, 255, 255),
+    # 'river':    (255, 255, 255),
+    # 'mountain': (255, 255, 255),
     # 50% blended with parchment (240, 220, 185)
     # 'desert':   (220, 197, 150),
     # 'hills':    (185, 161, 126),
@@ -257,7 +262,7 @@ class Renderer:
                 all_centers[(r, c)] = (cx, cy)
                 dark_color = TERRAIN_COLORS_DARK.get(tile.terrain, BG_COLOR)
                 pygame.draw.polygon(self.screen, dark_color, corners)
-                inner = [(cx + 0.9 * (px - cx), cy + 0.9 * (py - cy)) for px, py in corners]
+                inner = [(cx + 1.0 * (px - cx), cy + 1.0 * (py - cy)) for px, py in corners]
                 pygame.draw.polygon(self.screen, TERRAIN_COLORS.get(tile.terrain, BG_COLOR), inner)
 
         # Pass 1b: terrain images over fills
@@ -289,14 +294,6 @@ class Renderer:
                         pygame.draw.line(self.screen, COLOR_RIVER_LINE,
                                          (int(cx), int(cy)), (int(ex), int(ey)), 3)
 
-        # Pass 3: hex outlines (skip selected and reachable)
-        for r in range(self.map.rows):
-            for c in range(self.map.cols):
-                if selected_tile and self.map.tiles[r][c] is selected_tile:
-                    continue
-                if (r, c) in reachable:
-                    continue
-                pygame.draw.polygon(self.screen, COLOR_OUTLINE, all_corners[(r, c)], 1)
 
         # Pass 3b: city territory borders + inner glow
         self._glow_surf.fill((0, 0, 0, 0))
