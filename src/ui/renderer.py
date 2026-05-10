@@ -653,7 +653,7 @@ class Renderer:
                     parts.append(f"+{_fmt_amt(route.export_amount)} {route.export_material}")
                 if route.import_material:
                     parts.append(f"-{_fmt_amt(route.import_amount)} {route.import_material}")
-            detail_surf = self.font_small.render(", ".join(parts) if parts else "—", True, PANEL_DIVIDER)
+            detail_surf = self.font_body.render(", ".join(parts) if parts else "—", True, TEXT_COLOR)
             self.screen.blit(detail_surf, (x + 4, y))
             y += detail_surf.get_height() + 6
 
