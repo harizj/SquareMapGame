@@ -113,9 +113,11 @@ class Map:
         city.owned_tiles = []
         for (r, c), cost in city_range.items():
             tile = self.tiles[r][c]
-            tile.owning_city = city
-            tile.city_distance = cost
-            city.owned_tiles.append(tile)
+            tile.cities_in_range.append(city)
+            if tile.owning_city is None:
+                tile.owning_city = city
+                tile.city_distance = cost
+                city.owned_tiles.append(tile)
         city.setup_jobs()
 
     def move_unit(self, unit, row, col, cost):

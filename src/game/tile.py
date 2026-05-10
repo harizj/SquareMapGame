@@ -34,6 +34,7 @@ class Tile:
         self.river_edges = set()  # subset of {'NW','NE','E','SE','SW','W'}
         self.owning_city = None
         self.city_distance = None
+        self.cities_in_range = []
         self.jobs = []
         self._init_jobs()
 
