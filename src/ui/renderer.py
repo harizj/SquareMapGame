@@ -465,9 +465,15 @@ class Renderer:
         self.save_map_button_rect = self._draw_button(panel_x + pad, y, btn_w, btn_h, "Save Map")
         y += btn_h + 6
         if tile and tile.owning_city:
-            owned_surf = self.font_body.render(f"Owned by {tile.owning_city.name} ({tile.city_distance:g})", True, TEXT_COLOR)
+            owned_surf = self.font_body.render(f"Owned by {tile.owning_city.name}", True, TEXT_COLOR)
             self.screen.blit(owned_surf, (x + 4, y))
-            y += owned_surf.get_height() + 4
+            y += owned_surf.get_height() + 2
+            dist_surf = self.font_body.render(f"Distance {tile.city_distance:.2f}", True, TEXT_COLOR)
+            self.screen.blit(dist_surf, (x + 4, y))
+            y += dist_surf.get_height() + 2
+            yield_surf = self.font_body.render(f"Effective yield {tile.farm_yield:.2f}", True, TEXT_COLOR)
+            self.screen.blit(yield_surf, (x + 4, y))
+            y += yield_surf.get_height() + 4
         y += 6
 
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (panel_x + PANEL_WIDTH - pad, y), 1)
