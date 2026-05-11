@@ -195,6 +195,28 @@ class Renderer:
             corners.append((cx + HEX_SIZE * math.cos(angle_rad), cy + HEX_SIZE * math.sin(angle_rad)))
         return corners
 
+    def _hex_cross_section(self, hex_corners, cx, cy, nx, ny, depth):
+        """Find the two points where a line at `depth` from (cx,cy) along normal (nx,ny),
+        perpendicular to that normal, intersects the hex polygon. Returns (p1, p2) or None."""
+        mx = cx + nx * depth
+        my = cy + ny * depth
+        tx, ty = -ny, nx  # tangent perpendicular to normal
+        intersections = []
+        n = len(hex_corners)
+        for i in range(n):
+            ax, ay = hex_corners[i]
+            bx, by = hex_corners[(i + 1) % n]
+            ex, ey = bx - ax, by - ay
+            denom = ex * ty - ey * tx
+            if abs(denom) < 1e-9:
+                continue
+            t = ((mx - ax) * ty - (my - ay) * tx) / denom
+            if 0.0 <= t <= 1.0:
+                intersections.append((ax + t * ex, ay + t * ey))
+        if len(intersections) >= 2:
+            return intersections[0], intersections[1]
+        return None
+
     def _pixel_to_hex(self, px, py):
         x = px - self.offset_x
         y = py - self.offset_y
@@ -316,22 +338,27 @@ class Renderer:
                         ci, cj = _NEIGHBOR_EDGE_CORNERS[i]
                         p1 = corners[ci]
                         p2 = corners[cj]
+                        glow_reach = 0.1
+                        emx = (p1[0] + p2[0]) / 2 - cx
+                        emy = (p1[1] + p2[1]) / 2 - cy
+                        em_len = math.sqrt(emx * emx + emy * emy)
+                        if em_len < 1e-9:
+                            continue
+                        nx, ny = emx / em_len, emy / em_len
+                        inner_depth = em_len * (1 - glow_reach)
+                        cross = self._hex_cross_section(corners, cx, cy, nx, ny, inner_depth)
+                        if cross:
+                            g1, g2 = cross
+                            poly = [
+                                (int(p1[0]), int(p1[1])),
+                                (int(p2[0]), int(p2[1])),
+                                (int(g2[0]), int(g2[1])),
+                                (int(g1[0]), int(g1[1])),
+                            ]
+                            pygame.draw.polygon(self._glow_surf, (180, 210, 255, 80), poly)
                         pygame.draw.line(self.screen, (40, 70, 160),
                                          (int(p1[0]), int(p1[1])),
                                          (int(p2[0]), int(p2[1])), 4)
-                        glow_steps = 10
-                        glow_reach = 0.30
-                        for k in range(1, glow_steps + 1):
-                            t = k / glow_steps
-                            g1 = (p1[0] + (cx - p1[0]) * t * glow_reach,
-                                  p1[1] + (cy - p1[1]) * t * glow_reach)
-                            g2 = (p2[0] + (cx - p2[0]) * t * glow_reach,
-                                  p2[1] + (cy - p2[1]) * t * glow_reach)
-                            alpha = int(90 * (1 - t))
-                            #alpha = int(90)
-                            pygame.draw.line(self._glow_surf, (40, 70, 160, alpha),
-                                             (int(g1[0]), int(g1[1])),
-                                             (int(g2[0]), int(g2[1])), 2)
         self.screen.blit(self._glow_surf, (0, 0))
 
         # Pass 4: reachable borders
