@@ -20,6 +20,7 @@ class TradeRoute:
         self.max_import = max_import
         self.caravan_job_a = CaravanJob(slots=pops_a, trade_route=self) if pops_a > 0 else None
         self.caravan_job_b = CaravanJob(slots=pops_b, trade_route=self) if pops_b > 0 else None
+        self.missing_caravans = False
         self.city_a.trade_routes.append(self)
         self.city_b.trade_routes.append(self)
         self.city_a.update_cumulative_farm_yield_net()

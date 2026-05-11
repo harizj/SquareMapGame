@@ -1014,10 +1014,13 @@ class Renderer:
             else:
                 net_food = (route.export_amount if route.export_material == 'food' else 0) \
                          - (route.import_amount if route.import_material == 'food' else 0)
+            suffix = " (ending)" if route.missing_caravans else ""
+            if route.missing_caravans:
+                print('Missing caravans!!')
             if net_food >= 0:
-                line = f"+{_fmt_amt(net_food)} food from {other.name}"
+                line = f"{_fmt_amt(net_food)} food from {other.name}{suffix}"
             else:
-                line = f"-{_fmt_amt(abs(net_food))} food to {other.name}"
+                line = f"{_fmt_amt(abs(net_food))} food to {other.name}{suffix}"
             surf = self.font_body.render(line, True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
             del_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "x")

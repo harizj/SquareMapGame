@@ -46,9 +46,11 @@ class City:
         return sum(j.slots for tile in self.owned_tiles for j in tile.jobs if j.job_type == 'farm')
 
     def _food_from_routes(self):
-        """Net food change from all trade routes this city is involved in."""
+        """Net food change from all active (fully staffed) trade routes."""
         net = 0.0
         for route in self.trade_routes:
+            if route.missing_caravans:
+                continue
             if route.city_a is self:
                 if route.export_material == 'food':
                     net -= route.export_amount
@@ -142,7 +144,9 @@ class City:
     def _get_pops_assigned_to_routes(self):
         total = 0
         for route in self.trade_routes:
-            total += route.pops_a if route.city_a is self else route.pops_b
+            job = route.caravan_job_a if route.city_a is self else route.caravan_job_b
+            if job is not None:
+                total += job.assigned
         return total
 
     def _space_for_new_pop(self):
@@ -186,6 +190,10 @@ class City:
                 count += 1
 
         # Caravans (locked to trade routes)
+        for route in self.trade_routes:
+            job = route.caravan_job_a if route.city_a is self else route.caravan_job_b
+            if job is not None:
+                route.missing_caravans = False
         route_caravan_jobs = []
         for route in self.trade_routes:
             job = route.caravan_job_a if route.city_a is self else route.caravan_job_b
@@ -203,13 +211,19 @@ class City:
                     pop.assigned_job = job
                     job.assigned += 1
                     caravan_assigned += 1
+            if job.assigned < job.slots:
+                job.trade_route.missing_caravans = True
+                print('Missing caravan!')
+
+        if any(r.missing_caravans for r in self.trade_routes):
+            self.update_cumulative_farm_yield_net()
 
         if total_caravan_slots > 0:
             if caravan_assigned < total_caravan_slots:
                 print(f"{self.name}: only {caravan_assigned}/{total_caravan_slots} caravan slots filled — not enough pops")
             else:
                 print(f"{self.name}: all {total_caravan_slots} caravan slots filled")
-
+   
         # Farm: use cumulative yield list to find minimum pops needed
         admin_assigned = admin_job.assigned if admin_job else 0
         remaining_pops = len(self.pops) - admin_assigned - caravan_assigned
@@ -269,6 +283,18 @@ class City:
 
     def end_turn(self):
         self.rebalance_pops()
+
+        # Drop routes that couldn't be staffed
+        missing = [r for r in self.trade_routes if r.missing_caravans]
+        if missing:
+            for route in missing:
+                route.city_a.trade_routes.remove(route)
+                route.city_b.trade_routes.remove(route)
+                route.city_a.update_cumulative_farm_yield_net()
+                route.city_b.update_cumulative_farm_yield_net()
+                print(f"{self.name}: trade route to {(route.city_b if route.city_a is self else route.city_a).name} cancelled — not enough caravans")
+            self.rebalance_pops()
+
         log = []
 
         # print(f"\n=== {self.name} END TURN ===")
