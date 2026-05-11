@@ -134,6 +134,38 @@ class Map:
                     heapq.heappush(queue, (new_cost, (nr, nc)))
         return None
 
+    def get_path(self, from_r, from_c, to_r, to_c):
+        """Dijkstra from start to goal. Returns list of (r, c) tiles inclusive, or [] if unreachable."""
+        goal = (to_r, to_c)
+        start = (from_r, from_c)
+        best = {start: 0}
+        prev = {start: None}
+        queue = [(0, start)]
+        while queue:
+            cost, (r, c) = heapq.heappop(queue)
+            if (r, c) == goal:
+                path = []
+                node = goal
+                while node is not None:
+                    path.append(node)
+                    node = prev[node]
+                path.reverse()
+                return path
+            if cost > best[(r, c)]:
+                continue
+            for dr, dc in _NEIGHBORS[r % 2]:
+                nr, nc = r + dr, c + dc
+                if not (0 <= nr < self.rows and 0 <= nc < self.cols):
+                    continue
+                if self.tiles[nr][nc].terrain in IMPASSABLE_TERRAINS:
+                    continue
+                new_cost = cost + self._step_cost(r, c, nr, nc)
+                if new_cost < best.get((nr, nc), float('inf')):
+                    best[(nr, nc)] = new_cost
+                    prev[(nr, nc)] = (r, c)
+                    heapq.heappush(queue, (new_cost, (nr, nc)))
+        return []
+
     def setup_city(self, city):
         city_range = self.get_city_range(city)
         city.owned_tiles = []

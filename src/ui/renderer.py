@@ -77,6 +77,13 @@ _RENDER_NEIGHBORS = {
 # Corners: 0=top-right, 1=bottom-right, 2=bottom, 3=bottom-left, 4=top-left, 5=top
 _NEIGHBOR_EDGE_CORNERS = [(4, 5), (5, 0), (3, 4), (0, 1), (2, 3), (1, 2)]
 
+# Edge angle (degrees) toward each neighbor, keyed by row parity then (dr, dc)
+# Order matches _RENDER_NEIGHBORS: NW, NE, W, E, SW, SE
+_NEIGHBOR_EDGE_ANGLES = {
+    0: {(-1, -1): 240, (-1,  0): -60, (0, -1): 180, (0, 1): 0, (1, -1): 120, (1, 0): 60},
+    1: {(-1,  0): 240, (-1,  1): -60, (0, -1): 180, (0, 1): 0, (1,  0): 120, (1, 1): 60},
+}
+
 # Maps terrain name → image filename stem when they differ
 _TERRAIN_IMG_FILES = {
     'mountain': 'mountains',
@@ -312,43 +319,63 @@ class Renderer:
             corners.append((cx + sz * math.cos(angle_rad), cy + sz * math.sin(angle_rad) * ISO_SCALE))
         return corners
 
-    def _draw_dotted_line(self, start, end, color, dot_radius=1, spacing=5):
+    def _draw_dashed_line(self, start, end, color, width=2, dash_length=8, gap=6):
         x0, y0 = start
         x1, y1 = end
-        dx, dy = x1 - x0, y1 - y0
-        length = math.hypot(dx, dy)
+        length = math.hypot(x1 - x0, y1 - y0)
         if length == 0:
             return
-        ux, uy = dx / length, dy / length
+        ux, uy = (x1 - x0) / length, (y1 - y0) / length
         d = 0.0
-        while d <= length:
-            px = int(x0 + ux * d)
-            py = int(y0 + uy * d)
-            pygame.draw.circle(self.screen, color, (px, py), dot_radius)
-            d += spacing
+        on = True
+        while d < length:
+            step = dash_length if on else gap
+            d2 = min(d + step, length)
+            if on:
+                p1 = (int(x0 + ux * d), int(y0 + uy * d))
+                p2 = (int(x0 + ux * d2), int(y0 + uy * d2))
+                pygame.draw.line(self.screen, color, p1, p2, width)
+            d = d2
+            on = not on
 
-    def _draw_dotted_curve(self, p0, p1_through, p2, color, dot_radius=1, spacing=5):
-        """Quadratic Bézier dotted curve that passes through p1_through at t=0.5."""
-        # Derive control point so curve passes exactly through p1_through at t=0.5
+    def _draw_dashed_curve(self, p0, p1_through, p2, color, width=2, dash_length=8, gap=6):
+        """Quadratic Bézier dashed curve that passes through p1_through at t=0.5."""
         cpx = 2 * p1_through[0] - 0.5 * (p0[0] + p2[0])
         cpy = 2 * p1_through[1] - 0.5 * (p0[1] + p2[1])
-        # Walk the curve in small arc-length steps
         steps = 200
-        prev = p0
-        accumulated = 0.0
-        first = True
-        for i in range(1, steps + 1):
+        points = []
+        for i in range(steps + 1):
             t = i / steps
             mt = 1 - t
             x = mt * mt * p0[0] + 2 * mt * t * cpx + t * t * p2[0]
             y = mt * mt * p0[1] + 2 * mt * t * cpy + t * t * p2[1]
-            seg = math.hypot(x - prev[0], y - prev[1])
+            points.append((x, y))
+        prev = points[0]
+        accumulated = 0.0
+        on = True
+        dash_start = prev
+        for pt in points[1:]:
+            seg = math.hypot(pt[0] - prev[0], pt[1] - prev[1])
             accumulated += seg
-            if first or accumulated >= spacing:
-                pygame.draw.circle(self.screen, color, (int(x), int(y)), dot_radius)
-                accumulated = 0.0
-                first = False
-            prev = (x, y)
+            target = dash_length if on else gap
+            while accumulated >= target:
+                overshoot = accumulated - target
+                frac = (seg - overshoot) / seg if seg > 0 else 0
+                boundary = (prev[0] + frac * (pt[0] - prev[0]),
+                            prev[1] + frac * (pt[1] - prev[1]))
+                if on:
+                    pygame.draw.line(self.screen, color,
+                                     (int(dash_start[0]), int(dash_start[1])),
+                                     (int(boundary[0]), int(boundary[1])), width)
+                on = not on
+                dash_start = boundary
+                accumulated = overshoot
+                target = dash_length if on else gap
+            prev = pt
+        if on:
+            pygame.draw.line(self.screen, color,
+                             (int(dash_start[0]), int(dash_start[1])),
+                             (int(points[-1][0]), int(points[-1][1])), width)
 
     def _pixel_to_hex(self, px, py):
         sz = HEX_SIZE * self.zoom
@@ -462,6 +489,51 @@ class Renderer:
                         pygame.draw.line(self.screen, COLOR_RIVER_LINE,
                                          (int(cx), int(cy)), (int(ex), int(ey)), 3)
 
+
+        # Pass 2b: trade route dashed curves on intermediate path tiles (above rivers)
+        seen_routes = set()
+        for city in self.map.cities.values():
+            for route in city.trade_routes:
+                if id(route) in seen_routes or route.missing_caravans or len(route.path) < 3:
+                    continue
+                seen_routes.add(id(route))
+                path = route.path
+
+                def _edge_pt(r, c, nr, nc):
+                    deg = _NEIGHBOR_EDGE_ANGLES[r % 2].get((nr - r, nc - c))
+                    if deg is None or (r, c) not in all_centers:
+                        return None, None
+                    cx, cy = all_centers[(r, c)]
+                    return (cx + apothem * math.cos(math.radians(deg)),
+                            cy + apothem * math.sin(math.radians(deg))), (cx, cy)
+
+                # Start city: center → edge toward path[1]
+                ep, center = _edge_pt(path[0][0], path[0][1], path[1][0], path[1][1])
+                if ep and center:
+                    self._draw_dashed_line(center, ep, (0, 0, 0), width=3, dash_length=8, gap=6)
+
+                # Intermediate tiles
+                for i in range(1, len(path) - 1):
+                    r, c = path[i]
+                    pr, pc = path[i - 1]
+                    nr, nc = path[i + 1]
+                    if (r, c) not in all_centers:
+                        continue
+                    cx, cy = all_centers[(r, c)]
+                    from_deg = _NEIGHBOR_EDGE_ANGLES[r % 2].get((pr - r, pc - c))
+                    to_deg   = _NEIGHBOR_EDGE_ANGLES[r % 2].get((nr - r, nc - c))
+                    if from_deg is None or to_deg is None:
+                        continue
+                    from_pt = (cx + apothem * math.cos(math.radians(from_deg)),
+                               cy + apothem * math.sin(math.radians(from_deg)))
+                    to_pt   = (cx + apothem * math.cos(math.radians(to_deg)),
+                               cy + apothem * math.sin(math.radians(to_deg)))
+                    self._draw_dashed_curve(from_pt, (cx, cy), to_pt, (0, 0, 0), width=3, dash_length=8, gap=6)
+
+                # End city: edge toward path[-2] → center
+                ep, center = _edge_pt(path[-1][0], path[-1][1], path[-2][0], path[-2][1])
+                if ep and center:
+                    self._draw_dashed_line(ep, center, (0, 0, 0), width=3, dash_length=8, gap=6)
 
         # Pass 3b: city territory borders
         for r in range(self.map.rows):
