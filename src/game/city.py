@@ -26,6 +26,11 @@ class City:
         self.construction_progress = 0.0
         self.city_focus = 'Growth'
         self.trade_routes = []
+        self.food_allocated_to_consumption = 0.0
+        self.food_allocated_to_min_stockpile = 0.0
+        self.food_allocated_to_growth = 0.0
+        self.food_allocated_to_stockpile = 0.0
+        self.food_shortfall = 0.0
 
     @property
     def unassigned_pops(self):
@@ -91,7 +96,7 @@ class City:
                         total += tile.farm_yield
                         self.cumulative_farm_yield.append(total)
 
-    def _update_cumulative_farm_yield_net(self):
+    def update_cumulative_farm_yield_net(self):
         net_food_from_routes = self._food_from_routes()
         print('Net food from routes:',net_food_from_routes)
         self.cumulative_farm_yield_net = [v + net_food_from_routes for v in self.cumulative_farm_yield]
@@ -103,9 +108,31 @@ class City:
             for j in tile.jobs
             if j.job_type == 'farm'
         )
-        food_from_routes = _food_from_routes
-        return food + _food_from_routes
-        
+        return food + self._food_from_routes()
+
+    def _update_food_allocations(self):
+        consumption, food_needed_for_min_stockpile, growth_food = self._food_target()
+        remaining = self._food_produced()
+
+        self.food_allocated_to_consumption = min(remaining, consumption)
+        self.food_shortfall = max(0.0, consumption - self.food_allocated_to_consumption)
+        remaining -= self.food_allocated_to_consumption
+
+        if self.food_shortfall > 0:
+            print(f"{math.ceil(self.food_shortfall)} pops in {self.name} will starve this turn!")
+
+        alloc_stockpile = max(0.0, food_needed_for_min_stockpile)
+        self.food_allocated_to_min_stockpile = min(remaining, alloc_stockpile)
+        remaining -= self.food_allocated_to_min_stockpile
+
+        if self.food_allocated_to_min_stockpile < alloc_stockpile:
+            print(f"Not enough food for stockpile in {self.name}")
+
+        self.food_allocated_to_growth = min(remaining, growth_food)
+        remaining -= self.food_allocated_to_growth
+
+        self.food_allocated_to_stockpile = max(0.0, remaining)
+
 
     def rebalance_pops(self):
         admin_job = next((j for j in self.jobs if j.job_type == 'administrator'), None)
@@ -165,13 +192,15 @@ class City:
                     pop.assigned_job = prod_job
                     prod_job.assigned += 1
 
+        self._update_food_allocations()
+
     def setup_jobs(self):
         if not any(j.job_type == 'administrator' for j in self.jobs):
             self.jobs.insert(0, AdminJob())
         if not any(j.job_type == 'production' for j in self.jobs):
             self.jobs.append(ProductionJob())
         self._build_cumulative_farm_yield()
-        self._update_cumulative_farm_yield_net()
+        self.update_cumulative_farm_yield_net()
         self.rebalance_pops()
 
     def set_job_assignment(self, job, target):

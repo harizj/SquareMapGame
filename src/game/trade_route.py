@@ -11,3 +11,5 @@ class TradeRoute:
         self.import_material = import_material  # city_a receives this
         self.import_amount = import_amount
         self.max_import = max_import
+        self.city_a.update_cumulative_farm_yield_net()
+        self.city_b.update_cumulative_farm_yield_net()
