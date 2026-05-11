@@ -185,8 +185,6 @@ def main():
                         import_amount=renderer.trade_route_import_amount,
                         max_import=renderer.trade_route_max_import,
                     )
-                    city_a.trade_routes.append(route)
-                    city_b.trade_routes.append(route)
                     renderer.trade_route_pending = None
                     renderer.adding_trade_route = False
 

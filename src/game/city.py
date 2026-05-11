@@ -239,50 +239,42 @@ class City:
         self.rebalance_pops()
         log = []
 
-        print(f"\n=== {self.name} END TURN ===")
-        print(f"  pops={len(self.pops)}  stockpile={self.food_stockpile:.1f}/{self._stockpile_max():.0f}  growth={self.growth_progress:.1f}/{GROWTH_NEEDED_FOR_NEW_POP}")
-        print(f"  produced={self._food_produced():.1f}  consumption={self.food_allocated_to_consumption:.1f}  shortfall={self.food_shortfall:.1f}")
-        print(f"  [after rebalance] alloc_consumption={self.food_allocated_to_consumption:.1f}  alloc_min_stockpile={self.food_allocated_to_min_stockpile:.1f}  alloc_growth={self.food_allocated_to_growth:.1f}  alloc_surplus={self.food_allocated_to_stockpile:.1f}  growth_allocated={self.growth_allocated:.1f}")
+        # print(f"\n=== {self.name} END TURN ===")
+        # print(f"  pops={len(self.pops)}  stockpile={self.food_stockpile:.1f}/{self._stockpile_max():.0f}  growth={self.growth_progress:.1f}/{GROWTH_NEEDED_FOR_NEW_POP}")
+        # print(f"  produced={self._food_produced():.1f}  consumption={self.food_allocated_to_consumption:.1f}  shortfall={self.food_shortfall:.1f}")
+        # print(f"  [after rebalance] alloc_consumption={self.food_allocated_to_consumption:.1f}  alloc_min_stockpile={self.food_allocated_to_min_stockpile:.1f}  alloc_growth={self.food_allocated_to_growth:.1f}  alloc_surplus={self.food_allocated_to_stockpile:.1f}  growth_allocated={self.growth_allocated:.1f}")
 
         # Step 1: stockpile replenishment
-        prev_stockpile = self.food_stockpile
         self.food_stockpile = min(self.food_stockpile + self.food_allocated_to_stockpile, self._stockpile_max())
-        print(f"  [stockpile] {prev_stockpile:.1f} + {self.food_allocated_to_stockpile:.1f} -> {self.food_stockpile:.1f}")
 
         # Step 2: growth
-        prev_growth = self.growth_progress
         self.growth_progress += self.growth_allocated
-        print(f"  [growth] {prev_growth:.1f} + {self.growth_allocated:.1f} -> {self.growth_progress:.1f}")
         if self.growth_allocated > 0:
             log.append(f"{self.name}: {self.growth_allocated:.0f} added to growth bar")
 
         # Step 3: starvation if shortfall exceeded stockpile
         if self.food_shortfall > 0:
-            print(f"  [shortfall] {self.food_shortfall:.1f} shortfall, stockpile={self.food_stockpile:.1f}, pops={len(self.pops)}")
+            # print(f"  [shortfall] {self.food_shortfall:.1f} shortfall, stockpile={self.food_stockpile:.1f}, pops={len(self.pops)}")
             self._food_shortfall()
-            print(f"  [shortfall] after -> stockpile={self.food_stockpile:.1f}, pops={len(self.pops)}")
+            # print(f"  [shortfall] after -> stockpile={self.food_stockpile:.1f}, pops={len(self.pops)}")
 
         # Step 4: construction from laborers
         prod_job = next((j for j in self.jobs if j.job_type == 'production'), None)
         if prod_job:
-            prev_construction = self.construction_progress
             self.construction_progress = min(self.construction_progress + prod_job.production_yield(), 1000)
-            print(f"  [construction] {prev_construction:.1f} + {prod_job.production_yield():.1f} -> {self.construction_progress:.1f}")
 
         # Step 5: spawn new pops
         spawned = 0
         if self.growth_progress >= GROWTH_NEEDED_FOR_NEW_POP:
-            space = self._space_for_new_pop()
-            print(f"  [spawn] growth={self.growth_progress:.1f} >= {GROWTH_NEEDED_FOR_NEW_POP}, space={space}")
-            if space:
+            if self._space_for_new_pop():
                 self.growth_progress -= GROWTH_NEEDED_FOR_NEW_POP
                 self.pops.append(Pop())
                 spawned += 1
         if spawned:
             self.rebalance_pops()
             log.append(f"{self.name}: {spawned} new pop(s)! ({len(self.pops)} total)")
-            print(f"  [spawn] +{spawned} pop(s), total={len(self.pops)}")
-        
+            # print(f"  [spawn] +{spawned} pop(s), total={len(self.pops)}")
+
         self.rebalance_pops()
-        print(f"  === end: stockpile={self.food_stockpile:.1f}  growth={self.growth_progress:.1f}  pops={len(self.pops)} ===")
+        # print(f"  === end: stockpile={self.food_stockpile:.1f}  growth={self.growth_progress:.1f}  pops={len(self.pops)} ===")
         return log
