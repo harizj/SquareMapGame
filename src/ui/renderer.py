@@ -984,17 +984,14 @@ class Renderer:
                 surf = self.font_body.render(f"{job.assigned} {job.label.lower()}", True, TEXT_COLOR)
                 self.screen.blit(surf, (x + 4, y))
                 y += surf.get_height() + 2
-        surf = self.font_body.render(f"{city.total_farm_assigned} peasants", True, TEXT_COLOR)
+        total_caravans = city._get_pops_assigned_to_routes()
+        if total_caravans > 0:
+            surf = self.font_body.render(f"{total_caravans} caravans", True, TEXT_COLOR)
+            self.screen.blit(surf, (x + 4, y))
+            y += surf.get_height() + 2
+        surf = self.font_body.render(f"{city.total_farm_assigned}/{city.total_farm_slots} peasants", True, TEXT_COLOR)
         self.screen.blit(surf, (x + 4, y))
         y += surf.get_height() + 8
-
-        surf = self.font_header.render("AVAILABLE JOBS", True, HEADER_TEXT_COLOR)
-        self.screen.blit(surf, (x, y))
-        y += surf.get_height() + 4
-        available_farm = city.total_farm_slots - city.total_farm_assigned
-        surf = self.font_body.render(f"{available_farm} peasants", True, TEXT_COLOR)
-        self.screen.blit(surf, (x + 4, y))
-        y += surf.get_height() + 12
 
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
         y += 10
@@ -1006,27 +1003,21 @@ class Renderer:
             return str(int(v)) if v == int(v) else f"{v:.1f}"
 
         for route in city.trade_routes:
-            is_origin = route.city_a == city
+            is_origin = route.city_a is city
             other = route.city_b if is_origin else route.city_a
-            name_surf = self.font_body.render(other.name, True, TEXT_COLOR)
-            self.screen.blit(name_surf, (x + 4, y))
-            y += name_surf.get_height() + 1
-            parts = []
             if is_origin:
-                parts.append(f"{route.pops_a} pops in caravan")
-                if route.import_material:
-                    parts.append(f"+{_fmt_amt(route.import_amount)} {route.import_material}")
-                if route.export_material:
-                    parts.append(f"-{_fmt_amt(route.export_amount)} {route.export_material}")
+                net_food = (route.import_amount if route.import_material == 'food' else 0) \
+                         - (route.export_amount if route.export_material == 'food' else 0)
             else:
-                parts.append(f"{route.pops_b} pops in caravan")
-                if route.export_material:
-                    parts.append(f"+{_fmt_amt(route.export_amount)} {route.export_material}")
-                if route.import_material:
-                    parts.append(f"-{_fmt_amt(route.import_amount)} {route.import_material}")
-            detail_surf = self.font_body.render(", ".join(parts) if parts else "—", True, TEXT_COLOR)
-            self.screen.blit(detail_surf, (x + 4, y))
-            y += detail_surf.get_height() + 6
+                net_food = (route.export_amount if route.export_material == 'food' else 0) \
+                         - (route.import_amount if route.import_material == 'food' else 0)
+            if net_food >= 0:
+                line = f"+{_fmt_amt(net_food)} food from {other.name}"
+            else:
+                line = f"-{_fmt_amt(abs(net_food))} food to {other.name}"
+            surf = self.font_body.render(line, True, TEXT_COLOR)
+            self.screen.blit(surf, (x + 4, y))
+            y += surf.get_height() + 4
 
         self.trade_route_slider_rect = None
         self.trade_route_amount_slider_rect = None

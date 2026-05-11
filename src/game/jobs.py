@@ -55,3 +55,12 @@ class AdminJob(Job):
 
     def __init__(self):
         super().__init__(slots=100)
+
+
+class CaravanJob(Job):
+    job_type = 'caravan'
+    label = 'Caravans'
+
+    def __init__(self, slots, trade_route):
+        super().__init__(slots=slots)
+        self.trade_route = trade_route

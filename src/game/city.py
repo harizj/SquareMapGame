@@ -1,7 +1,7 @@
 import bisect
 import math
 from src.game.pop import Pop
-from src.game.jobs import FarmJob, ProductionJob, AdminJob
+from src.game.jobs import FarmJob, ProductionJob, AdminJob, CaravanJob
 
 STOCKPILE_MAX = 20
 STOCKPILE_PER_ADMIN = 20
@@ -139,6 +139,12 @@ class City:
 
         self.food_allocated_to_stockpile = max(0.0, remaining) + self.food_allocated_to_min_stockpile
 
+    def _get_pops_assigned_to_routes(self):
+        total = 0
+        for route in self.trade_routes:
+            total += route.pops_a if route.city_a is self else route.pops_b
+        return total
+
     def _space_for_new_pop(self):
         max_yield = self.cumulative_farm_yield_net[-1]
         return len(self.pops) + 1 <= max_yield
@@ -179,8 +185,34 @@ class City:
                 admin_job.assigned += 1
                 count += 1
 
+        # Caravans (locked to trade routes)
+        route_caravan_jobs = []
+        for route in self.trade_routes:
+            job = route.caravan_job_a if route.city_a is self else route.caravan_job_b
+            if job is not None:
+                job.assigned = 0
+                route_caravan_jobs.append(job)
+
+        total_caravan_slots = sum(j.slots for j in route_caravan_jobs)
+        caravan_assigned = 0
+        for job in route_caravan_jobs:
+            for pop in self.pops:
+                if job.available_slots == 0:
+                    break
+                if pop.assigned_job is None:
+                    pop.assigned_job = job
+                    job.assigned += 1
+                    caravan_assigned += 1
+
+        if total_caravan_slots > 0:
+            if caravan_assigned < total_caravan_slots:
+                print(f"{self.name}: only {caravan_assigned}/{total_caravan_slots} caravan slots filled — not enough pops")
+            else:
+                print(f"{self.name}: all {total_caravan_slots} caravan slots filled")
+
         # Farm: use cumulative yield list to find minimum pops needed
-        remaining_pops = len(self.pops) - (admin_job.assigned if admin_job else 0)
+        admin_assigned = admin_job.assigned if admin_job else 0
+        remaining_pops = len(self.pops) - admin_assigned - caravan_assigned
         total_farm_slots = len(self.cumulative_farm_yield) - 1
         if total_farm_slots > 0:
             if self.city_focus == 'Stockpile':
