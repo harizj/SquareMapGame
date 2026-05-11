@@ -885,7 +885,7 @@ class Renderer:
         self.screen.blit(surf, (x, y))
         y += surf.get_height() + 6
 
-        city = self.map.cities.get((tile.row, tile.col)) if tile else None
+        city = tile.owning_city if tile else None
         if not city:
             pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
             y += 10

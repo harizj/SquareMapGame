@@ -253,12 +253,12 @@ def main():
                     terrain_popup_active = True
 
                 elif renderer.rebalance_pops_button_rect and renderer.rebalance_pops_button_rect.collidepoint(pos):
-                    city = game_map.cities.get((selected_tile.row, selected_tile.col)) if selected_tile else None
+                    city = selected_tile.owning_city if selected_tile else None
                     if city:
                         city.rebalance_pops()
 
                 elif any(r.collidepoint(pos) for r in renderer.city_focus_rects.values()):
-                    city = game_map.cities.get((selected_tile.row, selected_tile.col)) if selected_tile else None
+                    city = selected_tile.owning_city if selected_tile else None
                     if city:
                         for label, rect in renderer.city_focus_rects.items():
                             if rect.collidepoint(pos):
@@ -267,7 +267,7 @@ def main():
                                 break
 
                 elif renderer.admin_minus_rect and renderer.admin_minus_rect.collidepoint(pos):
-                    city = game_map.cities.get((selected_tile.row, selected_tile.col)) if selected_tile else None
+                    city = selected_tile.owning_city if selected_tile else None
                     if city:
                         admin_job = next((j for j in city.jobs if j.job_type == 'administrator'), None)
                         if admin_job and admin_job.assigned > 0:
@@ -275,7 +275,7 @@ def main():
                             city.rebalance_pops()
 
                 elif renderer.admin_plus_rect and renderer.admin_plus_rect.collidepoint(pos):
-                    city = game_map.cities.get((selected_tile.row, selected_tile.col)) if selected_tile else None
+                    city = selected_tile.owning_city if selected_tile else None
                     if city:
                         admin_job = next((j for j in city.jobs if j.job_type == 'administrator'), None)
                         if admin_job and admin_job.assigned < min(admin_job.slots, len(city.pops)):
@@ -310,9 +310,9 @@ def main():
 
                 elif renderer.adding_one_way_route and pos[0] < renderer.map_w:
                     tile = renderer.get_tile_at(*pos)
-                    current_city = game_map.cities.get((selected_tile.row, selected_tile.col)) if selected_tile else None
+                    current_city = selected_tile.owning_city if selected_tile else None
                     if tile is not None:
-                        clicked_city = game_map.cities.get((tile.row, tile.col))
+                        clicked_city = tile.owning_city
                         if clicked_city and clicked_city is not current_city:
                             renderer.one_way_route_pending = (current_city, clicked_city)
                             renderer.one_way_amount = 1
