@@ -105,6 +105,11 @@ class Renderer:
         self.font_body = pygame.font.SysFont('segoeui', 13)
         self.font_small = pygame.font.SysFont('segoeui', 10)
         self.font_city = pygame.font.SysFont('tempussansitc', 12, bold=True)
+        _font_cinzel        = os.path.join(_ASSETS_DIR, 'fonts', 'Cinzel', 'static', 'Cinzel-Bold.ttf')
+        _font_almendra      = os.path.join(_ASSETS_DIR, 'fonts', 'Almendra', 'Almendra-Bold.ttf')
+        _font_caesar        = os.path.join(_ASSETS_DIR, 'fonts', 'Caesar_Dressing', 'CaesarDressing-Regular.ttf')
+        _font_glass_antiqua = os.path.join(_ASSETS_DIR, 'fonts', 'Glass_Antiqua', 'GlassAntiqua-Regular.ttf')
+        self.font_pop = pygame.font.Font(_font_cinzel, 13)
         hex_w = int(math.sqrt(3) * HEX_SIZE)
         hex_h = 2 * HEX_SIZE
         self._terrain_images_raw = {}
@@ -510,8 +515,8 @@ class Renderer:
             pygame.draw.circle(self.screen, (30, 60, 120), (circle_cx, circle_cy), circle_r + 2)
             pygame.draw.circle(self.screen, (180, 210, 255), (circle_cx, circle_cy), circle_r - 1)
             pop_str = str(len(city.pops))
-            pop_outline = self.font_header.render(pop_str, True, (0, 0, 0))
-            pop_white = self.font_header.render(pop_str, True, (255, 255, 255))
+            pop_outline = self.font_pop.render(pop_str, True, (0, 0, 0))
+            pop_white = self.font_pop.render(pop_str, True, (255, 255, 255))
             tx = circle_cx - pop_white.get_width() // 2
             ty = circle_cy - pop_white.get_height() // 2
             for dx, dy in ((-1,-1),(0,-1),(1,-1),(-1,0),(1,0),(-1,1),(0,1),(1,1)):
@@ -519,7 +524,7 @@ class Renderer:
             self.screen.blit(pop_white, (tx, ty))
 
         # Pass 6b: worked farm dots (top-left of each tile, one dot per assigned pop)
-        dot_radius = 2
+        dot_radius = 1
         dot_spacing = 5
         dot_offset_x = int(apothem * 0.72)
         dot_start_y_offset = int(HEX_SIZE * self.zoom * ISO_SCALE * 0.35)
@@ -536,8 +541,10 @@ class Renderer:
                     row_i = i % 4
                     ddx = dx + col_i * dot_spacing
                     ddy = dy + row_i * dot_spacing
-                    pygame.draw.circle(self.screen, (30, 60, 120), (ddx, ddy), dot_radius + 1)
-                    pygame.draw.circle(self.screen, (180, 210, 255), (ddx, ddy), dot_radius)
+                    #pygame.draw.circle(self.screen, (0, 0, 0),         (ddx, ddy), dot_radius + 3)
+                    pygame.draw.circle(self.screen, (30, 60, 120),      (ddx, ddy), dot_radius + 2)
+                    pygame.draw.circle(self.screen, (160, 200, 255),    (ddx, ddy), dot_radius + 1)
+                    pygame.draw.circle(self.screen, (255, 255, 255),    (ddx, ddy), dot_radius)
 
         # Pass 7: unit markers
         for (r, c) in self.map.units:
