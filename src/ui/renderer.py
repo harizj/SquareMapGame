@@ -532,7 +532,10 @@ class Renderer:
             circle_cx = start_x + circle_r
             circle_cy = by + block_h // 2
             bx = start_x + circle_r * 2 - overlap
-            pygame.draw.rect(self.screen, (0, 0, 0), (bx, by, block_w, block_h))
+            bar_pad = 1
+            pygame.draw.rect(self.screen, (35, 65, 150), (bx - bar_pad, by - bar_pad, block_w + bar_pad * 2, block_h + bar_pad * 2))
+            inner_h = mini_bar_h * 3 + mini_gap * 2
+            pygame.draw.rect(self.screen, (0, 0, 0), (bx + mini_pad, by + mini_pad, mini_bar_w, inner_h))
             food_max = city._stockpile_max()
             bars = [
                 (city.food_stockpile, food_max if food_max > 0 else 1, (120, 190, 80)),
