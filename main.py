@@ -50,6 +50,10 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
+            elif event.type == pygame.MOUSEWHEEL:
+                factor = 1.1 if event.y > 0 else (1 / 1.1)
+                renderer.zoom_map(factor, *pygame.mouse.get_pos())
+
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_BACKQUOTE:
                     console_active = not console_active
@@ -278,6 +282,14 @@ def main():
 
                 elif pos[0] < renderer.map_w:
                     selected_tile = renderer.get_tile_at(*pos)
+
+        if not console_active and not save_popup_active:
+            keys = pygame.key.get_pressed()
+            pan_speed = 6
+            if keys[pygame.K_w]: renderer.offset_y += pan_speed
+            if keys[pygame.K_s]: renderer.offset_y -= pan_speed
+            if keys[pygame.K_a]: renderer.offset_x += pan_speed
+            if keys[pygame.K_d]: renderer.offset_x -= pan_speed
 
         moving_unit = game_map.get_unit(selected_tile.row, selected_tile.col) if move_mode and selected_tile else None
         renderer.draw(selected_tile, reachable, move_mode,

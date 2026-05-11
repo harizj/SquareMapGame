@@ -105,33 +105,24 @@ class Renderer:
         self.font_city = pygame.font.SysFont('tempussansitc', 12, bold=True)
         hex_w = int(math.sqrt(3) * HEX_SIZE)
         hex_h = 2 * HEX_SIZE
-        self.terrain_images = {}
+        self._terrain_images_raw = {}
         terrain_dir = os.path.join(_ASSETS_DIR, 'terrain')
         for name in TERRAIN_TYPES:
             img_file = _TERRAIN_IMG_FILES.get(name, name)
-            variants = []
+            raw_variants = []
             for i in range(1, 5):
                 path = os.path.join(terrain_dir, f'{img_file}{i}.png')
                 if os.path.exists(path):
-                    img = pygame.image.load(path).convert_alpha()
-                    variants.append(pygame.transform.scale(img, (hex_w, hex_h)))
-            if variants:
-                self.terrain_images[name] = variants
-        self.icons = {}
+                    raw_variants.append(pygame.image.load(path).convert_alpha())
+            if raw_variants:
+                self._terrain_images_raw[name] = raw_variants
+        self._icons_raw = {}
         icons_dir = os.path.join(_ASSETS_DIR, 'icons')
-        castle_size = int(ICON_SIZE * 1.4)
         for icon_name, file_name in (('castle', 'city'), ('sword', 'sword')):
             path = os.path.join(icons_dir, f'{file_name}.png')
             if os.path.exists(path):
-                img = pygame.image.load(path).convert_alpha()
-                size = castle_size if icon_name == 'castle' else ICON_SIZE
-                self.icons[icon_name] = pygame.transform.scale(img, (size, size))
-        self.icons_tinted = dict(self.icons)
-        if 'sword' in self.icons:
-            tinted = self.icons['sword'].copy()
-            tinted.fill((180, 210, 255), special_flags=pygame.BLEND_RGBA_MULT)
-            self.icons_tinted['sword'] = tinted
-        self.river_imgs = {}
+                self._icons_raw[icon_name] = pygame.image.load(path).convert_alpha()
+        self._river_imgs_raw = []
         for img_file, entries in (
             ('sw2ne_2',   [(frozenset({'W',  'E'}),  -30),
                        (frozenset({'NW', 'SE'}),   -90),
@@ -145,12 +136,13 @@ class Renderer:
         ):
             path = os.path.join(_ASSETS_DIR, 'rivers', f'{img_file}.png')
             if os.path.exists(path):
-                base = pygame.transform.scale(
-                    pygame.image.load(path).convert_alpha(),
-                    (int(hex_w * RIVER_IMG_SCALE), int(hex_h * RIVER_IMG_SCALE))
-                )
-                for key, angle in entries:
-                    self.river_imgs[key] = pygame.transform.rotate(base, angle)
+                self._river_imgs_raw.append((pygame.image.load(path).convert_alpha(), entries))
+        self.zoom = 1.0
+        self.terrain_images = {}
+        self.river_imgs = {}
+        self.icons = {}
+        self.icons_tinted = {}
+        self._apply_zoom()
         self.move_button_rect = None
         self.end_turn_button_rect = None
         self.save_map_button_rect = None
@@ -182,17 +174,58 @@ class Renderer:
         self.terrain_option_rects = {}
         self.river_option_rects = {}
 
+    def _apply_zoom(self):
+        sz = HEX_SIZE * self.zoom
+        hex_w = int(math.sqrt(3) * sz)
+        hex_h = int(2 * sz)
+        self.terrain_images = {
+            name: [pygame.transform.scale(v, (hex_w, hex_h)) for v in variants]
+            for name, variants in self._terrain_images_raw.items()
+        }
+        self.river_imgs = {}
+        for raw, entries in self._river_imgs_raw:
+            base = pygame.transform.scale(
+                raw, (int(hex_w * RIVER_IMG_SCALE), int(hex_h * RIVER_IMG_SCALE))
+            )
+            for key, angle in entries:
+                self.river_imgs[key] = pygame.transform.rotate(base, angle)
+        castle_size = int(ICON_SIZE * 1.4 * self.zoom)
+        sword_size = int(ICON_SIZE * self.zoom)
+        self.icons = {}
+        self.icons_tinted = {}
+        if 'castle' in self._icons_raw:
+            self.icons['castle'] = pygame.transform.scale(self._icons_raw['castle'], (castle_size, castle_size))
+            self.icons_tinted['castle'] = self.icons['castle']
+        if 'sword' in self._icons_raw:
+            scaled = pygame.transform.scale(self._icons_raw['sword'], (sword_size, sword_size))
+            self.icons['sword'] = scaled
+            tinted = scaled.copy()
+            tinted.fill((180, 210, 255), special_flags=pygame.BLEND_RGBA_MULT)
+            self.icons_tinted['sword'] = tinted
+
+    def zoom_map(self, factor, mx, my):
+        old_zoom = self.zoom
+        new_zoom = max(0.4, min(3.0, old_zoom * factor))
+        if new_zoom == old_zoom:
+            return
+        self.offset_x = mx + (self.offset_x - mx) * new_zoom / old_zoom
+        self.offset_y = my + (self.offset_y - my) * new_zoom / old_zoom
+        self.zoom = new_zoom
+        self._apply_zoom()
+
     def _hex_to_pixel(self, row, col):
-        w = math.sqrt(3) * HEX_SIZE
+        sz = HEX_SIZE * self.zoom
+        w = math.sqrt(3) * sz
         x = col * w + (w / 2 if row % 2 == 1 else 0)
-        y = row * HEX_SIZE * 1.5
+        y = row * sz * 1.5
         return x, y
 
     def _hex_corners(self, cx, cy):
+        sz = HEX_SIZE * self.zoom
         corners = []
         for i in range(6):
             angle_rad = math.radians(60 * i - 30)
-            corners.append((cx + HEX_SIZE * math.cos(angle_rad), cy + HEX_SIZE * math.sin(angle_rad)))
+            corners.append((cx + sz * math.cos(angle_rad), cy + sz * math.sin(angle_rad)))
         return corners
 
     def _hex_cross_section(self, hex_corners, cx, cy, nx, ny, depth):
@@ -218,10 +251,11 @@ class Renderer:
         return None
 
     def _pixel_to_hex(self, px, py):
+        sz = HEX_SIZE * self.zoom
         x = px - self.offset_x
         y = py - self.offset_y
-        q = (x * math.sqrt(3) / 3 - y / 3) / HEX_SIZE
-        r = (y * 2 / 3) / HEX_SIZE
+        q = (x * math.sqrt(3) / 3 - y / 3) / sz
+        r = (y * 2 / 3) / sz
         rx, ry, rz = round(q), round(-q - r), round(r)
         x_diff = abs(rx - q)
         y_diff = abs(ry - (-q - r))
@@ -273,7 +307,7 @@ class Renderer:
 
         all_corners = {}
         all_centers = {}
-        apothem = HEX_SIZE * math.sqrt(3) / 2
+        apothem = HEX_SIZE * self.zoom * math.sqrt(3) / 2
 
         # Pass 1: hex fills
         for r in range(self.map.rows):
@@ -439,7 +473,7 @@ class Renderer:
         dot_radius = 2
         dot_spacing = 5
         dot_offset_x = int(apothem * 0.72)
-        dot_start_y_offset = int(HEX_SIZE * 0.35)
+        dot_start_y_offset = int(HEX_SIZE * self.zoom * 0.35)
         for r in range(self.map.rows):
             for c in range(self.map.cols):
                 tile = self.map.tiles[r][c]
