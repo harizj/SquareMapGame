@@ -1,14 +1,16 @@
 import heapq
 import random
 from src.game.city import City
-from src.game.constants import DEFAULT_MOVE_DISTANCE
+from src.game.constants import DEFAULT_MOVE_DISTANCE, BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST
 from src.game.tile import Tile
 from src.game.unit import Unit
 
 GRID_COLS = 14
 GRID_ROWS = 14
 
-MOVE_COSTS = {'desert': 1.0, 'hills': 1.5, 'forest': 1.5, 'with_river': 1.0, 'cross_river': 2.0}
+#MOVE_COSTS = {'desert': 1.0, 'hills': 1.5, 'forest': 1.5, 'with_river': 1.0, 'cross_river': 2.0}
+MOVE_COSTS = {'desert': BASE_TERRAIN_COST, 'hills': DIFFICULT_TERRAIN_COST, 'forest': DIFFICULT_TERRAIN_COST, 'with_river': BASE_TERRAIN_COST, 'cross_river': DIFFICULT_TERRAIN_COST}
+
 IMPASSABLE_TERRAINS = {'mountain'}
 TERRAIN_TYPES = ['desert', 'hills', 'forest', 'river', 'mountain']
 
