@@ -131,7 +131,7 @@ class City:
         self.food_allocated_to_growth = min(remaining, growth_food)
         remaining -= self.food_allocated_to_growth
 
-        self.food_allocated_to_stockpile = max(0.0, remaining)
+        self.food_allocated_to_stockpile = max(0.0, remaining) + self.food_allocated_to_min_stockpile
 
 
     def rebalance_pops(self):

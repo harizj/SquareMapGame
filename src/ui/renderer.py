@@ -484,6 +484,11 @@ class Renderer:
             min_stockpile = min(len(city.pops), food_max)
             for i, (val, mx, color) in enumerate(bars):
                 bar_y = by + mini_pad + i * (mini_bar_h + mini_gap)
+                if i == 0 and food_max > 0:
+                    proj = min(city.food_stockpile + city.food_allocated_to_stockpile, food_max)
+                    proj_fill = max(int(mini_bar_w * proj / food_max), 0)
+                    if proj_fill > 0:
+                        pygame.draw.rect(self.screen, (200, 240, 165), (bx + mini_pad, bar_y, proj_fill, mini_bar_h))
                 fill = max(int(mini_bar_w * min(val, mx) / mx), 0)
                 if fill > 0:
                     pygame.draw.rect(self.screen, color, (bx + mini_pad, bar_y, fill, mini_bar_h))
@@ -635,6 +640,10 @@ class Renderer:
         y += label.get_height() + 2
         pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
         if food_max > 0:
+            proj = min(city.food_stockpile + city.food_allocated_to_stockpile, food_max)
+            proj_w = int(bar_w * proj / food_max)
+            if proj_w > 0:
+                pygame.draw.rect(self.screen, (200, 240, 165), (bar_x, y, proj_w, bar_h), border_radius=2)
             fill_w = int(bar_w * min(city.food_stockpile, food_max) / food_max)
             if fill_w > 0:
                 pygame.draw.rect(self.screen, (120, 190, 80), (bar_x, y, fill_w, bar_h), border_radius=2)
