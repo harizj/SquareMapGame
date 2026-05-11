@@ -130,9 +130,9 @@ class Renderer:
                        (frozenset({'NW', 'SE'}),   -95, (0, 0)),
                        (frozenset({'NE', 'SW'}),  25,  (0, 0))]),
             ('nw2s',  [(frozenset({'NW', 'SW'}),  -30,  (0, 0)),
-                       (frozenset({'NE', 'W'}),   -100, (0, 0)),
+                       (frozenset({'NE', 'W'}),   -95, (-5, 0)),
                        (frozenset({'NW', 'E'}),   -150, (0, 0))]),
-            ('ne2s',  [(frozenset({'E',  'SW'}),  -35,  (0, 0)),
+            ('ne2s',  [(frozenset({'E',  'SW'}),  -35,  (2, 0)),
                        (frozenset({'SE', 'W'}),   -90,  (0, 0)),
                        (frozenset({'NE', 'SE'}),  30,   (0, 0))]),
         ):
@@ -215,18 +215,12 @@ class Renderer:
                 outlined = pygame.Surface(size, pygame.SRCALPHA)
                 outlined.blit(outline, (0, 0))
                 outlined.blit(tinted, (0, 0))
-                w, h = outlined.get_size()
-                hex_clip = pygame.Surface((w, h), pygame.SRCALPHA)
-                hex_clip.fill((0, 0, 0, 0))
-                hcx, hcy = w // 2, h // 2
-                hex_pts = [
-                    (hcx + sz * math.cos(math.radians(60 * i - 30)),
-                     hcy + sz * math.sin(math.radians(60 * i - 30)) * ISO_SCALE)
-                    for i in range(6)
-                ]
-                pygame.draw.polygon(hex_clip, (255, 255, 255, 255), hex_pts)
-                outlined.blit(hex_clip, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
                 self.river_imgs[key] = (outlined, offset)
+        self._hex_clip_offsets = [
+            (sz * math.cos(math.radians(60 * i - 30)),
+             sz * math.sin(math.radians(60 * i - 30)) * ISO_SCALE)
+            for i in range(6)
+        ]
         castle_size = int(ICON_SIZE * 1.4 * self.zoom)
         sword_size = int(ICON_SIZE * self.zoom)
         self.icons = {}
@@ -249,7 +243,6 @@ class Renderer:
         self.offset_x = mx + (self.offset_x - mx) * new_zoom / old_zoom
         self.offset_y = my + (self.offset_y - my) * new_zoom / old_zoom
         self.zoom = new_zoom
-        print(f"zoom: {self.zoom:.3f}")
         self._apply_zoom()
 
     def _hex_to_pixel(self, row, col):
@@ -381,9 +374,18 @@ class Renderer:
                 result = self.river_imgs.get(frozenset(tile.river_edges))
                 if result:
                     straight_img, (ox, oy) = result
-                    self.screen.blit(straight_img,
-                                     (int(cx) - straight_img.get_width() // 2 + ox,
-                                      int(cy) - straight_img.get_height() // 2 + oy))
+                    iw, ih = straight_img.get_size()
+                    hcx = iw // 2 - ox
+                    hcy = ih // 2 - oy
+                    hex_pts = [(hcx + dx, hcy + dy) for dx, dy in self._hex_clip_offsets]
+                    clipped = straight_img.copy()
+                    hex_clip = pygame.Surface((iw, ih), pygame.SRCALPHA)
+                    hex_clip.fill((0, 0, 0, 0))
+                    pygame.draw.polygon(hex_clip, (255, 255, 255, 255), hex_pts)
+                    clipped.blit(hex_clip, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                    self.screen.blit(clipped,
+                                     (int(cx) - iw // 2 + ox,
+                                      int(cy) - ih // 2 + oy))
                 else:
                     for direction in tile.river_edges:
                         angle = RIVER_DIR_ANGLES[direction]
