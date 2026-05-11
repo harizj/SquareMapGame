@@ -20,6 +20,7 @@ class City:
         self.jobs = []
         self.owned_tiles = []
         self.cumulative_farm_yield = [0.0]
+        self.cumulative_farm_yield_net = [0.0]
         self.food_stockpile = 20.0
         self.growth_progress = 0.0
         self.construction_progress = 0.0
@@ -38,6 +39,22 @@ class City:
     def total_farm_slots(self):
         return sum(j.slots for tile in self.owned_tiles for j in tile.jobs if j.job_type == 'farm')
 
+    def _food_from_routes(self):
+        """Net food change from all trade routes this city is involved in."""
+        net = 0.0
+        for route in self.trade_routes:
+            if route.city_a is self:
+                if route.export_material == 'food':
+                    net -= route.export_amount
+                if route.import_material == 'food':
+                    net += route.import_amount
+            else:
+                if route.export_material == 'food':
+                    net += route.export_amount
+                if route.import_material == 'food':
+                    net -= route.import_amount
+        return net
+
     def _food_target(self):
         num_pops = len(self.pops)
         consumption = num_pops * POP_FOOD_CONSUMPTION
@@ -47,7 +64,7 @@ class City:
             growth_food = 0
         else:
             growth_food = num_pops * GROWTH_FOOD_REQUIREMENT
-        return consumption + food_needed_for_min_stockpile + growth_food
+        return consumption, food_needed_for_min_stockpile, growth_food
 
     def _stockpile_max(self):
         admin_job = next((j for j in self.jobs if j.job_type == 'administrator'), None)
@@ -73,6 +90,22 @@ class City:
                     for _ in range(j.slots):
                         total += tile.farm_yield
                         self.cumulative_farm_yield.append(total)
+
+    def _update_cumulative_farm_yield_net(self):
+        net_food_from_routes = self._food_from_routes()
+        print('Net food from routes:',net_food_from_routes)
+        self.cumulative_farm_yield_net = [v + net_food_from_routes for v in self.cumulative_farm_yield]
+
+    def _food_produced(self):
+        food = sum(
+            j.assigned * tile.farm_yield
+            for tile in self.owned_tiles
+            for j in tile.jobs
+            if j.job_type == 'farm'
+        )
+        food_from_routes = _food_from_routes
+        return food + _food_from_routes
+        
 
     def rebalance_pops(self):
         admin_job = next((j for j in self.jobs if j.job_type == 'administrator'), None)
@@ -108,8 +141,9 @@ class City:
             if self.city_focus == 'Stockpile':
                 pops_for_farm = min(remaining_pops, total_farm_slots)
             else:
-                food_target = self._food_target()
-                pops_for_farm = bisect.bisect_left(self.cumulative_farm_yield, food_target)
+                consumption, food_needed_for_min_stockpile, growth_food = self._food_target()
+                food_target = consumption + food_needed_for_min_stockpile + growth_food
+                pops_for_farm = bisect.bisect_left(self.cumulative_farm_yield_net, food_target)
                 pops_for_farm = min(pops_for_farm, total_farm_slots, remaining_pops)
 
             assigned_to_farm = 0
@@ -137,6 +171,7 @@ class City:
         if not any(j.job_type == 'production' for j in self.jobs):
             self.jobs.append(ProductionJob())
         self._build_cumulative_farm_yield()
+        self._update_cumulative_farm_yield_net()
         self.rebalance_pops()
 
     def set_job_assignment(self, job, target):
