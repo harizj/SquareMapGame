@@ -1047,6 +1047,41 @@ class Renderer:
 
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
         y += 10
+        surf = self.font_header.render("RESOURCES", True, HEADER_TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        y += surf.get_height() + 4
+
+        def _fmt_res(v):
+            return str(int(v)) if v == int(v) else f"{v:.1f}"
+
+        surf = self.font_body.render("Food", True, HEADER_TEXT_COLOR)
+        self.screen.blit(surf, (x + 4, y))
+        y += surf.get_height() + 2
+
+        farm_food = city._food_produced() - city._food_from_routes()
+        surf = self.font_body.render(f"{farm_food:.1f} from peasants", True, TEXT_COLOR)
+        self.screen.blit(surf, (x + 12, y))
+        y += surf.get_height() + 2
+
+        route_food = city._food_from_routes()
+        if route_food != 0:
+            route_label = f"{abs(route_food):.1f} {'to' if route_food < 0 else 'from'} trade"
+            surf = self.font_body.render(route_label, True, TEXT_COLOR)
+            self.screen.blit(surf, (x + 12, y))
+            y += surf.get_height() + 2
+
+        for text in [
+            f"{city.food_allocated_to_consumption:.1f} to consumption",
+            f"{city.food_allocated_to_growth:.1f} to growth (adds {city.growth_allocated:.1f})",
+            f"{city.food_allocated_to_stockpile:.1f} to stockpile",
+        ]:
+            surf = self.font_body.render(text, True, TEXT_COLOR)
+            self.screen.blit(surf, (x + 12, y))
+            y += surf.get_height() + 2
+
+        y += 6
+        pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
+        y += 10
         surf = self.font_header.render("TRADE ROUTES", True, HEADER_TEXT_COLOR)
         self.screen.blit(surf, (x, y))
         y += surf.get_height() + 6
