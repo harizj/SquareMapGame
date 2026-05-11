@@ -225,13 +225,36 @@ class Renderer:
              sz * math.sin(math.radians(60 * i - 30)) * ISO_SCALE)
             for i in range(6)
         ]
-        castle_size = int(ICON_SIZE * 1.4 * self.zoom)
+        castle_size = int(ICON_SIZE * 1.2 * self.zoom)
         sword_size = int(ICON_SIZE * self.zoom)
         self.icons = {}
         self.icons_tinted = {}
         if 'castle' in self._icons_raw:
-            self.icons['castle'] = pygame.transform.scale(self._icons_raw['castle'], (castle_size, castle_size))
-            self.icons_tinted['castle'] = self.icons['castle']
+            scaled = pygame.transform.scale(self._icons_raw['castle'], (castle_size, castle_size))
+            self.icons['castle'] = scaled
+            mask = scaled.copy()
+            mask.fill((255, 255, 255), special_flags=pygame.BLEND_RGB_MAX)
+            lb = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+            lb.fill((180, 210, 255, 255))
+            lb.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            db = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+            db.fill((35, 65, 150, 255))
+            db.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            bk = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+            bk.fill((0, 0, 0, 255))
+            bk.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            result = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+            # for dx in range(-3, 4):
+            #     for dy in range(-3, 4):
+            #         if dx * dx + dy * dy <= 9:
+            #             result.blit(bk, (dx, dy))
+            castle_outline_radius = 8
+            for dx in range(-castle_outline_radius, castle_outline_radius+1):
+                for dy in range(-castle_outline_radius, castle_outline_radius+1):
+                    if dx * dx + dy * dy <= castle_outline_radius*2:
+                        result.blit(db, (dx, dy))
+            result.blit(lb, (0, 0))
+            self.icons_tinted['castle'] = result
         if 'sword' in self._icons_raw:
             scaled = pygame.transform.scale(self._icons_raw['sword'], (sword_size, sword_size))
             self.icons['sword'] = scaled
