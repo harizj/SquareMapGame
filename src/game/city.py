@@ -135,6 +135,10 @@ class City:
 
         self.food_allocated_to_stockpile = max(0.0, remaining) + self.food_allocated_to_min_stockpile
 
+    def _food_shortfall(self):
+        to_remove = min(math.ceil(self.food_shortfall), len(self.pops))
+        del self.pops[:to_remove]
+        self.growth_progress = 0.0
 
     def rebalance_pops(self):
         admin_job = next((j for j in self.jobs if j.job_type == 'administrator'), None)
@@ -276,5 +280,8 @@ class City:
         if spawned:
             self.rebalance_pops()
             log.append(f"{self.name}: {spawned} new pop(s)! ({len(self.pops)} total)")
+
+        if self.food_shortfall > 0:
+            self._food_shortfall()
 
         return log
