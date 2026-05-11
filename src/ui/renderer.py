@@ -172,7 +172,6 @@ class Renderer:
         self._import_slider_dragging = False
         self.trade_route_max_export = 0.0
         self.trade_route_max_import = 0.0
-        self._glow_surf = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
         self.terrain_option_rects = {}
         self.river_option_rects = {}
 
@@ -260,27 +259,6 @@ class Renderer:
             corners.append((cx + sz * math.cos(angle_rad), cy + sz * math.sin(angle_rad) * ISO_SCALE))
         return corners
 
-    def _hex_cross_section(self, hex_corners, cx, cy, nx, ny, depth):
-        """Find the two points where a line at `depth` from (cx,cy) along normal (nx,ny),
-        perpendicular to that normal, intersects the hex polygon. Returns (p1, p2) or None."""
-        mx = cx + nx * depth
-        my = cy + ny * depth
-        tx, ty = -ny, nx  # tangent perpendicular to normal
-        intersections = []
-        n = len(hex_corners)
-        for i in range(n):
-            ax, ay = hex_corners[i]
-            bx, by = hex_corners[(i + 1) % n]
-            ex, ey = bx - ax, by - ay
-            denom = ex * ty - ey * tx
-            if abs(denom) < 1e-9:
-                continue
-            t = ((mx - ax) * ty - (my - ay) * tx) / denom
-            if 0.0 <= t <= 1.0:
-                intersections.append((ax + t * ex, ay + t * ey))
-        if len(intersections) >= 2:
-            return intersections[0], intersections[1]
-        return None
 
     def _pixel_to_hex(self, px, py):
         sz = HEX_SIZE * self.zoom
@@ -395,8 +373,7 @@ class Renderer:
                                          (int(cx), int(cy)), (int(ex), int(ey)), 3)
 
 
-        # Pass 3b: city territory borders + inner glow
-        self._glow_surf.fill((0, 0, 0, 0))
+        # Pass 3b: city territory borders
         for r in range(self.map.rows):
             for c in range(self.map.cols):
                 tile = self.map.tiles[r][c]
@@ -404,6 +381,7 @@ class Renderer:
                     continue
                 cx, cy = all_centers[(r, c)]
                 corners = all_corners[(r, c)]
+                border_lines = []
                 for i, (dr, dc) in enumerate(_RENDER_NEIGHBORS[r % 2]):
                     nr, nc = r + dr, c + dc
                     if not (0 <= nr < self.map.rows and 0 <= nc < self.map.cols):
@@ -412,30 +390,40 @@ class Renderer:
                         neighbor_city = self.map.tiles[nr][nc].owning_city
                     if neighbor_city is not tile.owning_city:
                         ci, cj = _NEIGHBOR_EDGE_CORNERS[i]
-                        p1 = corners[ci]
-                        p2 = corners[cj]
-                        glow_reach = 0.1
-                        emx = (p1[0] + p2[0]) / 2 - cx
-                        emy = (p1[1] + p2[1]) / 2 - cy
-                        em_len = math.sqrt(emx * emx + emy * emy)
-                        if em_len < 1e-9:
-                            continue
-                        nx, ny = emx / em_len, emy / em_len
-                        inner_depth = em_len * (1 - glow_reach)
-                        cross = self._hex_cross_section(corners, cx, cy, nx, ny, inner_depth)
-                        if cross:
-                            g1, g2 = cross
-                            poly = [
-                                (int(p1[0]), int(p1[1])),
-                                (int(p2[0]), int(p2[1])),
-                                (int(g2[0]), int(g2[1])),
-                                (int(g1[0]), int(g1[1])),
-                            ]
-                            pygame.draw.polygon(self._glow_surf, (180, 210, 255, 80), poly)
-                        pygame.draw.line(self.screen, (40, 70, 160),
-                                         (int(p1[0]), int(p1[1])),
-                                         (int(p2[0]), int(p2[1])), 4)
-        self.screen.blit(self._glow_surf, (0, 0))
+                        border_lines.append((corners[ci], corners[cj]))
+                if not border_lines:
+                    continue
+                sz = HEX_SIZE * self.zoom
+                border_line_w = 8
+                outline_radius = 4
+                pad = outline_radius + border_line_w
+                surf_w = int(math.sqrt(3) * sz) + pad * 2
+                surf_h = int(2 * sz * ISO_SCALE) + pad * 2
+                scx = surf_w // 2
+                scy = surf_h // 2
+                edge_surf = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
+                for (p1, p2) in border_lines:
+                    lp1 = (int(p1[0] - cx + scx), int(p1[1] - cy + scy))
+                    lp2 = (int(p2[0] - cx + scx), int(p2[1] - cy + scy))
+                    pygame.draw.line(edge_surf, (255, 255, 255, 255), lp1, lp2, border_line_w)
+                lb_surf = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
+                lb_surf.fill((160, 200, 255, 170))
+                lb_surf.blit(edge_surf, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                base_surf = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
+                base_surf.fill((35, 65, 150, 255))
+                base_surf.blit(edge_surf, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                result = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
+                r2 = outline_radius * outline_radius
+                for dx in range(-outline_radius, outline_radius + 1):
+                    for dy in range(-outline_radius, outline_radius + 1):
+                        if (dx, dy) != (0, 0) and dx * dx + dy * dy <= r2:
+                            result.blit(lb_surf, (dx, dy))
+                result.blit(base_surf, (0, 0))
+                hex_pts = [(scx + dx, scy + dy) for dx, dy in self._hex_clip_offsets]
+                clip_mask = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
+                pygame.draw.polygon(clip_mask, (255, 255, 255, 255), hex_pts)
+                result.blit(clip_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                self.screen.blit(result, (int(cx) - scx, int(cy) - scy))
 
         # Pass 4: reachable borders
         for (r, c) in reachable:
