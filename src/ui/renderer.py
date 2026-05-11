@@ -125,7 +125,7 @@ class Renderer:
                 self._terrain_images_raw[name] = raw_variants
         self._icons_raw = {}
         icons_dir = os.path.join(_ASSETS_DIR, 'icons')
-        for icon_name, file_name in (('castle', 'city'), ('sword', 'sword')):
+        for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius')):
             path = os.path.join(icons_dir, f'{file_name}.png')
             if os.path.exists(path):
                 self._icons_raw[icon_name] = pygame.image.load(path).convert_alpha()
@@ -237,7 +237,7 @@ class Renderer:
             for i in range(6)
         ]
         castle_size = int(ICON_SIZE * 1.2 * self.zoom)
-        sword_size = int(ICON_SIZE * self.zoom)
+        sword_size = int(ICON_SIZE * 0.4 * self.zoom)
         self.icons = {}
         self.icons_tinted = {}
         if 'castle' in self._icons_raw:
@@ -269,9 +269,23 @@ class Renderer:
         if 'sword' in self._icons_raw:
             scaled = pygame.transform.scale(self._icons_raw['sword'], (sword_size, sword_size))
             self.icons['sword'] = scaled
-            tinted = scaled.copy()
-            tinted.fill((180, 210, 255), special_flags=pygame.BLEND_RGBA_MULT)
-            self.icons_tinted['sword'] = tinted
+            mask = scaled.copy()
+            mask.fill((255, 255, 255), special_flags=pygame.BLEND_RGB_MAX)
+            lb = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+            lb.fill((180, 210, 255, 255))
+            lb.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            db = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+            db.fill((35, 65, 150, 255))
+            db.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            sword_outline_radius = 5
+            pad = sword_outline_radius
+            result = pygame.Surface((sword_size + 2 * pad, sword_size + 2 * pad), pygame.SRCALPHA)
+            for dx in range(-sword_outline_radius, sword_outline_radius + 1):
+                for dy in range(-sword_outline_radius, sword_outline_radius + 1):
+                    if dx * dx + dy * dy <= sword_outline_radius * 2:
+                        result.blit(db, (pad + dx, pad + dy))
+            result.blit(lb, (pad, pad))
+            self.icons_tinted['sword'] = result
 
     def zoom_map(self, factor, mx, my):
         old_zoom = self.zoom
