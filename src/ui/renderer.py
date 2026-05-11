@@ -84,6 +84,7 @@ _TERRAIN_IMG_FILES = {
 ICON_SIZE      = 40
 ICON_OFFSET    = 10
 RIVER_IMG_SCALE = 1.2  # bleed past tile edge so adjacent river images connect
+ISO_SCALE      = 1  # vertical compression for isometric perspective
 LOG_PANEL_WIDTH = 0
 CITY_PANEL_WIDTH = 220
 
@@ -177,7 +178,7 @@ class Renderer:
     def _apply_zoom(self):
         sz = HEX_SIZE * self.zoom
         hex_w = int(math.sqrt(3) * sz)
-        hex_h = int(2 * sz)
+        hex_h = int(2 * sz * ISO_SCALE)
         self.terrain_images = {
             name: [pygame.transform.scale(v, (hex_w, hex_h)) for v in variants]
             for name, variants in self._terrain_images_raw.items()
@@ -238,7 +239,7 @@ class Renderer:
         sz = HEX_SIZE * self.zoom
         w = math.sqrt(3) * sz
         x = col * w + (w / 2 if row % 2 == 1 else 0)
-        y = row * sz * 1.5
+        y = row * sz * 1.5 * ISO_SCALE
         return x, y
 
     def _hex_corners(self, cx, cy):
@@ -246,7 +247,7 @@ class Renderer:
         corners = []
         for i in range(6):
             angle_rad = math.radians(60 * i - 30)
-            corners.append((cx + sz * math.cos(angle_rad), cy + sz * math.sin(angle_rad)))
+            corners.append((cx + sz * math.cos(angle_rad), cy + sz * math.sin(angle_rad) * ISO_SCALE))
         return corners
 
     def _hex_cross_section(self, hex_corners, cx, cy, nx, ny, depth):
@@ -274,7 +275,7 @@ class Renderer:
     def _pixel_to_hex(self, px, py):
         sz = HEX_SIZE * self.zoom
         x = px - self.offset_x
-        y = py - self.offset_y
+        y = (py - self.offset_y) / ISO_SCALE
         q = (x * math.sqrt(3) / 3 - y / 3) / sz
         r = (y * 2 / 3) / sz
         rx, ry, rz = round(q), round(-q - r), round(r)
@@ -494,7 +495,7 @@ class Renderer:
         dot_radius = 2
         dot_spacing = 5
         dot_offset_x = int(apothem * 0.72)
-        dot_start_y_offset = int(HEX_SIZE * self.zoom * 0.35)
+        dot_start_y_offset = int(HEX_SIZE * self.zoom * ISO_SCALE * 0.35)
         for r in range(self.map.rows):
             for c in range(self.map.cols):
                 tile = self.map.tiles[r][c]
