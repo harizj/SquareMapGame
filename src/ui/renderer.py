@@ -126,7 +126,11 @@ class Renderer:
                 img = pygame.image.load(path).convert_alpha()
                 size = castle_size if icon_name == 'castle' else ICON_SIZE
                 self.icons[icon_name] = pygame.transform.scale(img, (size, size))
-        self.icons_tinted = self.icons
+        self.icons_tinted = dict(self.icons)
+        if 'sword' in self.icons:
+            tinted = self.icons['sword'].copy()
+            tinted.fill((180, 210, 255), special_flags=pygame.BLEND_RGBA_MULT)
+            self.icons_tinted['sword'] = tinted
         self.river_imgs = {}
         for img_file, entries in (
             ('sw2ne_2',   [(frozenset({'W',  'E'}),  -30),
@@ -218,10 +222,10 @@ class Renderer:
 
     def _draw_unit_marker(self, cx, cy):
         s = 7
-        pygame.draw.line(self.screen, COLOR_UNIT_SHADOW, (cx - s, cy - s), (cx + s, cy + s), 4)
-        pygame.draw.line(self.screen, COLOR_UNIT_SHADOW, (cx + s, cy - s), (cx - s, cy + s), 4)
-        pygame.draw.line(self.screen, COLOR_UNIT, (cx - s, cy - s), (cx + s, cy + s), 2)
-        pygame.draw.line(self.screen, COLOR_UNIT, (cx + s, cy - s), (cx - s, cy + s), 2)
+        pygame.draw.line(self.screen, (30, 60, 120), (cx - s, cy - s), (cx + s, cy + s), 4)
+        pygame.draw.line(self.screen, (30, 60, 120), (cx + s, cy - s), (cx - s, cy + s), 4)
+        pygame.draw.line(self.screen, (180, 210, 255), (cx - s, cy - s), (cx + s, cy + s), 2)
+        pygame.draw.line(self.screen, (180, 210, 255), (cx + s, cy - s), (cx - s, cy + s), 2)
 
     def _draw_button(self, x, y, w, h, text, active=False, disabled=False):
         if disabled:
@@ -352,22 +356,6 @@ class Renderer:
             pygame.draw.polygon(self.screen, COLOR_SELECTED,
                                 all_corners[(selected_tile.row, selected_tile.col)], 2)
 
-        # Pass 5b: worked farm dots (top-left of each tile, one dot per assigned pop)
-        dot_radius = 2
-        dot_spacing = 5
-        dot_offset_x = int(apothem * 0.72)
-        dot_start_y_offset = int(HEX_SIZE * 0.35)
-        for r in range(self.map.rows):
-            for c in range(self.map.cols):
-                tile = self.map.tiles[r][c]
-                if tile.worked_farms <= 0:
-                    continue
-                cx, cy = all_centers[(r, c)]
-                dx = int(cx) - dot_offset_x
-                dy = int(cy) - dot_start_y_offset
-                for i in range(tile.worked_farms):
-                    pygame.draw.circle(self.screen, (40, 70, 160), (dx, dy + i * dot_spacing), dot_radius)
-
         # Pass 6: city markers
         selected_city_pos = (selected_tile.row, selected_tile.col) if selected_tile else None
         for (r, c), city in self.map.cities.items():
@@ -419,6 +407,27 @@ class Renderer:
                 if i == 0 and food_max > 0 and 0 < min_stockpile < food_max:
                     tick_x = bx + mini_pad + int(mini_bar_w * min_stockpile / food_max)
                     pygame.draw.line(self.screen, (255, 255, 255), (tick_x, bar_y - 1), (tick_x, bar_y + mini_bar_h), 1)
+
+        # Pass 6b: worked farm dots (top-left of each tile, one dot per assigned pop)
+        dot_radius = 2
+        dot_spacing = 5
+        dot_offset_x = int(apothem * 0.72)
+        dot_start_y_offset = int(HEX_SIZE * 0.35)
+        for r in range(self.map.rows):
+            for c in range(self.map.cols):
+                tile = self.map.tiles[r][c]
+                if tile.worked_farms <= 0:
+                    continue
+                cx, cy = all_centers[(r, c)]
+                dx = int(cx) - dot_offset_x
+                dy = int(cy) - dot_start_y_offset
+                for i in range(tile.worked_farms):
+                    col_i = i // 4
+                    row_i = i % 4
+                    ddx = dx + col_i * dot_spacing
+                    ddy = dy + row_i * dot_spacing
+                    pygame.draw.circle(self.screen, (30, 60, 120), (ddx, ddy), dot_radius + 1)
+                    pygame.draw.circle(self.screen, (180, 210, 255), (ddx, ddy), dot_radius)
 
         # Pass 7: unit markers
         for (r, c) in self.map.units:
