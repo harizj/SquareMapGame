@@ -136,9 +136,13 @@ class City:
         self.food_allocated_to_stockpile = max(0.0, remaining) + self.food_allocated_to_min_stockpile
 
     def _food_shortfall(self):
-        to_remove = min(math.ceil(self.food_shortfall), len(self.pops))
-        del self.pops[:to_remove]
-        self.growth_progress = 0.0
+        stockpile_used = min(self.food_shortfall, self.food_stockpile)
+        self.food_stockpile -= stockpile_used
+        remaining_shortfall = self.food_shortfall - stockpile_used
+        if remaining_shortfall > 0:
+            to_remove = min(math.ceil(remaining_shortfall), len(self.pops))
+            del self.pops[:to_remove]
+            self.growth_progress = 0.0
 
     def rebalance_pops(self):
         admin_job = next((j for j in self.jobs if j.job_type == 'administrator'), None)
@@ -225,46 +229,19 @@ class City:
 
     def end_turn(self):
         self.rebalance_pops()
-        num_pops = len(self.pops)
         log = []
-        log.insert(0, f"{self.name}: {self.food_stockpile:.0f} food in stockpile")
 
-        # Step 1: food from tile farm jobs using effective per-tile yield
-        food = sum(
-            j.assigned * tile.farm_yield
-            for tile in self.owned_tiles
-            for j in tile.jobs
-            if j.job_type == 'farm'
-        )
-        log.insert(0, f"{self.name}: {food:.0f} food produced")
+        # Step 2: stockpile replenishment
+        self.food_stockpile = min(self.food_stockpile + self.food_allocated_to_stockpile, self._stockpile_max())
 
-        # Step 2: basic consumption — 1 per pop, from production then stockpile
-        needed = num_pops * POP_FOOD_CONSUMPTION
-        from_production = min(food, needed)
-        log.insert(0, f"{self.name}: {from_production:.0f} food consumed")
-        food -= from_production
-        self.food_stockpile = max(0.0, self.food_stockpile - (needed - from_production))
+        # Step 3: growth
+        self.growth_progress += self.growth_allocated
+        if self.growth_allocated > 0:
+            log.append(f"{self.name}: {self.growth_allocated:.0f} added to growth bar")
 
-        # Step 3: replenish stockpile to minimum threshold
-        min_stockpile = min(num_pops * POP_FOOD_CONSUMPTION, self._stockpile_max())
-        if food > 0 and self.food_stockpile < min_stockpile:
-            top_up = min(food, min_stockpile - self.food_stockpile)
-            log.insert(0, f"{self.name}: {top_up:.0f} food added to stockpile")
-            self.food_stockpile += top_up
-            food -= top_up
-
-        # Step 4: growth
-        if food > 0:
-            fed_pops = min(int(food // GROWTH_FOOD_REQUIREMENT), min(num_pops, self.food_stockpile / POP_FOOD_CONSUMPTION))
-            log.insert(0, f"{self.name}: {fed_pops * GROWTH_FOOD_REQUIREMENT:.0f} additional food consumed")
-            self.growth_progress += fed_pops * GROWTH_RATE
-            log.insert(0, f"{self.name}: {fed_pops * GROWTH_RATE:.0f} added to growth bar")
-            food -= fed_pops * GROWTH_FOOD_REQUIREMENT
-
-        # Step 5: remaining food to stockpile
-        self.food_stockpile = min(self.food_stockpile + food, self._stockpile_max())
-        log.insert(0, f"{self.name}: {food:.0f} leftover food, added to stockpile")
-        log.insert(0, f"{self.name}: {self.food_stockpile:.0f} food in stockpile")
+        # Step 5: starvation if shortfall exceeded stockpile
+        if self.food_shortfall > 0:
+            self._food_shortfall()
 
         # Step 6: construction from laborers
         prod_job = next((j for j in self.jobs if j.job_type == 'production'), None)
@@ -280,8 +257,5 @@ class City:
         if spawned:
             self.rebalance_pops()
             log.append(f"{self.name}: {spawned} new pop(s)! ({len(self.pops)} total)")
-
-        if self.food_shortfall > 0:
-            self._food_shortfall()
 
         return log
