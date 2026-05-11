@@ -478,7 +478,7 @@ class Renderer:
             food_max = city._stockpile_max()
             bars = [
                 (city.food_stockpile, food_max if food_max > 0 else 1, (120, 190, 80)),
-                (city.growth_progress, 100, (55, 120, 30)),
+                (city.growth_progress, 100, (40, 160, 150)),
                 (city.construction_progress, 1000, (130, 130, 140)),
             ]
             min_stockpile = min(len(city.pops), food_max)
@@ -489,6 +489,11 @@ class Renderer:
                     proj_fill = max(int(mini_bar_w * proj / food_max), 0)
                     if proj_fill > 0:
                         pygame.draw.rect(self.screen, (200, 240, 165), (bx + mini_pad, bar_y, proj_fill, mini_bar_h))
+                if i == 1:
+                    proj = min(city.growth_progress + city.growth_allocated, 100)
+                    proj_fill = max(int(mini_bar_w * proj / 100), 0)
+                    if proj_fill > 0:
+                        pygame.draw.rect(self.screen, (120, 210, 200), (bx + mini_pad, bar_y, proj_fill, mini_bar_h))
                 fill = max(int(mini_bar_w * min(val, mx) / mx), 0)
                 if fill > 0:
                     pygame.draw.rect(self.screen, color, (bx + mini_pad, bar_y, fill, mini_bar_h))
@@ -661,9 +666,12 @@ class Renderer:
         self.screen.blit(val, (bar_x + bar_w - val.get_width(), y))
         y += label.get_height() + 2
         pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
+        proj_w = int(bar_w * min(city.growth_progress + city.growth_allocated, 100) / 100)
+        if proj_w > 0:
+            pygame.draw.rect(self.screen, (120, 210, 200), (bar_x, y, proj_w, bar_h), border_radius=2)
         fill_w = int(bar_w * min(city.growth_progress, 100) / 100)
         if fill_w > 0:
-            pygame.draw.rect(self.screen, (55, 120, 30), (bar_x, y, fill_w, bar_h), border_radius=2)
+            pygame.draw.rect(self.screen, (40, 160, 150), (bar_x, y, fill_w, bar_h), border_radius=2)
         pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
         y += bar_h + 8
 

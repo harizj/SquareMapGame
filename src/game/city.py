@@ -31,6 +31,7 @@ class City:
         self.food_allocated_to_growth = 0.0
         self.food_allocated_to_stockpile = 0.0
         self.food_shortfall = 0.0
+        self.growth_allocated = 0.0
 
     @property
     def unassigned_pops(self):
@@ -130,6 +131,7 @@ class City:
 
         self.food_allocated_to_growth = min(remaining, growth_food)
         remaining -= self.food_allocated_to_growth
+        self.growth_allocated = (self.food_allocated_to_growth / GROWTH_FOOD_REQUIREMENT) * GROWTH_RATE
 
         self.food_allocated_to_stockpile = max(0.0, remaining) + self.food_allocated_to_min_stockpile
 
