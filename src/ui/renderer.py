@@ -475,6 +475,30 @@ class Renderer:
             pygame.draw.polygon(self.screen, COLOR_SELECTED,
                                 all_corners[(selected_tile.row, selected_tile.col)], 2)
 
+        # Pass 6b: worked farm dots (top-left of each tile, one dot per assigned pop)
+        dot_radius = 1
+        dot_spacing = 5
+        dot_offset_x = int(apothem * 0.72)
+        dot_start_y_offset = int(HEX_SIZE * self.zoom * ISO_SCALE * 0.4)
+        dot_positions = []
+        for r in range(self.map.rows):
+            for c in range(self.map.cols):
+                tile = self.map.tiles[r][c]
+                if tile.worked_farms <= 0:
+                    continue
+                cx, cy = all_centers[(r, c)]
+                dx = int(cx) - dot_offset_x
+                dy = int(cy) - dot_start_y_offset
+                for i in range(tile.worked_farms):
+                    col_i = i // 4
+                    row_i = i % 4
+                    dot_positions.append((dx + col_i * dot_spacing, dy + row_i * dot_spacing))
+        for ddx, ddy in dot_positions:
+            pygame.draw.circle(self.screen, (30, 60, 120), (ddx, ddy), dot_radius + 4)
+        for ddx, ddy in dot_positions:
+            pygame.draw.circle(self.screen, (160, 200, 255), (ddx, ddy), dot_radius + 1)
+            pygame.draw.circle(self.screen, (255, 255, 255), (ddx, ddy), dot_radius)
+
         # Pass 6: city markers
         selected_city_pos = (selected_tile.row, selected_tile.col) if selected_tile else None
         for (r, c), city in self.map.cities.items():
@@ -484,10 +508,10 @@ class Renderer:
                 pygame.draw.polygon(self.screen, (255, 210, 50), corners, 3)
             icon = self.icons_tinted.get('castle')
             if icon:
-                ix = int(cx) - icon.get_width() // 2
+                ix = int(cx) - icon.get_width() // 2 + 2
                 iy = int(cy) - HEX_SIZE - 3.5
                 self.screen.blit(icon, (ix, iy))
-                name_y = iy + icon.get_height() - 15
+                name_y = iy + icon.get_height() - 12
             else:
                 s = 6
                 rect = pygame.Rect(int(cx) - s, int(cy) - s, s * 2, s * 2)
@@ -534,40 +558,21 @@ class Renderer:
                 if i == 0 and food_max > 0 and 0 < min_stockpile < food_max:
                     tick_x = bx + mini_pad + int(mini_bar_w * min_stockpile / food_max)
                     pygame.draw.line(self.screen, (255, 255, 255), (tick_x, bar_y - 1), (tick_x, bar_y + mini_bar_h), 1)
-            pygame.draw.circle(self.screen, (0, 0, 0), (circle_cx, circle_cy), circle_r + 3)
-            pygame.draw.circle(self.screen, (30, 60, 120), (circle_cx, circle_cy), circle_r + 2)
-            pygame.draw.circle(self.screen, (180, 210, 255), (circle_cx, circle_cy), circle_r - 1)
+            pop_fill_r = circle_r
+            pop_ring_r = circle_r + 3
+            pygame.draw.circle(self.screen, (35, 65, 150), (circle_cx, circle_cy), pop_ring_r)
+            pygame.draw.circle(self.screen, (180, 210, 255), (circle_cx, circle_cy), pop_fill_r)
             pop_str = str(len(city.pops))
-            pop_outline = self.font_pop.render(pop_str, True, (0, 0, 0))
+            pop_num_outline_r = 3
+            pop_outline = self.font_pop.render(pop_str, True, (35, 65, 150))
             pop_white = self.font_pop.render(pop_str, True, (255, 255, 255))
             tx = circle_cx - pop_white.get_width() // 2
             ty = circle_cy - pop_white.get_height() // 2
-            for dx, dy in ((-1,-1),(0,-1),(1,-1),(-1,0),(1,0),(-1,1),(0,1),(1,1)):
-                self.screen.blit(pop_outline, (tx + dx, ty + dy))
+            for dx in range(-pop_num_outline_r, pop_num_outline_r + 1):
+                for dy in range(-pop_num_outline_r, pop_num_outline_r + 1):
+                    if (dx, dy) != (0, 0) and dx * dx + dy * dy <= pop_num_outline_r * pop_num_outline_r:
+                        self.screen.blit(pop_outline, (tx + dx, ty + dy))
             self.screen.blit(pop_white, (tx, ty))
-
-        # Pass 6b: worked farm dots (top-left of each tile, one dot per assigned pop)
-        dot_radius = 1
-        dot_spacing = 5
-        dot_offset_x = int(apothem * 0.72)
-        dot_start_y_offset = int(HEX_SIZE * self.zoom * ISO_SCALE * 0.35)
-        for r in range(self.map.rows):
-            for c in range(self.map.cols):
-                tile = self.map.tiles[r][c]
-                if tile.worked_farms <= 0:
-                    continue
-                cx, cy = all_centers[(r, c)]
-                dx = int(cx) - dot_offset_x
-                dy = int(cy) - dot_start_y_offset
-                for i in range(tile.worked_farms):
-                    col_i = i // 4
-                    row_i = i % 4
-                    ddx = dx + col_i * dot_spacing
-                    ddy = dy + row_i * dot_spacing
-                    #pygame.draw.circle(self.screen, (0, 0, 0),         (ddx, ddy), dot_radius + 3)
-                    pygame.draw.circle(self.screen, (30, 60, 120),      (ddx, ddy), dot_radius + 2)
-                    pygame.draw.circle(self.screen, (160, 200, 255),    (ddx, ddy), dot_radius + 1)
-                    pygame.draw.circle(self.screen, (255, 255, 255),    (ddx, ddy), dot_radius)
 
         # Pass 7: unit markers
         for (r, c) in self.map.units:
