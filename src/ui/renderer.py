@@ -509,10 +509,16 @@ class Renderer:
                     return (cx + apothem * math.cos(math.radians(deg)),
                             cy + apothem * math.sin(math.radians(deg))), (cx, cy)
 
+                _ROUTE_DARK = (35, 65, 150)
+                _ROUTE_LIGHT = (180, 210, 255)
+                _ROUTE_OUTLINE_W = 5
+                _ROUTE_INNER_W = 3
+
                 # Start city: center → edge toward path[1]
                 ep, center = _edge_pt(path[0][0], path[0][1], path[1][0], path[1][1])
                 if ep and center:
-                    self._draw_dashed_line(center, ep, (0, 0, 0), width=3, dash_length=8, gap=6)
+                    self._draw_dashed_line(center, ep, _ROUTE_DARK,  width=_ROUTE_OUTLINE_W, dash_length=8, gap=6)
+                    self._draw_dashed_line(center, ep, _ROUTE_LIGHT, width=_ROUTE_INNER_W,   dash_length=8, gap=6)
 
                 # Intermediate tiles
                 for i in range(1, len(path) - 1):
@@ -530,12 +536,14 @@ class Renderer:
                                cy + apothem * math.sin(math.radians(from_deg)))
                     to_pt   = (cx + apothem * math.cos(math.radians(to_deg)),
                                cy + apothem * math.sin(math.radians(to_deg)))
-                    self._draw_dashed_curve(from_pt, (cx, cy), to_pt, (0, 0, 0), width=3, dash_length=8, gap=6)
+                    self._draw_dashed_curve(from_pt, (cx, cy), to_pt, _ROUTE_DARK,  width=_ROUTE_OUTLINE_W, dash_length=8, gap=6)
+                    self._draw_dashed_curve(from_pt, (cx, cy), to_pt, _ROUTE_LIGHT, width=_ROUTE_INNER_W,   dash_length=8, gap=6)
 
                 # End city: edge toward path[-2] → center
                 ep, center = _edge_pt(path[-1][0], path[-1][1], path[-2][0], path[-2][1])
                 if ep and center:
-                    self._draw_dashed_line(ep, center, (0, 0, 0), width=3, dash_length=8, gap=6)
+                    self._draw_dashed_line(ep, center, _ROUTE_DARK,  width=_ROUTE_OUTLINE_W, dash_length=8, gap=6)
+                    self._draw_dashed_line(ep, center, _ROUTE_LIGHT, width=_ROUTE_INNER_W,   dash_length=8, gap=6)
 
         # Pass 3b: city territory borders
         for r in range(self.map.rows):
