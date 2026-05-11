@@ -196,9 +196,16 @@ def main():
                 #     renderer.trade_route_pending = None
                 #     renderer.adding_trade_route = False
 
+                elif any(r.collidepoint(pos) for r in renderer.one_way_route_type_rects.values()):
+                    for label, rect in renderer.one_way_route_type_rects.items():
+                        if rect.collidepoint(pos):
+                            renderer.one_way_route_type = label.lower()
+                            break
+
                 elif renderer.one_way_confirm_rect and renderer.one_way_confirm_rect.collidepoint(pos):
                     city_a, city_b = renderer.one_way_route_pending
-                    path = game_map.get_path(city_a.row, city_a.col, city_b.row, city_b.col)
+                    water = renderer.one_way_route_type == 'water'
+                    path = game_map.get_path(city_a.row, city_a.col, city_b.row, city_b.col, water=water)
                     TradeRoute(
                         city_a=city_a,
                         city_b=city_b,
@@ -215,9 +222,11 @@ def main():
                         path=path,
                     )
                     renderer.one_way_route_pending = None
+                    renderer.one_way_route_type = 'land'
 
                 elif renderer.one_way_cancel_rect and renderer.one_way_cancel_rect.collidepoint(pos):
                     renderer.one_way_route_pending = None
+                    renderer.one_way_route_type = 'land'
 
                 elif any(r.collidepoint(pos) for r, _ in renderer.trade_route_delete_rects):
                     for rect, route in renderer.trade_route_delete_rects:

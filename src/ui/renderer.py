@@ -2,7 +2,7 @@ import math
 import os
 import pygame
 from src.game.city import STOCKPILE_MAX
-from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY
+from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, WATER_CARRY_CAPACITY
 from src.game.map import TERRAIN_TYPES
 
 _ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'assets')
@@ -171,6 +171,8 @@ class Renderer:
         self.adding_one_way_route = False
         self.add_one_way_route_button_rect = None
         self.one_way_route_pending = None
+        self.one_way_route_type = 'land'
+        self.one_way_route_type_rects = {}
         self.one_way_amount = 1
         self.one_way_pops_required_whole = 0
         self.one_way_partial_pops = None
@@ -907,11 +909,15 @@ class Renderer:
         if not self.one_way_route_pending:
             return
         city_a, city_b = self.one_way_route_pending
-        dist = self.map.get_travel_cost(city_a.row, city_a.col, city_b.row, city_b.col)
+        water_reachable = self.map.get_travel_cost(city_a.row, city_a.col, city_b.row, city_b.col, water=True) is not None
+        if not water_reachable and self.one_way_route_type == 'water':
+            self.one_way_route_type = 'land'
+        water = self.one_way_route_type == 'water'
+        dist = self.map.get_travel_cost(city_a.row, city_a.col, city_b.row, city_b.col, water=water)
 
         pad = 16
         popup_w = 280
-        popup_h = 270
+        popup_h = 290
         sw, sh = self.screen.get_size()
         px = (sw - popup_w) // 2
         py = (sh - popup_h) // 2
@@ -928,9 +934,23 @@ class Renderer:
 
         title = self.font_header.render(f"{city_a.name} -> {city_b.name}", True, HEADER_TEXT_COLOR)
         self.screen.blit(title, (x, y))
-        y += title.get_height() + 4
+        y += title.get_height() + 8
 
-        dist_text = f"Distance: {dist:.1f}" if dist is not None else "Distance: N/A"
+        btn_w = (inner_w - 4) // 2
+        self.one_way_route_type_rects = {}
+        for label in ('Land', 'Water'):
+            is_water = label == 'Water'
+            disabled = is_water and not water_reachable
+            rect = self._draw_button(x, y, btn_w, 22, label,
+                                     active=(self.one_way_route_type == label.lower()),
+                                     disabled=disabled)
+            if not disabled:
+                self.one_way_route_type_rects[label] = rect
+            x += btn_w + 4
+        x = px + pad
+        y += 30
+
+        dist_text = f"Distance: {dist:.1f}" if dist is not None else "Distance: unreachable"
         surf = self.font_body.render(dist_text, True, TEXT_COLOR)
         self.screen.blit(surf, (x, y))
         y += surf.get_height() + 12
@@ -965,7 +985,8 @@ class Renderer:
         partial_pops = None
         if dist:
             travel_time = dist / DEFAULT_MOVE_DISTANCE
-            denom = LAND_CARRY_CAPACITY + 1 - 2 * travel_time
+            carry_capacity = WATER_CARRY_CAPACITY if water else LAND_CARRY_CAPACITY
+            denom = carry_capacity + 1 - 2 * travel_time
             if denom > 0 and travel_time > 0:
                 raw = (self.one_way_amount * 2 * travel_time) / denom
                 pops_required = math.ceil(raw * 10) / 10

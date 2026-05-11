@@ -110,7 +110,13 @@ class Map:
                     heapq.heappush(queue, (new_cost, (nr, nc)))
         return best
 
-    def get_travel_cost(self, from_r, from_c, to_r, to_c):
+    def _is_passable(self, r, c, water=False):
+        terrain = self.tiles[r][c].terrain
+        if water:
+            return terrain == 'river'
+        return terrain not in IMPASSABLE_TERRAINS
+
+    def get_travel_cost(self, from_r, from_c, to_r, to_c, water=False):
         """Uncapped Dijkstra between two tiles. Returns movement cost or None if unreachable."""
         goal = (to_r, to_c)
         start = (from_r, from_c)
@@ -126,7 +132,7 @@ class Map:
                 nr, nc = r + dr, c + dc
                 if not (0 <= nr < self.rows and 0 <= nc < self.cols):
                     continue
-                if self.tiles[nr][nc].terrain in IMPASSABLE_TERRAINS:
+                if not self._is_passable(nr, nc, water):
                     continue
                 new_cost = cost + self._step_cost(r, c, nr, nc)
                 if new_cost < best.get((nr, nc), float('inf')):
@@ -134,7 +140,7 @@ class Map:
                     heapq.heappush(queue, (new_cost, (nr, nc)))
         return None
 
-    def get_path(self, from_r, from_c, to_r, to_c):
+    def get_path(self, from_r, from_c, to_r, to_c, water=False):
         """Dijkstra from start to goal. Returns list of (r, c) tiles inclusive, or [] if unreachable."""
         goal = (to_r, to_c)
         start = (from_r, from_c)
@@ -157,7 +163,7 @@ class Map:
                 nr, nc = r + dr, c + dc
                 if not (0 <= nr < self.rows and 0 <= nc < self.cols):
                     continue
-                if self.tiles[nr][nc].terrain in IMPASSABLE_TERRAINS:
+                if not self._is_passable(nr, nc, water):
                     continue
                 new_cost = cost + self._step_cost(r, c, nr, nc)
                 if new_cost < best.get((nr, nc), float('inf')):
