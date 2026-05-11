@@ -138,7 +138,7 @@ class Renderer:
             path = os.path.join(_ASSETS_DIR, 'rivers', f'{img_file}.png')
             if os.path.exists(path):
                 self._river_imgs_raw.append((pygame.image.load(path).convert_alpha(), entries))
-        self.zoom = 1.0
+        self.zoom = 1.2
         self.terrain_images = {}
         self.river_imgs = {}
         self.icons = {}
@@ -233,6 +233,7 @@ class Renderer:
         self.offset_x = mx + (self.offset_x - mx) * new_zoom / old_zoom
         self.offset_y = my + (self.offset_y - my) * new_zoom / old_zoom
         self.zoom = new_zoom
+        print(f"zoom: {self.zoom:.3f}")
         self._apply_zoom()
 
     def _hex_to_pixel(self, row, col):
@@ -458,22 +459,20 @@ class Renderer:
                 pygame.draw.rect(self.screen, COLOR_CITY, rect)
                 pygame.draw.rect(self.screen, COLOR_CITY_BORDER, rect, 1)
                 name_y = int(cy) + s + 2
-            label = f"{city.name.upper()}  {len(city.pops)}"
-            name_surf = self.font_city.render(label, True, (255, 255, 255))
-            shadow_surf = self.font_city.render(label, True, (0, 0, 0))
-            nx = int(cx) - name_surf.get_width() // 2
-            for dx, dy in ((-1,-1),(0,-1),(1,-1),(-1,0),(1,0),(-1,1),(0,1),(1,1)):
-                self.screen.blit(shadow_surf, (nx + dx, name_y + dy))
-            self.screen.blit(name_surf, (nx, name_y))
-
-            mini_bar_w = 50
+            mini_bar_w = 30
             mini_bar_h = 2
             mini_gap = 1
             mini_pad = 2
             block_w = mini_bar_w + mini_pad * 2
             block_h = mini_bar_h * 3 + mini_gap * 2 + mini_pad * 2
-            bx = int(cx) - block_w // 2
-            by = name_y + name_surf.get_height() - 2
+            circle_r = block_h
+            overlap = 1
+            total_w = circle_r * 2 + block_w - overlap
+            start_x = int(cx) - total_w // 2
+            by = name_y
+            circle_cx = start_x + circle_r
+            circle_cy = by + block_h // 2
+            bx = start_x + circle_r * 2 - overlap
             pygame.draw.rect(self.screen, (0, 0, 0), (bx, by, block_w, block_h))
             food_max = city._stockpile_max()
             bars = [
@@ -500,6 +499,17 @@ class Renderer:
                 if i == 0 and food_max > 0 and 0 < min_stockpile < food_max:
                     tick_x = bx + mini_pad + int(mini_bar_w * min_stockpile / food_max)
                     pygame.draw.line(self.screen, (255, 255, 255), (tick_x, bar_y - 1), (tick_x, bar_y + mini_bar_h), 1)
+            pygame.draw.circle(self.screen, (0, 0, 0), (circle_cx, circle_cy), circle_r + 3)
+            pygame.draw.circle(self.screen, (30, 60, 120), (circle_cx, circle_cy), circle_r + 2)
+            pygame.draw.circle(self.screen, (180, 210, 255), (circle_cx, circle_cy), circle_r - 1)
+            pop_str = str(len(city.pops))
+            pop_outline = self.font_header.render(pop_str, True, (0, 0, 0))
+            pop_white = self.font_header.render(pop_str, True, (255, 255, 255))
+            tx = circle_cx - pop_white.get_width() // 2
+            ty = circle_cy - pop_white.get_height() // 2
+            for dx, dy in ((-1,-1),(0,-1),(1,-1),(-1,0),(1,0),(-1,1),(0,1),(1,1)):
+                self.screen.blit(pop_outline, (tx + dx, ty + dy))
+            self.screen.blit(pop_white, (tx, ty))
 
         # Pass 6b: worked farm dots (top-left of each tile, one dot per assigned pop)
         dot_radius = 2
