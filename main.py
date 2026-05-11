@@ -217,6 +217,17 @@ def main():
                 elif renderer.one_way_cancel_rect and renderer.one_way_cancel_rect.collidepoint(pos):
                     renderer.one_way_route_pending = None
 
+                elif any(r.collidepoint(pos) for r, _ in renderer.trade_route_delete_rects):
+                    for rect, route in renderer.trade_route_delete_rects:
+                        if rect.collidepoint(pos):
+                            route.city_a.trade_routes.remove(route)
+                            route.city_b.trade_routes.remove(route)
+                            route.city_a.update_cumulative_farm_yield_net()
+                            route.city_b.update_cumulative_farm_yield_net()
+                            route.city_a.rebalance_pops()
+                            route.city_b.rebalance_pops()
+                            break
+
                 elif renderer.one_way_slider_rect and renderer.one_way_slider_rect.collidepoint(pos):
                     sr = renderer.one_way_slider_rect
                     t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))

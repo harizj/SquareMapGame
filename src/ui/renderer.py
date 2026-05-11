@@ -159,6 +159,7 @@ class Renderer:
         self.admin_minus_rect = None
         self.admin_plus_rect = None
         self.city_focus_rects = {}
+        self.trade_route_delete_rects = []
         self.adding_trade_route = False
         self.adding_one_way_route = False
         self.add_one_way_route_button_rect = None
@@ -1002,6 +1003,8 @@ class Renderer:
         def _fmt_amt(v):
             return str(int(v)) if v == int(v) else f"{v:.1f}"
 
+        self.trade_route_delete_rects = []
+        btn_s = 14
         for route in city.trade_routes:
             is_origin = route.city_a is city
             other = route.city_b if is_origin else route.city_a
@@ -1017,6 +1020,8 @@ class Renderer:
                 line = f"-{_fmt_amt(abs(net_food))} food to {other.name}"
             surf = self.font_body.render(line, True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
+            del_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "x")
+            self.trade_route_delete_rects.append((del_rect, route))
             y += surf.get_height() + 4
 
         self.trade_route_slider_rect = None
