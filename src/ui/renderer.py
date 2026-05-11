@@ -38,6 +38,7 @@ TERRAIN_COLORS = {
 }
 TERRAIN_COLORS_DARK = {k: tuple(int(v * 0.68) for v in rgb) for k, rgb in TERRAIN_COLORS.items()}
 COLOR_RIVER_LINE  = (60, 120, 200)
+COLOR_RIVER_DARK  = (35, 80, 145)
 COLOR_CITY        = (220, 200, 140)
 COLOR_CITY_BORDER = (100,  80,  40)
 COLOR_OUTLINE     = (50, 50, 50)
@@ -125,15 +126,15 @@ class Renderer:
                 self._icons_raw[icon_name] = pygame.image.load(path).convert_alpha()
         self._river_imgs_raw = []
         for img_file, entries in (
-            ('sw2ne_2',   [(frozenset({'W',  'E'}),  -30),
-                       (frozenset({'NW', 'SE'}),   -90),
-                       (frozenset({'NE', 'SW'}),  30)]),
-            ('nw2s',  [(frozenset({'NW', 'SW'}),  -30),
-                       (frozenset({'NE', 'W'}),   -90),
-                       (frozenset({'NW', 'E'}),   -150)]),
-            ('ne2s',  [(frozenset({'E',  'SW'}),  -30),
-                       (frozenset({'SE', 'W'}),   -90),
-                       (frozenset({'NE', 'SE'}),  30)]),
+            ('sw2ne_2',   [(frozenset({'W',  'E'}),  -35, (0, 0)),
+                       (frozenset({'NW', 'SE'}),   -95, (0, 0)),
+                       (frozenset({'NE', 'SW'}),  25,  (0, 0))]),
+            ('nw2s',  [(frozenset({'NW', 'SW'}),  -30,  (0, 0)),
+                       (frozenset({'NE', 'W'}),   -100, (0, 0)),
+                       (frozenset({'NW', 'E'}),   -150, (0, 0))]),
+            ('ne2s',  [(frozenset({'E',  'SW'}),  -35,  (0, 0)),
+                       (frozenset({'SE', 'W'}),   -90,  (0, 0)),
+                       (frozenset({'NE', 'SE'}),  30,   (0, 0))]),
         ):
             path = os.path.join(_ASSETS_DIR, 'rivers', f'{img_file}.png')
             if os.path.exists(path):
@@ -188,29 +189,44 @@ class Renderer:
             base = pygame.transform.scale(
                 raw, (int(hex_w * RIVER_IMG_SCALE), int(hex_h * RIVER_IMG_SCALE))
             )
-            for key, angle in entries:
+            for key, angle, offset in entries:
                 rotated = pygame.transform.rotate(base, angle)
                 mask = rotated.copy()
                 mask.fill((255, 255, 255), special_flags=pygame.BLEND_RGB_MAX)
                 tinted = pygame.Surface(rotated.get_size(), pygame.SRCALPHA)
                 tinted.fill(COLOR_RIVER_LINE + (255,))
                 tinted.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                dark_blue = pygame.Surface(rotated.get_size(), pygame.SRCALPHA)
+                dark_blue.fill(COLOR_RIVER_DARK + (255,))
+                dark_blue.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
                 black = pygame.Surface(rotated.get_size(), pygame.SRCALPHA)
-                black.fill((0, 0, 0, 100))
+                black.fill((0, 0, 0, 220))
                 black.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
                 size = rotated.get_size()
-                radius = int(sz * math.sqrt(3) / 2)
-                circle_mask = pygame.Surface(size, pygame.SRCALPHA)
-                circle_mask.fill((0, 0, 0, 0))
-                pygame.draw.circle(circle_mask, (255, 255, 255, 255), (size[0] // 2, size[1] // 2), radius)
                 outline = pygame.Surface(size, pygame.SRCALPHA)
-                for dx, dy in ((-1,0),(1,0),(0,-1),(0,1),(-1,-1),(1,-1),(-1,1),(1,1)):
-                    outline.blit(black, (dx, dy))
-                outline.blit(circle_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                for dx in range(-5, 6):
+                    for dy in range(-5, 6):
+                        if (dx, dy) != (0, 0) and dx*dx + dy*dy <= 25:
+                            outline.blit(black, (dx, dy))
+                for dx in range(-3, 4):
+                    for dy in range(-3, 4):
+                        if (dx, dy) != (0, 0) and dx*dx + dy*dy <= 9:
+                            outline.blit(dark_blue, (dx, dy))
                 outlined = pygame.Surface(size, pygame.SRCALPHA)
                 outlined.blit(outline, (0, 0))
                 outlined.blit(tinted, (0, 0))
-                self.river_imgs[key] = outlined
+                w, h = outlined.get_size()
+                hex_clip = pygame.Surface((w, h), pygame.SRCALPHA)
+                hex_clip.fill((0, 0, 0, 0))
+                hcx, hcy = w // 2, h // 2
+                hex_pts = [
+                    (hcx + sz * math.cos(math.radians(60 * i - 30)),
+                     hcy + sz * math.sin(math.radians(60 * i - 30)) * ISO_SCALE)
+                    for i in range(6)
+                ]
+                pygame.draw.polygon(hex_clip, (255, 255, 255, 255), hex_pts)
+                outlined.blit(hex_clip, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                self.river_imgs[key] = (outlined, offset)
         castle_size = int(ICON_SIZE * 1.4 * self.zoom)
         sword_size = int(ICON_SIZE * self.zoom)
         self.icons = {}
@@ -362,11 +378,12 @@ class Renderer:
                 if not tile.river_edges:
                     continue
                 cx, cy = all_centers[(r, c)]
-                straight_img = self.river_imgs.get(frozenset(tile.river_edges))
-                if straight_img:
+                result = self.river_imgs.get(frozenset(tile.river_edges))
+                if result:
+                    straight_img, (ox, oy) = result
                     self.screen.blit(straight_img,
-                                     (int(cx) - straight_img.get_width() // 2,
-                                      int(cy) - straight_img.get_height() // 2))
+                                     (int(cx) - straight_img.get_width() // 2 + ox,
+                                      int(cy) - straight_img.get_height() // 2 + oy))
                 else:
                     for direction in tile.river_edges:
                         angle = RIVER_DIR_ANGLES[direction]
