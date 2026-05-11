@@ -312,6 +312,43 @@ class Renderer:
             corners.append((cx + sz * math.cos(angle_rad), cy + sz * math.sin(angle_rad) * ISO_SCALE))
         return corners
 
+    def _draw_dotted_line(self, start, end, color, dot_radius=1, spacing=5):
+        x0, y0 = start
+        x1, y1 = end
+        dx, dy = x1 - x0, y1 - y0
+        length = math.hypot(dx, dy)
+        if length == 0:
+            return
+        ux, uy = dx / length, dy / length
+        d = 0.0
+        while d <= length:
+            px = int(x0 + ux * d)
+            py = int(y0 + uy * d)
+            pygame.draw.circle(self.screen, color, (px, py), dot_radius)
+            d += spacing
+
+    def _draw_dotted_curve(self, p0, p1_through, p2, color, dot_radius=1, spacing=5):
+        """Quadratic Bézier dotted curve that passes through p1_through at t=0.5."""
+        # Derive control point so curve passes exactly through p1_through at t=0.5
+        cpx = 2 * p1_through[0] - 0.5 * (p0[0] + p2[0])
+        cpy = 2 * p1_through[1] - 0.5 * (p0[1] + p2[1])
+        # Walk the curve in small arc-length steps
+        steps = 200
+        prev = p0
+        accumulated = 0.0
+        first = True
+        for i in range(1, steps + 1):
+            t = i / steps
+            mt = 1 - t
+            x = mt * mt * p0[0] + 2 * mt * t * cpx + t * t * p2[0]
+            y = mt * mt * p0[1] + 2 * mt * t * cpy + t * t * p2[1]
+            seg = math.hypot(x - prev[0], y - prev[1])
+            accumulated += seg
+            if first or accumulated >= spacing:
+                pygame.draw.circle(self.screen, color, (int(x), int(y)), dot_radius)
+                accumulated = 0.0
+                first = False
+            prev = (x, y)
 
     def _pixel_to_hex(self, px, py):
         sz = HEX_SIZE * self.zoom
