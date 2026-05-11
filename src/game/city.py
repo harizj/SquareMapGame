@@ -129,10 +129,13 @@ class City:
         if self.food_allocated_to_min_stockpile < alloc_stockpile:
             print(f"Not enough food for stockpile in {self.name}")
 
-        if self.growth_progress < self._stockpile_max():
+        if self._space_for_new_pop():
             self.food_allocated_to_growth = min(remaining, growth_food)
             remaining -= self.food_allocated_to_growth
             self.growth_allocated = (self.food_allocated_to_growth / GROWTH_FOOD_REQUIREMENT) * GROWTH_RATE
+        else:
+            self.food_allocated_to_growth = 0
+            self.growth_allocated = 0
 
         self.food_allocated_to_stockpile = max(0.0, remaining) + self.food_allocated_to_min_stockpile
 

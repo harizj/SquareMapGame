@@ -490,8 +490,8 @@ class Renderer:
                 dx = int(cx) - dot_offset_x
                 dy = int(cy) - dot_start_y_offset
                 for i in range(tile.worked_farms):
-                    col_i = i // 4
-                    row_i = i % 4
+                    col_i = i // 3
+                    row_i = i % 3
                     dot_positions.append((dx + col_i * dot_spacing, dy + row_i * dot_spacing))
         for ddx, ddy in dot_positions:
             pygame.draw.circle(self.screen, (30, 60, 120), (ddx, ddy), dot_radius + 4)
