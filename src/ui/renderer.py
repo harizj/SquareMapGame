@@ -160,6 +160,16 @@ class Renderer:
         self.admin_plus_rect = None
         self.city_focus_rects = {}
         self.adding_trade_route = False
+        self.adding_one_way_route = False
+        self.add_one_way_route_button_rect = None
+        self.one_way_route_pending = None
+        self.one_way_amount = 1
+        self.one_way_pops_required_whole = 0
+        self.one_way_partial_pops = None
+        self.one_way_slider_rect = None
+        self._one_way_slider_dragging = False
+        self.one_way_confirm_rect = None
+        self.one_way_cancel_rect = None
         self.trade_route_pending = None
         self.trade_route_confirm_rect = None
         self.trade_route_pops = 1
@@ -503,7 +513,7 @@ class Renderer:
         selected_city_pos = (selected_tile.row, selected_tile.col) if selected_tile else None
         for (r, c), city in self.map.cities.items():
             cx, cy = all_centers[(r, c)]
-            if self.adding_trade_route and (r, c) != selected_city_pos:
+            if self.adding_one_way_route and (r, c) != selected_city_pos:
                 corners = [(int(px), int(py)) for px, py in self._hex_corners(cx, cy)]
                 pygame.draw.polygon(self.screen, (255, 210, 50), corners, 3)
             icon = self.icons_tinted.get('castle')
@@ -589,6 +599,8 @@ class Renderer:
 
         self._draw_city_panel(selected_tile)
         self._draw_panel(selected_tile, move_mode)
+        # self._draw_trade_route_popup()
+        self._draw_one_way_route_popup()
 
         self.terrain_option_rects = {}
         self.river_option_rects = {}
@@ -660,6 +672,199 @@ class Renderer:
         city_a, city_b = self.trade_route_pending
         dist = self.map.get_travel_cost(city_a.row, city_a.col, city_b.row, city_b.col)
         self._snap_route_amount(pos_x, self.trade_route_import_slider_rect, 'trade_route_import_amount', dist, 1)
+
+    def _draw_trade_route_popup(self):
+        if not self.trade_route_pending:
+            return
+        city_a, city_b = self.trade_route_pending
+        dist = self.map.get_travel_cost(city_a.row, city_a.col, city_b.row, city_b.col)
+
+        pad = 16
+        popup_w = 300
+        label_h = self.font_small.size("0")[1]
+        track_h = 4
+        popup_h = 420
+        sw, sh = self.screen.get_size()
+        px = (sw - popup_w) // 2
+        py = (sh - popup_h) // 2
+
+        # Overlay + background
+        overlay = pygame.Surface((sw, sh), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 140))
+        self.screen.blit(overlay, (0, 0))
+        pygame.draw.rect(self.screen, PANEL_BG, (px, py, popup_w, popup_h), border_radius=6)
+        pygame.draw.rect(self.screen, PANEL_DIVIDER, (px, py, popup_w, popup_h), 1, border_radius=6)
+
+        x = px + pad
+        y = py + pad
+        inner_w = popup_w - pad * 2
+
+        title = self.font_header.render(f"{city_a.name} <-> {city_b.name}", True, HEADER_TEXT_COLOR)
+        self.screen.blit(title, (x, y))
+        y += title.get_height() + 4
+
+        dist_text = f"Distance: {dist:.1f}" if dist is not None else "Distance: N/A"
+        surf = self.font_body.render(dist_text, True, TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        y += surf.get_height() + 12
+
+        # Pops slider
+        surf = self.font_small.render(f"Pops allocated: {self.trade_route_pops}", True, TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        y += surf.get_height() + 6
+        track_x, track_y, track_w = x, y, inner_w
+        pygame.draw.rect(self.screen, (60, 60, 80), (track_x, track_y, track_w, track_h), border_radius=2)
+        t = (self.trade_route_pops - 1) / 7.0
+        hx = int(track_x + t * track_w)
+        hy = track_y + track_h // 2
+        pygame.draw.circle(self.screen, (160, 190, 240), (hx, hy), 6)
+        pygame.draw.circle(self.screen, (100, 130, 190), (hx, hy), 6, 1)
+        min_surf = self.font_small.render("1", True, PANEL_DIVIDER)
+        max_surf = self.font_small.render("8", True, PANEL_DIVIDER)
+        self.screen.blit(min_surf, (track_x, track_y + track_h + 3))
+        self.screen.blit(max_surf, (track_x + track_w - max_surf.get_width(), track_y + track_h + 3))
+        self.trade_route_slider_rect = pygame.Rect(track_x, track_y - 6, track_w, track_h + 16)
+        y = track_y + track_h + min_surf.get_height() + 14
+
+        # Export material
+        surf = self.font_small.render("Export material", True, TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        y += surf.get_height() + 4
+        btn_w = (inner_w - 4) // 3
+        self.trade_route_export_rects = {}
+        bx = x
+        for label in ('Food', 'Wood', 'Iron'):
+            rect = self._draw_button(bx, y, btn_w, 20, label,
+                                     active=(self.trade_route_export == label.lower()))
+            self.trade_route_export_rects[label] = rect
+            bx += btn_w + 2
+        y += 28
+
+        # Export amount slider
+        ex_steps, ex_max = self._amount_steps(dist, self.trade_route_pops, 2)
+        self.trade_route_max_export = ex_max
+        ex_val = min(self.trade_route_export_amount, ex_max)
+        ex_str = str(int(ex_val)) if ex_val == int(ex_val) else f"{ex_val:.1f}"
+        surf = self.font_small.render(f"Export amount: {ex_str}", True, TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        y += surf.get_height() + 6
+        self.trade_route_amount_slider_rect = self._draw_route_slider(
+            x, y, inner_w, track_h, ex_steps, ex_max, ex_val)
+        y += track_h + label_h + 14
+
+        # Import material
+        surf = self.font_small.render("Import material", True, TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        y += surf.get_height() + 4
+        self.trade_route_import_rects = {}
+        bx = x
+        for label in ('Food', 'Wood', 'Iron'):
+            rect = self._draw_button(bx, y, btn_w, 20, label,
+                                     active=(self.trade_route_import == label.lower()))
+            self.trade_route_import_rects[label] = rect
+            bx += btn_w + 2
+        y += 28
+
+        # Import amount slider
+        im_steps, im_max = self._amount_steps(dist, self.trade_route_pops, 1)
+        self.trade_route_max_import = im_max
+        im_val = min(self.trade_route_import_amount, im_max)
+        im_str = str(int(im_val)) if im_val == int(im_val) else f"{im_val:.1f}"
+        surf = self.font_small.render(f"Import amount: {im_str}", True, TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        y += surf.get_height() + 6
+        self.trade_route_import_slider_rect = self._draw_route_slider(
+            x, y, inner_w, track_h, im_steps, im_max, im_val)
+        y += track_h + label_h + 14
+
+        self.trade_route_confirm_rect = self._draw_button(x, y, inner_w, 24, "Confirm")
+
+    def _draw_one_way_route_popup(self):
+        if not self.one_way_route_pending:
+            return
+        city_a, city_b = self.one_way_route_pending
+        dist = self.map.get_travel_cost(city_a.row, city_a.col, city_b.row, city_b.col)
+
+        pad = 16
+        popup_w = 280
+        popup_h = 270
+        sw, sh = self.screen.get_size()
+        px = (sw - popup_w) // 2
+        py = (sh - popup_h) // 2
+
+        overlay = pygame.Surface((sw, sh), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 140))
+        self.screen.blit(overlay, (0, 0))
+        pygame.draw.rect(self.screen, PANEL_BG, (px, py, popup_w, popup_h), border_radius=6)
+        pygame.draw.rect(self.screen, PANEL_DIVIDER, (px, py, popup_w, popup_h), 1, border_radius=6)
+
+        x = px + pad
+        y = py + pad
+        inner_w = popup_w - pad * 2
+
+        title = self.font_header.render(f"{city_a.name} -> {city_b.name}", True, HEADER_TEXT_COLOR)
+        self.screen.blit(title, (x, y))
+        y += title.get_height() + 4
+
+        dist_text = f"Distance: {dist:.1f}" if dist is not None else "Distance: N/A"
+        surf = self.font_body.render(dist_text, True, TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        y += surf.get_height() + 12
+
+        surf = self.font_body.render("Export Food", True, TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        y += surf.get_height() + 10
+
+        # Amount slider 1–8
+        surf = self.font_body.render(f"Amount: {self.one_way_amount}", True, TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        y += surf.get_height() + 6
+        track_h = 4
+        track_x, track_y, track_w = x, y, inner_w
+        pygame.draw.rect(self.screen, (60, 60, 80), (track_x, track_y, track_w, track_h), border_radius=2)
+        t = (self.one_way_amount - 1) / 7.0
+        hx = int(track_x + t * track_w)
+        hy = track_y + track_h // 2
+        pygame.draw.circle(self.screen, (160, 190, 240), (hx, hy), 6)
+        pygame.draw.circle(self.screen, (100, 130, 190), (hx, hy), 6, 1)
+        min_surf = self.font_small.render("1", True, PANEL_DIVIDER)
+        max_surf = self.font_small.render("8", True, PANEL_DIVIDER)
+        self.screen.blit(min_surf, (track_x, track_y + track_h + 3))
+        self.screen.blit(max_surf, (track_x + track_w - max_surf.get_width(), track_y + track_h + 3))
+        self.one_way_slider_rect = pygame.Rect(track_x, track_y - 6, track_w, track_h + 16)
+        y = track_y + track_h + min_surf.get_height() + 14
+
+        # Pops required calculation
+        pops_required_text = "Pops required: N/A"
+        self.one_way_pops_required_whole = 0
+        self.one_way_partial_pops = None
+        partial_pops = None
+        if dist:
+            travel_time = dist / DEFAULT_MOVE_DISTANCE
+            denom = LAND_CARRY_CAPACITY + 1 - 2 * travel_time
+            if denom > 0 and travel_time > 0:
+                raw = (self.one_way_amount * 2 * travel_time) / denom
+                pops_required = math.ceil(raw * 10) / 10
+                pops_str = str(int(pops_required)) if pops_required == int(pops_required) else f"{pops_required:.1f}"
+                pops_required_text = f"Pops required: {pops_str}"
+                self.one_way_pops_required_whole = math.ceil(pops_required)
+                if pops_required != int(pops_required):
+                    partial_pops = round(math.ceil(pops_required) - pops_required, 1)
+                    self.one_way_partial_pops = partial_pops
+        surf = self.font_body.render(pops_required_text, True, TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        y += surf.get_height() + 4
+        if partial_pops is not None:
+            frac_str = str(int(partial_pops)) if partial_pops == int(partial_pops) else f"{partial_pops:.1f}"
+            surf = self.font_body.render(f"{frac_str} remaining pops will work production", True, TEXT_COLOR)
+            self.screen.blit(surf, (x, y))
+            y += surf.get_height() + 10
+        else:
+            y += 6
+
+        btn_w = (inner_w - 8) // 2
+        self.one_way_confirm_rect = self._draw_button(x, y, btn_w, 24, "Confirm")
+        self.one_way_cancel_rect = self._draw_button(x + btn_w + 8, y, btn_w, 24, "Cancel")
 
     def _draw_city_panel(self, tile):
         pad = 16
@@ -808,12 +1013,13 @@ class Renderer:
             y += name_surf.get_height() + 1
             parts = []
             if is_origin:
-                parts.append(f"{route.pops} pops in caravan")
+                parts.append(f"{route.pops_a} pops in caravan")
                 if route.import_material:
                     parts.append(f"+{_fmt_amt(route.import_amount)} {route.import_material}")
                 if route.export_material:
                     parts.append(f"-{_fmt_amt(route.export_amount)} {route.export_material}")
             else:
+                parts.append(f"{route.pops_b} pops in caravan")
                 if route.export_material:
                     parts.append(f"+{_fmt_amt(route.export_amount)} {route.export_material}")
                 if route.import_material:
@@ -822,110 +1028,19 @@ class Renderer:
             self.screen.blit(detail_surf, (x + 4, y))
             y += detail_surf.get_height() + 6
 
-        if self.trade_route_pending:
-            city_a, city_b = self.trade_route_pending
-            surf = self.font_body.render(f"{city_a.name} <-> {city_b.name}", True, TEXT_COLOR)
-            self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 4
-            dist = self.map.get_travel_cost(city_a.row, city_a.col, city_b.row, city_b.col)
-            dist_text = f"Distance: {dist:.1f}" if dist is not None else "Distance: N/A"
-            surf = self.font_body.render(dist_text, True, TEXT_COLOR)
-            self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 10
-
-            # Pops allocated slider (1–8)
-            label_surf = self.font_small.render(f"Pops allocated: {self.trade_route_pops}", True, TEXT_COLOR)
-            self.screen.blit(label_surf, (x + 4, y))
-            y += label_surf.get_height() + 6
-
-            track_w = CITY_PANEL_WIDTH - pad * 2
-            track_h = 4
-            track_x = pad
-            track_y = y
-            pygame.draw.rect(self.screen, (60, 60, 80), (track_x, track_y, track_w, track_h), border_radius=2)
-            t = (self.trade_route_pops - 1) / 7.0
-            handle_x = int(track_x + t * track_w)
-            handle_y = track_y + track_h // 2
-            pygame.draw.circle(self.screen, (160, 190, 240), (handle_x, handle_y), 6)
-            pygame.draw.circle(self.screen, (100, 130, 190), (handle_x, handle_y), 6, 1)
-            min_surf = self.font_small.render("1", True, PANEL_DIVIDER)
-            max_surf = self.font_small.render("8", True, PANEL_DIVIDER)
-            self.screen.blit(min_surf, (track_x, track_y + track_h + 3))
-            self.screen.blit(max_surf, (track_x + track_w - max_surf.get_width(), track_y + track_h + 3))
-            self.trade_route_slider_rect = pygame.Rect(track_x, track_y - 6, track_w, track_h + 16)
-            y = track_y + track_h + min_surf.get_height() + 12
-
-            # Export material selector
-            surf = self.font_small.render("Export material", True, TEXT_COLOR)
-            self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 4
-            export_btn_w = (CITY_PANEL_WIDTH - pad * 2 - 4) // 3
-            self.trade_route_export_rects = {}
-            bx = pad
-            for export_label in ('Food', 'Wood', 'Iron'):
-                rect = self._draw_button(bx, y, export_btn_w, 20, export_label,
-                                         active=(self.trade_route_export == export_label.lower()))
-                self.trade_route_export_rects[export_label] = rect
-                bx += export_btn_w + 2
-            y += 28
-
-            city_a, city_b = self.trade_route_pending
-            dist = self.map.get_travel_cost(city_a.row, city_a.col, city_b.row, city_b.col)
-            track_w_s = CITY_PANEL_WIDTH - pad * 2
-            track_h_s = 4
-            label_h = self.font_small.size("0")[1]
-
-            # Export amount slider
-            ex_steps, ex_max = self._amount_steps(dist, self.trade_route_pops, 2)
-            self.trade_route_max_export = ex_max
-            ex_val = min(self.trade_route_export_amount, ex_max)
-            ex_str = str(int(ex_val)) if ex_val == int(ex_val) else f"{ex_val:.1f}"
-            surf = self.font_small.render(f"Export amount: {ex_str}", True, TEXT_COLOR)
-            self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 6
-            self.trade_route_amount_slider_rect = self._draw_route_slider(
-                pad, y, track_w_s, track_h_s, ex_steps, ex_max, ex_val)
-            y += track_h_s + label_h + 14
-
-            # Import material selector
-            surf = self.font_small.render("Import material", True, TEXT_COLOR)
-            self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 4
-            import_btn_w = (CITY_PANEL_WIDTH - pad * 2 - 4) // 3
-            self.trade_route_import_rects = {}
-            bx = pad
-            for import_label in ('Food', 'Wood', 'Iron'):
-                rect = self._draw_button(bx, y, import_btn_w, 20, import_label,
-                                         active=(self.trade_route_import == import_label.lower()))
-                self.trade_route_import_rects[import_label] = rect
-                bx += import_btn_w + 2
-            y += 28
-
-            # Import amount slider
-            im_steps, im_max = self._amount_steps(dist, self.trade_route_pops, 1)
-            self.trade_route_max_import = im_max
-            im_val = min(self.trade_route_import_amount, im_max)
-            im_str = str(int(im_val)) if im_val == int(im_val) else f"{im_val:.1f}"
-            surf = self.font_small.render(f"Import amount: {im_str}", True, TEXT_COLOR)
-            self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 6
-            self.trade_route_import_slider_rect = self._draw_route_slider(
-                pad, y, track_w_s, track_h_s, im_steps, im_max, im_val)
-            y += track_h_s + label_h + 14
-
-            self.trade_route_confirm_rect = self._draw_button(
-                pad, y, CITY_PANEL_WIDTH - pad * 2, 22, "Confirm")
-            y += 28
-        else:
-            self.trade_route_slider_rect = None
-            self.trade_route_amount_slider_rect = None
-            self.trade_route_import_slider_rect = None
-            self.trade_route_export_rects = {}
-            self.trade_route_import_rects = {}
-            self.add_trade_route_button_rect = self._draw_button(
-                pad, y, CITY_PANEL_WIDTH - pad * 2, 22, "Add New Route",
-                active=self.adding_trade_route)
-            y += 28
+        self.trade_route_slider_rect = None
+        self.trade_route_amount_slider_rect = None
+        self.trade_route_import_slider_rect = None
+        self.trade_route_export_rects = {}
+        self.trade_route_import_rects = {}
+        # self.add_trade_route_button_rect = self._draw_button(
+        #     pad, y, CITY_PANEL_WIDTH - pad * 2, 22, "Add New Route",
+        #     active=self.adding_trade_route)
+        # y += 28
+        self.add_one_way_route_button_rect = self._draw_button(
+            pad, y, CITY_PANEL_WIDTH - pad * 2, 22, "Add One Way Route",
+            active=self.adding_one_way_route)
+        y += 28
 
     def _draw_panel(self, tile, move_mode=False):
         self.move_button_rect = None

@@ -102,6 +102,7 @@ def main():
                 renderer._slider_dragging = False
                 renderer._amount_slider_dragging = False
                 renderer._import_slider_dragging = False
+                renderer._one_way_slider_dragging = False
 
             elif event.type == pygame.MOUSEMOTION:
                 if renderer._slider_dragging and renderer.trade_route_slider_rect:
@@ -112,6 +113,10 @@ def main():
                     renderer.snap_export_amount(event.pos[0])
                 if renderer._import_slider_dragging:
                     renderer.snap_import_amount(event.pos[0])
+                if renderer._one_way_slider_dragging and renderer.one_way_slider_rect:
+                    sr = renderer.one_way_slider_rect
+                    t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
+                    renderer.one_way_amount = max(1, min(8, round(1 + t * 7)))
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 pos = event.pos
@@ -172,25 +177,62 @@ def main():
                             renderer.trade_route_export = key if renderer.trade_route_export != key else None
                             break
 
-                elif renderer.trade_route_confirm_rect and renderer.trade_route_confirm_rect.collidepoint(pos):
-                    city_a, city_b = renderer.trade_route_pending
-                    route = TradeRoute(
+                # elif renderer.trade_route_confirm_rect and renderer.trade_route_confirm_rect.collidepoint(pos):
+                #     city_a, city_b = renderer.trade_route_pending
+                #     route = TradeRoute(
+                #         city_a=city_a,
+                #         city_b=city_b,
+                #         pops_a=renderer.trade_route_pops,
+                #         pops_b=renderer.trade_route_pops,
+                #         partial_pops_a=None,
+                #         partial_pops_b=None,
+                #         export_material=renderer.trade_route_export,
+                #         export_amount=renderer.trade_route_export_amount,
+                #         max_export=renderer.trade_route_max_export,
+                #         import_material=renderer.trade_route_import,
+                #         import_amount=renderer.trade_route_import_amount,
+                #         max_import=renderer.trade_route_max_import,
+                #     )
+                #     renderer.trade_route_pending = None
+                #     renderer.adding_trade_route = False
+
+                elif renderer.one_way_confirm_rect and renderer.one_way_confirm_rect.collidepoint(pos):
+                    city_a, city_b = renderer.one_way_route_pending
+                    TradeRoute(
                         city_a=city_a,
                         city_b=city_b,
-                        pops=renderer.trade_route_pops,
-                        export_material=renderer.trade_route_export,
-                        export_amount=renderer.trade_route_export_amount,
-                        max_export=renderer.trade_route_max_export,
-                        import_material=renderer.trade_route_import,
-                        import_amount=renderer.trade_route_import_amount,
-                        max_import=renderer.trade_route_max_import,
+                        pops_a=renderer.one_way_pops_required_whole,
+                        pops_b=0,
+                        partial_pops_a=renderer.one_way_partial_pops,
+                        partial_pops_b=None,
+                        export_material='food',
+                        export_amount=renderer.one_way_amount,
+                        max_export=renderer.one_way_amount,
+                        import_material=None,
+                        import_amount=0,
+                        max_import=0,
                     )
-                    renderer.trade_route_pending = None
-                    renderer.adding_trade_route = False
+                    renderer.one_way_route_pending = None
 
-                elif renderer.add_trade_route_button_rect and renderer.add_trade_route_button_rect.collidepoint(pos):
-                    renderer.adding_trade_route = not renderer.adding_trade_route
-                    if not renderer.adding_trade_route:
+                elif renderer.one_way_cancel_rect and renderer.one_way_cancel_rect.collidepoint(pos):
+                    renderer.one_way_route_pending = None
+
+                elif renderer.one_way_slider_rect and renderer.one_way_slider_rect.collidepoint(pos):
+                    sr = renderer.one_way_slider_rect
+                    t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
+                    renderer.one_way_amount = max(1, min(8, round(1 + t * 7)))
+                    renderer._one_way_slider_dragging = True
+
+                # elif renderer.add_trade_route_button_rect and renderer.add_trade_route_button_rect.collidepoint(pos):
+                #     renderer.adding_trade_route = not renderer.adding_trade_route
+                #     renderer.adding_one_way_route = False
+                #     if not renderer.adding_trade_route:
+                #         renderer.trade_route_pending = None
+
+                elif renderer.add_one_way_route_button_rect and renderer.add_one_way_route_button_rect.collidepoint(pos):
+                    renderer.adding_one_way_route = not renderer.adding_one_way_route
+                    renderer.adding_trade_route = False
+                    if not renderer.adding_one_way_route:
                         renderer.trade_route_pending = None
 
                 elif renderer.draw_river_button_rect and renderer.draw_river_button_rect.collidepoint(pos):
@@ -255,19 +297,15 @@ def main():
                     reachable = {}
                     game_log.append(f"TURN {turn}")
 
-                elif renderer.adding_trade_route and pos[0] < renderer.map_w:
+                elif renderer.adding_one_way_route and pos[0] < renderer.map_w:
                     tile = renderer.get_tile_at(*pos)
                     current_city = game_map.cities.get((selected_tile.row, selected_tile.col)) if selected_tile else None
                     if tile is not None:
                         clicked_city = game_map.cities.get((tile.row, tile.col))
                         if clicked_city and clicked_city is not current_city:
-                            renderer.trade_route_pending = (current_city, clicked_city)
-                            renderer.trade_route_pops = 1
-                            renderer.trade_route_export = None
-                            renderer.trade_route_export_amount = 0
-                            renderer.trade_route_import = None
-                            renderer.trade_route_import_amount = 0
-                    renderer.adding_trade_route = False
+                            renderer.one_way_route_pending = (current_city, clicked_city)
+                            renderer.one_way_amount = 1
+                    renderer.adding_one_way_route = False
 
                 elif move_mode:
                     tile = renderer.get_tile_at(*pos)
