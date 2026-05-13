@@ -1,4 +1,4 @@
-from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY
+from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, POP_FOOD_CONSUMPTION
 
 
 class Unit:

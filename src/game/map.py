@@ -44,11 +44,7 @@ class Map:
             for r in range(GRID_ROWS)
         ]
         center_r, center_c = self.rows // 2, self.cols // 2
-        group_a = Group(center_r, center_c, units=[Unit(Pop()) for _ in range(3)])
-        group_a.add_food(12.0)
-        group_b = Group(center_r, center_c, units=[Unit(Pop()) for _ in range(2)])
-        group_b.add_food(8.0)
-        self.groups = {(center_r, center_c): [group_a, group_b]}
+        self.groups = {}
         self._city_name_idx = 0
         self.cities = {(4, 4): City(4, 4, self._take_city_name())}
         for city in self.cities.values():
@@ -249,7 +245,7 @@ class Map:
         group_a = Group(5, 5, units=[Unit(Pop()) for _ in range(3)])
         group_a.add_food(12.0)
         group_b = Group(5, 5, units=[Unit(Pop()) for _ in range(2)])
-        group_b.add_food(8.0)
+        group_b.add_food(3.0)
         m.groups = {(5, 5): [group_a, group_b]}
         m._city_name_idx = 0
         m.cities = {(7, 2): City(7, 2, m._take_city_name()),

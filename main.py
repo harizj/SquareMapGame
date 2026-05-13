@@ -322,7 +322,12 @@ def main():
                     game_log.append("")
                     for grp_list in game_map.groups.values():
                         for group in grp_list:
-                            group.reset_moves()
+                            group.end_turn()
+                    game_map.groups = {
+                        pos: [g for g in grp_list if g.units]
+                        for pos, grp_list in game_map.groups.items()
+                    }
+                    game_map.groups = {pos: grp_list for pos, grp_list in game_map.groups.items() if grp_list}
                     for city in game_map.cities.values():
                         for msg in city.end_turn():
                             game_log.append(f"T{turn} {msg}")

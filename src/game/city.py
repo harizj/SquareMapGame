@@ -2,11 +2,11 @@ import bisect
 import math
 from src.game.pop import Pop
 from src.game.jobs import FarmJob, ProductionJob, AdminJob, CaravanJob
+from src.game.constants import POP_FOOD_CONSUMPTION
 
 STOCKPILE_MAX = 20
 STOCKPILE_PER_ADMIN = 20
 GROWTH_NEEDED_FOR_NEW_POP = 100
-POP_FOOD_CONSUMPTION = 1
 GROWTH_FOOD_REQUIREMENT = .2
 GROWTH_RATE = 2
 GROWTH_SLOWDOWN = 0.1

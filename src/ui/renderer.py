@@ -1369,7 +1369,8 @@ class Renderer:
                 if icon_to_use:
                     self.screen.blit(icon_to_use, (x + 4, y))
                 text_x = x + 4 + (icon_h + 4 if icon_to_use else 0)
-                surf = self.font_body.render(f"{count} {unit_type.capitalize()}", True, TEXT_COLOR)
+                unit_text_color = (220, 50, 50) if group.pending_pop_loss > 0 else TEXT_COLOR
+                surf = self.font_body.render(f"{count} {unit_type.capitalize()}", True, unit_text_color)
                 self.screen.blit(surf, (text_x, y))
                 y += icon_h + 4
             icon_rect = pygame.Rect(x + 4, row_top_y, bar_w - 4, y - row_top_y)
@@ -1389,9 +1390,19 @@ class Renderer:
 
             pygame.draw.rect(self.screen, (30, 30, 40), (x, y, bar_w, bar_h), border_radius=2)
             if group.max_food_stockpile > 0:
-                fill_w = int(bar_w * min(group.food_stockpile, group.max_food_stockpile) / group.max_food_stockpile)
-                if fill_w > 0:
-                    pygame.draw.rect(self.screen, (120, 190, 80), (x, y, fill_w, bar_h), border_radius=2)
+                consumption = group.consumption_per_turn()
+                current = min(group.food_stockpile, group.max_food_stockpile)
+                proj = max(0.0, min(current - consumption, group.max_food_stockpile))
+                fill_w = max(int(bar_w * current / group.max_food_stockpile), 0)
+                proj_w = max(int(bar_w * proj / group.max_food_stockpile), 0)
+                if consumption > 0:
+                    if fill_w > 0:
+                        pygame.draw.rect(self.screen, (220, 110, 60), (x, y, fill_w, bar_h), border_radius=2)
+                    if proj_w > 0:
+                        pygame.draw.rect(self.screen, (120, 190, 80), (x, y, proj_w, bar_h), border_radius=2)
+                else:
+                    if fill_w > 0:
+                        pygame.draw.rect(self.screen, (120, 190, 80), (x, y, fill_w, bar_h), border_radius=2)
                 for i in range(1, int(group.max_food_stockpile)):
                     tx = x + int(bar_w * i / group.max_food_stockpile)
                     pygame.draw.line(self.screen, (30, 30, 40), (tx, y), (tx, y + bar_h - 1))
