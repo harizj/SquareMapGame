@@ -3,7 +3,7 @@ import math
 import os
 import pygame
 from src.game.city import STOCKPILE_MAX
-from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, WATER_CARRY_CAPACITY, MOVE_CARRY_OVER
+from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, MILITARY_CARRY_CAPACITY, WATER_CARRY_CAPACITY, MOVE_CARRY_OVER
 from src.game.map import TERRAIN_TYPES
 
 _ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'assets')
@@ -213,6 +213,17 @@ class Renderer:
         self.drop_all_button_rect = None
         self.restock_button_rect = None
         self.drop_button_rect = None
+        self.recruit_unit_button_rect = None
+        self.disband_button_rect = None
+        self.recruit_popup_active = False
+        self.recruit_popup_amount = 1
+        self.recruit_popup_food = 0
+        self.recruit_popup_slider_rect = None
+        self.recruit_popup_food_slider_rect = None
+        self.recruit_popup_confirm_rect = None
+        self.recruit_popup_cancel_rect = None
+        self._recruit_slider_dragging = False
+        self._recruit_food_slider_dragging = False
 
     def _apply_zoom(self):
         sz = HEX_SIZE * self.zoom
@@ -890,6 +901,9 @@ class Renderer:
         elif save_popup_active:
             self._draw_save_popup(save_popup_text)
 
+        if self.recruit_popup_active and selected_tile and selected_tile.city:
+            self._draw_recruit_popup(selected_tile.city)
+
         if console_active:
             self._draw_console_overlay(console_input)
 
@@ -1178,17 +1192,13 @@ class Renderer:
         bar_x = pad
         y = 20
 
+        city = tile.owning_city if tile else None
+        if not city:
+            return
+
         surf = self.font_header.render("CITY", True, HEADER_TEXT_COLOR)
         self.screen.blit(surf, (x, y))
         y += surf.get_height() + 6
-
-        city = tile.owning_city if tile else None
-        if not city:
-            pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
-            y += 10
-            surf = self.font_header.render("TRADE ROUTES", True, HEADER_TEXT_COLOR)
-            self.screen.blit(surf, (x, y))
-            return
 
         surf = self.font_body.render(city.name, True, TEXT_COLOR)
         self.screen.blit(surf, (x + 4, y))
@@ -1308,7 +1318,7 @@ class Renderer:
         if unit_consumption > 0:
             negative_lines.append(("Units", -unit_consumption, None))
         negative_lines.append((f"Pops", -city.food_allocated_to_consumption, None))
-        negative_lines.append(("Growth", -city.food_allocated_to_growth, f"(+{round(city.growth_allocated)} towards new pop)"))
+        negative_lines.append(("Growth", -city.food_allocated_to_growth, f"(Adds {round(city.growth_allocated)})"))
 
         for label, val in positive_lines:
             surf = self.font_body.render(f"{label}  {_signed(val)}", True, TEXT_COLOR)
@@ -1389,6 +1399,8 @@ class Renderer:
         self.save_map_button_rect = None
         self.change_terrain_button_rect = None
         self.draw_river_button_rect = None
+        self.recruit_unit_button_rect = None
+        self.disband_button_rect = None
         panel_x = self.map_w
         pad = 16
         pygame.draw.rect(self.screen, PANEL_BG, (panel_x, 0, PANEL_WIDTH, self.screen.get_height()))
@@ -1398,9 +1410,10 @@ class Renderer:
         y = 20
 
         # Terrain section header
-        surf = self.font_header.render("TERRAIN", True, HEADER_TEXT_COLOR)
-        self.screen.blit(surf, (x, y))
-        y += surf.get_height() + 6
+        if tile:
+            surf = self.font_header.render("TERRAIN", True, HEADER_TEXT_COLOR)
+            self.screen.blit(surf, (x, y))
+            y += surf.get_height() + 6
 
         # Terrain value + Draw River button on same row
         row_h = 22
@@ -1441,15 +1454,29 @@ class Renderer:
             y += farms_surf.get_height() + 4
         y += 6
 
-        pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (panel_x + PANEL_WIDTH - pad, y), 1)
-        y += 16
-
-        # Group section
-        surf = self.font_header.render("UNITS", True, HEADER_TEXT_COLOR)
-        self.screen.blit(surf, (x, y))
-        y += surf.get_height() + 6
-
         groups = self.map.get_groups(tile.row, tile.col) if tile else []
+        has_city = tile and tile.city is not None
+        if groups or has_city:
+            pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (panel_x + PANEL_WIDTH - pad, y), 1)
+            y += 16
+
+            # Group section
+            surf = self.font_header.render("UNITS", True, HEADER_TEXT_COLOR)
+            self.screen.blit(surf, (x, y))
+            y += surf.get_height() + 6
+
+            selected_on_tile = [g for g in groups if g in self.selected_groups]
+            half_w = (PANEL_WIDTH - pad * 2 - 4) // 2
+            recruit_disabled = not has_city
+            disband_disabled = not has_city or len(selected_on_tile) == 0
+            self.recruit_unit_button_rect = self._draw_button(panel_x + pad, y, half_w, btn_h, "Recruit", disabled=recruit_disabled)
+            self.disband_button_rect = self._draw_button(panel_x + pad + half_w + 4, y, half_w, btn_h, "Disband", disabled=disband_disabled)
+            if recruit_disabled:
+                self.recruit_unit_button_rect = None
+            if disband_disabled:
+                self.disband_button_rect = None
+            y += btn_h + 6
+
         first_group = groups[0] if groups else None
         if first_group:
             btn_w, btn_h = 50, 20
@@ -1594,6 +1621,72 @@ class Renderer:
         )
         self.screen.blit(hint, (sw - hint.get_width() - pad,
                                 bar_y + (bar_h - hint.get_height()) // 2))
+
+    def _draw_recruit_popup(self, city):
+        overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        self.screen.blit(overlay, (0, 0))
+
+        W, H = 280, 168
+        sx = (self.screen.get_width() - W) // 2
+        sy = (self.screen.get_height() - H) // 2
+        pad = 16
+        track_h = 6
+        track_w = W - pad * 2
+        pygame.draw.rect(self.screen, (40, 40, 55), (sx, sy, W, H), border_radius=6)
+        pygame.draw.rect(self.screen, PANEL_DIVIDER, (sx, sy, W, H), 1, border_radius=6)
+
+        surf = self.font_header.render("RECRUIT UNITS", True, HEADER_TEXT_COLOR)
+        self.screen.blit(surf, (sx + pad, sy + 12))
+
+        max_recruit = min(8, len(city.pops) - 1)
+        amount = max(1, min(self.recruit_popup_amount, max_recruit))
+        self.recruit_popup_amount = amount
+
+        amt_surf = self.font_body.render(f"{amount} unit{'s' if amount != 1 else ''}", True, TEXT_COLOR)
+        self.screen.blit(amt_surf, (sx + pad, sy + 36))
+
+        track_x = sx + pad
+        track_y = sy + 54
+        pygame.draw.rect(self.screen, (60, 60, 80), (track_x, track_y, track_w, track_h), border_radius=2)
+        for i in range(1, max_recruit + 1):
+            tx = track_x + int((i - 1) / max(max_recruit - 1, 1) * track_w)
+            pygame.draw.line(self.screen, PANEL_DIVIDER, (tx, track_y - 2), (tx, track_y + track_h + 2), 1)
+        hx = track_x + int((amount - 1) / max(max_recruit - 1, 1) * track_w)
+        hy = track_y + track_h // 2
+        pygame.draw.circle(self.screen, (160, 190, 240), (hx, hy), 6)
+        pygame.draw.circle(self.screen, (100, 130, 190), (hx, hy), 6, 1)
+        self.screen.blit(self.font_small.render("1", True, PANEL_DIVIDER), (track_x, track_y + track_h + 3))
+        max_r_surf = self.font_small.render(str(max_recruit), True, PANEL_DIVIDER)
+        self.screen.blit(max_r_surf, (track_x + track_w - max_r_surf.get_width(), track_y + track_h + 3))
+        self.recruit_popup_slider_rect = pygame.Rect(track_x, track_y - 6, track_w, track_h + 16)
+
+        carry_cap = amount * MILITARY_CARRY_CAPACITY
+        max_food = int(min(city.food_stockpile, carry_cap))
+        food = max(0, min(self.recruit_popup_food, max_food))
+        self.recruit_popup_food = food
+
+        food_surf = self.font_body.render(f"{food} food", True, TEXT_COLOR)
+        self.screen.blit(food_surf, (sx + pad, sy + 88))
+
+        f_track_y = sy + 106
+        pygame.draw.rect(self.screen, (60, 60, 80), (track_x, f_track_y, track_w, track_h), border_radius=2)
+        if max_food > 0:
+            fhx = track_x + int(food / max_food * track_w)
+        else:
+            fhx = track_x
+        fhy = f_track_y + track_h // 2
+        pygame.draw.circle(self.screen, (160, 190, 240), (fhx, fhy), 6)
+        pygame.draw.circle(self.screen, (100, 130, 190), (fhx, fhy), 6, 1)
+        self.screen.blit(self.font_small.render("0", True, PANEL_DIVIDER), (track_x, f_track_y + track_h + 3))
+        max_f_surf = self.font_small.render(str(max_food), True, PANEL_DIVIDER)
+        self.screen.blit(max_f_surf, (track_x + track_w - max_f_surf.get_width(), f_track_y + track_h + 3))
+        self.recruit_popup_food_slider_rect = pygame.Rect(track_x, f_track_y - 6, track_w, track_h + 16)
+
+        btn_y = sy + H - 36
+        btn_w = (W - pad * 2 - 8) // 2
+        self.recruit_popup_confirm_rect = self._draw_button(sx + pad, btn_y, btn_w, 24, "Confirm")
+        self.recruit_popup_cancel_rect = self._draw_button(sx + pad + btn_w + 8, btn_y, btn_w, 24, "Cancel")
 
     def _draw_save_popup(self, text):
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)

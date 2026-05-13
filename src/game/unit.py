@@ -1,4 +1,4 @@
-from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, POP_FOOD_CONSUMPTION, MOVE_CARRY_OVER
+from src.game.constants import DEFAULT_MOVE_DISTANCE, MILITARY_CARRY_CAPACITY, POP_FOOD_CONSUMPTION, MOVE_CARRY_OVER
 
 
 class Unit:
@@ -7,7 +7,7 @@ class Unit:
         self.unit_type = unit_type
         self.max_moves = DEFAULT_MOVE_DISTANCE
         self.moves_remaining = DEFAULT_MOVE_DISTANCE
-        self.carry_capacity = LAND_CARRY_CAPACITY
+        self.carry_capacity = MILITARY_CARRY_CAPACITY
 
     def reset_moves(self):
         self.moves_remaining = self.max_moves + min(MOVE_CARRY_OVER, self.moves_remaining)

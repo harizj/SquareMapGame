@@ -1,9 +1,11 @@
 import json
 import os
 import pygame
+from src.game.group import Group
 from src.game.map import Map
 from src.game.save_load import load_map_data, save_map
 from src.game.trade_route import TradeRoute
+from src.game.unit import Unit
 from src.ui.renderer import Renderer
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
@@ -104,6 +106,8 @@ def main():
                 renderer._amount_slider_dragging = False
                 renderer._import_slider_dragging = False
                 renderer._one_way_slider_dragging = False
+                renderer._recruit_slider_dragging = False
+                renderer._recruit_food_slider_dragging = False
 
             elif event.type == pygame.MOUSEMOTION:
                 if renderer._slider_dragging and renderer.trade_route_slider_rect:
@@ -118,6 +122,17 @@ def main():
                     sr = renderer.one_way_slider_rect
                     t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
                     renderer.one_way_amount = max(1, min(8, round(1 + t * 7)))
+                if renderer._recruit_slider_dragging and renderer.recruit_popup_slider_rect and selected_tile and selected_tile.city:
+                    sr = renderer.recruit_popup_slider_rect
+                    max_recruit = min(8, len(selected_tile.city.pops) - 1)
+                    t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
+                    renderer.recruit_popup_amount = max(1, min(max_recruit, round(1 + t * (max_recruit - 1))))
+                if renderer._recruit_food_slider_dragging and renderer.recruit_popup_food_slider_rect and selected_tile and selected_tile.city:
+                    from src.game.constants import MILITARY_CARRY_CAPACITY as MCC
+                    sr = renderer.recruit_popup_food_slider_rect
+                    max_food = int(min(selected_tile.city.food_stockpile, renderer.recruit_popup_amount * MCC))
+                    t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
+                    renderer.recruit_popup_food = max(0, min(max_food, round(t * max_food)))
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 pos = event.pos
@@ -149,6 +164,40 @@ def main():
 
                 elif save_popup_active:
                     pass
+
+                elif renderer.recruit_popup_active:
+                    if renderer.recruit_popup_confirm_rect and renderer.recruit_popup_confirm_rect.collidepoint(pos):
+                        if selected_tile and selected_tile.city:
+                            from src.game.constants import MILITARY_CARRY_CAPACITY as MCC
+                            city = selected_tile.city
+                            n = renderer.recruit_popup_amount
+                            food = renderer.recruit_popup_food
+                            recruited_pops = city.pops[:n]
+                            city.pops = city.pops[n:]
+                            city.food_stockpile -= food
+                            new_group = Group(selected_tile.row, selected_tile.col, units=[Unit(p) for p in recruited_pops])
+                            new_group.add_food(food)
+                            new_group.allocate_food()
+                            selected_tile.unit_groups.append(new_group)
+                            selected_tile.update_city_with_movement()
+                        renderer.recruit_popup_active = False
+                        renderer.recruit_popup_food = 0
+                    elif renderer.recruit_popup_cancel_rect and renderer.recruit_popup_cancel_rect.collidepoint(pos):
+                        renderer.recruit_popup_active = False
+                        renderer.recruit_popup_food = 0
+                    elif renderer.recruit_popup_slider_rect and renderer.recruit_popup_slider_rect.collidepoint(pos):
+                        renderer._recruit_slider_dragging = True
+                        sr = renderer.recruit_popup_slider_rect
+                        max_recruit = min(8, len(selected_tile.city.pops) - 1) if selected_tile and selected_tile.city else 1
+                        t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
+                        renderer.recruit_popup_amount = max(1, min(max_recruit, round(1 + t * (max_recruit - 1))))
+                    elif renderer.recruit_popup_food_slider_rect and renderer.recruit_popup_food_slider_rect.collidepoint(pos):
+                        renderer._recruit_food_slider_dragging = True
+                        from src.game.constants import MILITARY_CARRY_CAPACITY as MCC
+                        sr = renderer.recruit_popup_food_slider_rect
+                        max_food = int(min(selected_tile.city.food_stockpile, renderer.recruit_popup_amount * MCC)) if selected_tile and selected_tile.city else 0
+                        t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
+                        renderer.recruit_popup_food = max(0, min(max_food, round(t * max_food)))
 
                 elif renderer.trade_route_import_slider_rect and renderer.trade_route_import_slider_rect.collidepoint(pos):
                     renderer.snap_import_amount(pos[0])
@@ -247,6 +296,19 @@ def main():
                     if selected_tile:
                         for g in game_map.get_groups(selected_tile.row, selected_tile.col):
                             renderer.selected_groups.discard(g)
+
+                elif renderer.recruit_unit_button_rect and renderer.recruit_unit_button_rect.collidepoint(pos):
+                    if selected_tile and selected_tile.city and len(selected_tile.city.pops) > 1:
+                        renderer.recruit_popup_active = True
+                        renderer.recruit_popup_amount = 1
+
+                elif renderer.disband_button_rect and renderer.disband_button_rect.collidepoint(pos):
+                    if selected_tile and selected_tile.city:
+                        selected_on_tile = [g for g in game_map.get_groups(selected_tile.row, selected_tile.col) if g in renderer.selected_groups]
+                        for group in selected_on_tile:
+                            selected_tile.unit_groups.remove(group)
+                            renderer.selected_groups.discard(group)
+                        selected_tile.update_city_with_movement()
 
                 elif renderer.merge_button_rect and renderer.merge_button_rect.collidepoint(pos):
                     if selected_tile:
