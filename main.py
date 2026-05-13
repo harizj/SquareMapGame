@@ -19,6 +19,15 @@ def _load_config():
     return {'load_map': ''}
 
 
+def _compute_move_state(selected_groups, selected_tile, game_map):
+    if selected_groups and selected_tile:
+        candidates = [g for g in selected_groups if g.moves_remaining > 0 and not g.move_exhausted]
+        if candidates:
+            budget = min(g.moves_remaining for g in candidates)
+            return True, candidates, game_map.get_reachable_budget(selected_tile.row, selected_tile.col, budget)
+    return False, [], {}
+
+
 def main():
     pygame.init()
 
@@ -113,6 +122,9 @@ def main():
                                 renderer.selected_groups.discard(g)
                             else:
                                 renderer.selected_groups.add(g)
+                        move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
+                        if not move_mode:
+                            move_hover_tile = None
                 elif event.key == pygame.K_ESCAPE:
                     running = False
 
@@ -150,6 +162,19 @@ def main():
                     max_food = int(min(selected_tile.city.food_stockpile, renderer.recruit_popup_amount * MCC))
                     t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
                     renderer.recruit_popup_food = max(0, min(max_food, round(t * max_food)))
+
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+                if move_mode and event.pos[0] < renderer.map_w:
+                    tile = renderer.get_tile_at(*event.pos)
+                    if tile is not None and (tile.row, tile.col) in reachable:
+                        cost = reachable[(tile.row, tile.col)]
+                        for group in move_mode_groups:
+                            game_map.move_group(group, tile.row, tile.col, cost)
+                        selected_tile = game_map.tiles[tile.row][tile.col]
+                        renderer.selected_groups = {g for g in move_mode_groups}
+                        move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
+                        if not move_mode:
+                            move_hover_tile = None
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 pos = event.pos
@@ -304,15 +329,24 @@ def main():
                             else:
                                 renderer.selected_groups.add(group)
                             break
+                    move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
+                    if not move_mode:
+                        move_hover_tile = None
 
                 elif renderer.select_all_button_rect and renderer.select_all_button_rect.collidepoint(pos):
                     if selected_tile:
                         renderer.selected_groups.update(game_map.get_groups(selected_tile.row, selected_tile.col))
+                    move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
+                    if not move_mode:
+                        move_hover_tile = None
 
                 elif renderer.unselect_all_button_rect and renderer.unselect_all_button_rect.collidepoint(pos):
                     if selected_tile:
                         for g in game_map.get_groups(selected_tile.row, selected_tile.col):
                             renderer.selected_groups.discard(g)
+                    move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
+                    if not move_mode:
+                        move_hover_tile = None
 
                 elif renderer.recruit_unit_button_rect and renderer.recruit_unit_button_rect.collidepoint(pos):
                     if selected_tile and selected_tile.city and len(selected_tile.city.pops) > 1:
@@ -326,6 +360,9 @@ def main():
                             selected_tile.unit_groups.remove(group)
                             renderer.selected_groups.discard(group)
                         selected_tile.update_city_with_movement()
+                    move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
+                    if not move_mode:
+                        move_hover_tile = None
 
                 elif renderer.merge_button_rect and renderer.merge_button_rect.collidepoint(pos):
                     if selected_tile:
@@ -337,6 +374,9 @@ def main():
                                 target.merge(other)
                                 selected_tile.unit_groups.remove(other)
                                 renderer.selected_groups.discard(other)
+                    move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
+                    if not move_mode:
+                        move_hover_tile = None
 
                 elif any(r.collidepoint(pos) for r, _ in renderer.trade_route_delete_rects):
                     for rect, route in renderer.trade_route_delete_rects:
@@ -413,15 +453,6 @@ def main():
                         move_mode_groups = []
                         reachable = {}
                         move_hover_tile = None
-                    else:
-                        all_groups = game_map.get_groups(selected_tile.row, selected_tile.col)
-                        candidates = [g for g in all_groups if g in renderer.selected_groups]
-                        candidates = [g for g in candidates if g.moves_remaining > 0 and not g.move_exhausted]
-                        if candidates:
-                            budget = min(g.moves_remaining for g in candidates)
-                            move_mode = True
-                            move_mode_groups = candidates
-                            reachable = game_map.get_reachable_budget(selected_tile.row, selected_tile.col, budget)
 
                 elif renderer.end_turn_button_rect and renderer.end_turn_button_rect.collidepoint(pos):
                     do_end_turn = True
@@ -436,18 +467,6 @@ def main():
                             renderer.one_way_amount = 1
                     renderer.adding_one_way_route = False
 
-                elif move_mode:
-                    tile = renderer.get_tile_at(*pos)
-                    if tile is not None and (tile.row, tile.col) in reachable:
-                        cost = reachable[(tile.row, tile.col)]
-                        for group in move_mode_groups:
-                            game_map.move_group(group, tile.row, tile.col, cost)
-                        selected_tile = game_map.tiles[tile.row][tile.col]
-                    move_mode = False
-                    move_mode_groups = []
-                    reachable = {}
-                    move_hover_tile = None
-
                 elif pos[0] < renderer.map_w:
                     clicked_tile = renderer.get_tile_at(*pos)
                     if clicked_tile and selected_tile and clicked_tile.row == selected_tile.row and clicked_tile.col == selected_tile.col:
@@ -461,6 +480,9 @@ def main():
                         renderer.selected_groups.clear()
                         if selected_tile:
                             renderer.selected_groups.update(game_map.get_groups(selected_tile.row, selected_tile.col))
+                    move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
+                    if not move_mode:
+                        move_hover_tile = None
 
         if do_end_turn:
             turn += 1
@@ -483,10 +505,8 @@ def main():
                     if id(route) not in seen:
                         seen.add(id(route))
                         route.end_turn()
-            move_mode = False
-            move_mode_groups = []
-            reachable = {}
             move_hover_tile = None
+            move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
             game_log.append(f"TURN {turn}")
 
         if not console_active and not save_popup_active:
