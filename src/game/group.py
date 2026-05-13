@@ -44,6 +44,11 @@ class Group:
         self._reset_moves()
         self.allocate_food()
 
+    def merge(self, other):
+        self.units.extend(other.units)
+        self.max_food_stockpile = self._carry_capacity()
+        self.food_stockpile = min(self.food_stockpile + other.food_stockpile, self.max_food_stockpile)
+
     def _reset_moves(self):
         for unit in self.units:
             unit.reset_moves()

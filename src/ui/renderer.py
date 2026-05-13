@@ -202,6 +202,14 @@ class Renderer:
         self.river_option_rects = {}
         self.selected_groups = set()
         self.group_icon_rects = []
+        self.select_all_button_rect = None
+        self.unselect_all_button_rect = None
+        self.merge_button_rect = None
+        self.separate_button_rect = None
+        self.restock_all_button_rect = None
+        self.drop_all_button_rect = None
+        self.restock_button_rect = None
+        self.drop_button_rect = None
 
     def _apply_zoom(self):
         sz = HEX_SIZE * self.zoom
@@ -1414,6 +1422,23 @@ class Renderer:
                     pygame.draw.line(self.screen, (30, 30, 40), (tx, y), (tx, y + bar_h - 1))
             pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, food_bar_w, bar_h), 1, border_radius=2)
             y += bar_h + 8
+
+        if groups:
+            btn_h = 20
+            half_w = (bar_w - 4) // 2
+            self.select_all_button_rect = self._draw_button(x, y, half_w, btn_h, "Select All")
+            self.unselect_all_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Unselect All")
+            y += btn_h + 4
+            selected_on_tile = [g for g in groups if g in self.selected_groups]
+            self.merge_button_rect = self._draw_button(x, y, half_w, btn_h, "Merge", disabled=len(selected_on_tile) < 2)
+            self.separate_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Separate", disabled=True)
+            y += btn_h + 4
+            self.restock_all_button_rect = self._draw_button(x, y, half_w, btn_h, "Restock All", disabled=True)
+            self.drop_all_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Drop All", disabled=True)
+            y += btn_h + 4
+            self.restock_button_rect = self._draw_button(x, y, half_w, btn_h, "Restock", disabled=True)
+            self.drop_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Drop", disabled=True)
+            y += btn_h + 6
 
         # End Turn button anchored to bottom
         btn_w = PANEL_WIDTH - pad * 2

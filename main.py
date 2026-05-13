@@ -239,6 +239,26 @@ def main():
                                 renderer.selected_groups.add(group)
                             break
 
+                elif renderer.select_all_button_rect and renderer.select_all_button_rect.collidepoint(pos):
+                    if selected_tile:
+                        renderer.selected_groups.update(game_map.get_groups(selected_tile.row, selected_tile.col))
+
+                elif renderer.unselect_all_button_rect and renderer.unselect_all_button_rect.collidepoint(pos):
+                    if selected_tile:
+                        for g in game_map.get_groups(selected_tile.row, selected_tile.col):
+                            renderer.selected_groups.discard(g)
+
+                elif renderer.merge_button_rect and renderer.merge_button_rect.collidepoint(pos):
+                    if selected_tile:
+                        all_groups = game_map.get_groups(selected_tile.row, selected_tile.col)
+                        selected_on_tile = [g for g in all_groups if g in renderer.selected_groups]
+                        if len(selected_on_tile) >= 2:
+                            target = selected_on_tile[0]
+                            for other in selected_on_tile[1:]:
+                                target.merge(other)
+                                game_map.groups[(selected_tile.row, selected_tile.col)].remove(other)
+                                renderer.selected_groups.discard(other)
+
                 elif any(r.collidepoint(pos) for r, _ in renderer.trade_route_delete_rects):
                     for rect, route in renderer.trade_route_delete_rects:
                         if rect.collidepoint(pos):
