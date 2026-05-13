@@ -730,18 +730,7 @@ class Renderer:
                     pygame.draw.line(edge_surf, (255, 255, 255, 255), lp1, lp2, border_line_w)
                 self.screen.blit(edge_surf, (int(cx) - scx, int(cy) - scy))
 
-        # Pass 4b: remaining move cost labels on reachable tiles
-        if moves_remaining is not None and reachable:
-            for (r, c), cost in reachable.items():
-                label = f"{moves_remaining - cost:.2f}"
-                cx, cy = all_centers[(r, c)]
-                lx = int(cx)
-                ly = int(cy)
-                shadow = self.font_small.render(label, True, (0, 0, 0))
-                surf = self.font_small.render(label, True, (255, 255, 255))
-                hw, hh = surf.get_width() // 2, surf.get_height() // 2
-                self.screen.blit(shadow, (lx - hw + 1, ly - hh + 1))
-                self.screen.blit(surf, (lx - hw, ly - hh))
+        # Pass 4b: (move cost labels removed)
 
         # Pass 5: selected border (moved to pass 8 to draw over everything)
 
@@ -1500,15 +1489,16 @@ class Renderer:
 
         first_group = groups[0] if groups else None
         if first_group:
-            btn_w, btn_h = 50, 20
-            btn_x = x
+            btn_h = 20
+            half_w = (PANEL_WIDTH - pad * 2 - 4) // 2
             selected_on_tile = [g for g in groups if g in self.selected_groups]
             min_moves = min(g.moves_remaining for g in groups)
             any_exhausted = any(g.move_exhausted for g in selected_on_tile)
             self.move_button_rect = self._draw_button(
-                btn_x, y, btn_w, btn_h, "Move",
+                x, y, half_w, btn_h, "Move",
                 active=move_mode, disabled=min_moves == 0 or not selected_on_tile or any_exhausted,
             )
+            self._draw_button(x + half_w + 4, y, half_w, btn_h, "Attack", disabled=True)
             y += btn_h + 6
 
         icon_h = self.font_body.get_height()

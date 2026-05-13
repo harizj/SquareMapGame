@@ -449,10 +449,18 @@ def main():
                     move_hover_tile = None
 
                 elif pos[0] < renderer.map_w:
-                    selected_tile = renderer.get_tile_at(*pos)
-                    renderer.selected_groups.clear()
-                    if selected_tile:
-                        renderer.selected_groups.update(game_map.get_groups(selected_tile.row, selected_tile.col))
+                    clicked_tile = renderer.get_tile_at(*pos)
+                    if clicked_tile and selected_tile and clicked_tile.row == selected_tile.row and clicked_tile.col == selected_tile.col:
+                        groups = game_map.get_groups(selected_tile.row, selected_tile.col)
+                        if groups and all(g in renderer.selected_groups for g in groups):
+                            renderer.selected_groups.clear()
+                        else:
+                            renderer.selected_groups.update(groups)
+                    else:
+                        selected_tile = clicked_tile
+                        renderer.selected_groups.clear()
+                        if selected_tile:
+                            renderer.selected_groups.update(game_map.get_groups(selected_tile.row, selected_tile.col))
 
         if do_end_turn:
             turn += 1
