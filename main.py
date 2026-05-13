@@ -336,7 +336,7 @@ def main():
                     else:
                         all_groups = game_map.get_groups(selected_tile.row, selected_tile.col)
                         candidates = [g for g in all_groups if g in renderer.selected_groups]
-                        candidates = [g for g in candidates if g.moves_remaining > 0]
+                        candidates = [g for g in candidates if g.moves_remaining > 0 and not g.move_exhausted]
                         if candidates:
                             budget = min(g.moves_remaining for g in candidates)
                             move_mode = True

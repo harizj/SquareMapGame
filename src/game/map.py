@@ -1,7 +1,7 @@
 import heapq
 import random
 from src.game.city import City
-from src.game.constants import DEFAULT_MOVE_DISTANCE, BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST
+from src.game.constants import DEFAULT_MOVE_DISTANCE, BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST, MIN_TERRAIN_COST
 from src.game.tile import Tile
 from src.game.group import Group
 from src.game.unit import Unit
@@ -222,6 +222,8 @@ class Map:
         group.row = row
         group.col = col
         group.moves_remaining -= cost
+        if group.moves_remaining < MIN_TERRAIN_COST:
+            group.move_exhausted = True
         self.groups.setdefault((row, col), []).append(group)
 
     def to_dict(self):

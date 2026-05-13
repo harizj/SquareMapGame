@@ -1,5 +1,5 @@
 import math
-from src.game.constants import DEFAULT_MOVE_DISTANCE, POP_FOOD_CONSUMPTION
+from src.game.constants import DEFAULT_MOVE_DISTANCE, POP_FOOD_CONSUMPTION, MIN_TERRAIN_COST
 
 
 class Group:
@@ -14,6 +14,7 @@ class Group:
         self.max_food_stockpile = self._carry_capacity()
         self.food_allocated_to_consumption = 0.0
         self.pending_pop_loss = 0
+        self.move_exhausted = False
 
     def add_food(self, amount):
         before = self.food_stockpile
@@ -53,3 +54,4 @@ class Group:
         for unit in self.units:
             unit.reset_moves()
         self.update_moves_remaining()
+        self.move_exhausted = False

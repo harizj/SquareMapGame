@@ -645,9 +645,37 @@ class Renderer:
                 result.blit(clip_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
                 self.screen.blit(result, (int(cx) - scx, int(cy) - scy))
 
-        # Pass 4: reachable borders
-        for (r, c) in reachable:
-            pygame.draw.polygon(self.screen, COLOR_REACHABLE, all_corners[(r, c)], 2)
+        # Pass 4: movement range borders
+        if move_mode and selected_tile:
+            in_range = set(reachable.keys())
+            in_range.add((selected_tile.row, selected_tile.col))
+            sz = HEX_SIZE * self.zoom
+            border_line_w = 6
+            outline_radius = 2
+            pad = outline_radius + border_line_w + 1
+            surf_w = int(math.sqrt(3) * sz) + pad * 2
+            surf_h = int(2 * sz * ISO_SCALE) + pad * 2
+            scx = surf_w // 2
+            scy = surf_h // 2
+            for (r, c) in in_range:
+                if (r, c) not in all_corners:
+                    continue
+                cx, cy = all_centers[(r, c)]
+                corners = all_corners[(r, c)]
+                border_lines = []
+                for i, (dr, dc) in enumerate(_RENDER_NEIGHBORS[r % 2]):
+                    nr, nc = r + dr, c + dc
+                    if (nr, nc) not in in_range:
+                        ci, cj = _NEIGHBOR_EDGE_CORNERS[i]
+                        border_lines.append((corners[ci], corners[cj]))
+                if not border_lines:
+                    continue
+                edge_surf = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
+                for (p1, p2) in border_lines:
+                    lp1 = (int(p1[0] - cx + scx), int(p1[1] - cy + scy))
+                    lp2 = (int(p2[0] - cx + scx), int(p2[1] - cy + scy))
+                    pygame.draw.line(edge_surf, (255, 255, 255, 255), lp1, lp2, border_line_w)
+                self.screen.blit(edge_surf, (int(cx) - scx, int(cy) - scy))
 
         # Pass 4b: remaining move cost labels on reachable tiles
         if moves_remaining is not None and reachable:
@@ -1336,9 +1364,10 @@ class Renderer:
             btn_x = x
             selected_on_tile = [g for g in groups if g in self.selected_groups]
             min_moves = min(g.moves_remaining for g in groups)
+            any_exhausted = any(g.move_exhausted for g in selected_on_tile)
             self.move_button_rect = self._draw_button(
                 btn_x, y, btn_w, btn_h, "Move",
-                active=move_mode, disabled=min_moves == 0 or not selected_on_tile,
+                active=move_mode, disabled=min_moves == 0 or not selected_on_tile or any_exhausted,
             )
             y += btn_h + 6
 
@@ -1388,7 +1417,7 @@ class Renderer:
             move_bar_max = group.max_moves + MOVE_CARRY_OVER
             move_rect_w = bar_w if group.moves_remaining > group.max_moves else int(bar_w * group.max_moves / move_bar_max)
             pygame.draw.rect(self.screen, (30, 30, 40), (x, y, move_rect_w, bar_h), border_radius=2)
-            if move_bar_max > 0:
+            if move_bar_max > 0 and not group.move_exhausted:
                 carryover_w = int(bar_w * min(group.moves_remaining, move_bar_max) / move_bar_max)
                 if carryover_w > 0:
                     pygame.draw.rect(self.screen, (240, 210, 60), (x, y, carryover_w, bar_h), border_radius=2)
