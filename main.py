@@ -50,6 +50,7 @@ def main():
 
     running = True
     while running:
+        do_end_turn = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -99,6 +100,19 @@ def main():
                     if event.key == pygame.K_ESCAPE:
                         terrain_popup_active = False
                         river_popup_active = False
+                elif event.key == pygame.K_SPACE:
+                    do_end_turn = True
+                elif event.key in (pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4,
+                                   pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9):
+                    if selected_tile:
+                        idx = event.key - pygame.K_1
+                        groups = game_map.get_groups(selected_tile.row, selected_tile.col)
+                        if idx < len(groups):
+                            g = groups[idx]
+                            if g in renderer.selected_groups:
+                                renderer.selected_groups.discard(g)
+                            else:
+                                renderer.selected_groups.add(g)
                 elif event.key == pygame.K_ESCAPE:
                     running = False
 
@@ -410,31 +424,7 @@ def main():
                             reachable = game_map.get_reachable_budget(selected_tile.row, selected_tile.col, budget)
 
                 elif renderer.end_turn_button_rect and renderer.end_turn_button_rect.collidepoint(pos):
-                    turn += 1
-                    game_log.append("")
-                    for row in game_map.tiles:
-                        for tile in row:
-                            for group in tile.unit_groups:
-                                group.end_turn()
-                            tile.unit_groups = [g for g in tile.unit_groups if g.units]
-                    for city in game_map.cities.values():
-                        for msg in city.end_turn():
-                            game_log.append(f"T{turn} {msg}")
-                    collapsed = [city for city in game_map.cities.values() if not city.pops]
-                    for city in collapsed:
-                        game_log.append(f"T{turn} {city.name} has collapsed!")
-                        game_map.remove_city(city)
-                    seen = set()
-                    for city in game_map.cities.values():
-                        for route in city.trade_routes:
-                            if id(route) not in seen:
-                                seen.add(id(route))
-                                route.end_turn()
-                    move_mode = False
-                    move_mode_groups = []
-                    reachable = {}
-                    move_hover_tile = None
-                    game_log.append(f"TURN {turn}")
+                    do_end_turn = True
 
                 elif renderer.adding_one_way_route and pos[0] < renderer.map_w:
                     tile = renderer.get_tile_at(*pos)
@@ -463,6 +453,33 @@ def main():
                     renderer.selected_groups.clear()
                     if selected_tile:
                         renderer.selected_groups.update(game_map.get_groups(selected_tile.row, selected_tile.col))
+
+        if do_end_turn:
+            turn += 1
+            game_log.append("")
+            for row in game_map.tiles:
+                for tile in row:
+                    for group in tile.unit_groups:
+                        group.end_turn()
+                    tile.unit_groups = [g for g in tile.unit_groups if g.units]
+            for city in game_map.cities.values():
+                for msg in city.end_turn():
+                    game_log.append(f"T{turn} {msg}")
+            collapsed = [city for city in game_map.cities.values() if not city.pops]
+            for city in collapsed:
+                game_log.append(f"T{turn} {city.name} has collapsed!")
+                game_map.remove_city(city)
+            seen = set()
+            for city in game_map.cities.values():
+                for route in city.trade_routes:
+                    if id(route) not in seen:
+                        seen.add(id(route))
+                        route.end_turn()
+            move_mode = False
+            move_mode_groups = []
+            reachable = {}
+            move_hover_tile = None
+            game_log.append(f"TURN {turn}")
 
         if not console_active and not save_popup_active:
             keys = pygame.key.get_pressed()
