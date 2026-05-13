@@ -133,7 +133,7 @@ class Renderer:
                 self._terrain_images_raw[name] = raw_variants
         self._icons_raw = {}
         icons_dir = os.path.join(_ASSETS_DIR, 'icons')
-        for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius')):
+        for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius'), ('flag', 'flag')):
             path = os.path.join(icons_dir, f'{file_name}.png')
             if os.path.exists(path):
                 self._icons_raw[icon_name] = pygame.image.load(path).convert_alpha()
@@ -342,6 +342,33 @@ class Renderer:
                         selected_result.blit(lb, (pad + dx, pad + dy))
             selected_result.blit(db, (pad, pad))
             self.icons_selected['sword'] = selected_result
+        if 'flag' in self._icons_raw:
+            flag_size = int(ICON_SIZE * 0.4 * self.zoom)
+            flag_outline_radius = 6
+            scaled = pygame.transform.scale(self._icons_raw['flag'], (flag_size, flag_size))
+            self.icons['flag'] = scaled
+            mask = scaled.copy()
+            mask.fill((255, 255, 255), special_flags=pygame.BLEND_RGB_MAX)
+            lb = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+            lb.fill((180, 210, 255, 255))
+            lb.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            db = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+            db.fill((35, 65, 150, 255))
+            db.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            result = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+            for dx in range(-flag_outline_radius, flag_outline_radius + 1):
+                for dy in range(-flag_outline_radius, flag_outline_radius + 1):
+                    if dx * dx + dy * dy <= flag_outline_radius * 2:
+                        result.blit(db, (dx, dy))
+            result.blit(lb, (0, 0))
+            self.icons_tinted['flag'] = result
+            dark_result = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+            for dx in range(-flag_outline_radius, flag_outline_radius + 1):
+                for dy in range(-flag_outline_radius, flag_outline_radius + 1):
+                    if dx * dx + dy * dy <= flag_outline_radius * 2:
+                        dark_result.blit(lb, (dx, dy))
+            dark_result.blit(db, (0, 0))
+            self.icons_dark['flag'] = dark_result
 
     def zoom_map(self, factor, mx, my):
         old_zoom = self.zoom
@@ -776,6 +803,24 @@ class Renderer:
                 pygame.draw.rect(self.screen, COLOR_CITY_BORDER, rect, 1)
                 city_name_ys[(r, c)] = int(cy) + s + 2
 
+        # Pass 6b: flag icons for cityless trade route destinations
+        if self.icons_tinted.get('flag') or self.icons_dark.get('flag'):
+            seen_dest_tiles = set()
+            for city in self.map.cities.values():
+                for route in city.trade_routes:
+                    if route.city_b is None:
+                        dt = route.dest_tile
+                        key = (dt.row, dt.col)
+                        if key not in seen_dest_tiles and key in all_centers:
+                            seen_dest_tiles.add(key)
+                            is_selected = selected_tile is not None and (selected_tile.row, selected_tile.col) == key
+                            flag_icon = self.icons_tinted.get('flag') if is_selected else self.icons_dark.get('flag')
+                            if flag_icon:
+                                cx, cy = all_centers[key]
+                                ix = int(cx) - flag_icon.get_width() // 2 - 2
+                                iy = int(cy) - flag_icon.get_height() // 2 + 2
+                                self.screen.blit(flag_icon, (ix, iy))
+
         # Pass 7: group markers (drawn over city icons)
         for (r, c) in self.map.groups:
             cx, cy = all_centers[(r, c)]
@@ -1207,8 +1252,35 @@ class Renderer:
         bar_x = pad
         y = 20
 
-        city = tile.owning_city if tile else None
+        city = tile.city if tile else None
+        dest_routes = [r for r in tile.trade_routes if r.dest_tile is tile] if (tile and not city) else []
+
+        if not city and not dest_routes:
+            return
+
         if not city:
+            def _fmt_amt(v):
+                return str(int(v)) if v == int(v) else f"{v:.1f}"
+            surf = self.font_header.render("TRADE ROUTES", True, HEADER_TEXT_COLOR)
+            self.screen.blit(surf, (x, y))
+            y += surf.get_height() + 6
+            self.trade_route_delete_rects = []
+            btn_s = 14
+            for route in dest_routes:
+                name_line = route.city_a.name
+                if not route.established:
+                    t = route.turns_until_established()
+                    name_line = f"{name_line} ({t} {'turn' if t == 1 else 'turns'})"
+                name_surf = self.font_body.render(name_line, True, TEXT_COLOR)
+                self.screen.blit(name_surf, (x + 4, y))
+                del_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "x")
+                self.trade_route_delete_rects.append((del_rect, route))
+                y += name_surf.get_height() + 2
+                net_food = route.export_amount if route.export_material == 'food' else 0
+                food_str = f"+{_fmt_amt(net_food)}" if net_food >= 0 else _fmt_amt(net_food)
+                detail_surf = self.font_small.render(f"{food_str} food", True, TEXT_COLOR)
+                self.screen.blit(detail_surf, (x + 4, y))
+                y += detail_surf.get_height() + 6
             return
 
         surf = self.font_header.render(city.name.upper(), True, HEADER_TEXT_COLOR)

@@ -295,7 +295,7 @@ def main():
                             renderer.one_way_route_type = label.lower()
                             break
 
-                elif renderer.one_way_confirm_rect and renderer.one_way_confirm_rect.collidepoint(pos):
+                elif renderer.one_way_confirm_rect and renderer.one_way_confirm_rect.collidepoint(pos) and renderer.one_way_route_pending:
                     city_a, dest_tile = renderer.one_way_route_pending
                     water = renderer.one_way_route_type == 'water'
                     path, path_distances = game_map.get_path(city_a.row, city_a.col, dest_tile.row, dest_tile.col, water=water)
