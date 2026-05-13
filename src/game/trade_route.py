@@ -1,4 +1,5 @@
 from src.game.jobs import CaravanJob
+from src.game.constants import DEFAULT_MOVE_DISTANCE
 
 
 class TradeRoute:
@@ -25,6 +26,8 @@ class TradeRoute:
         self.path_distances = path_distances or []
         self.distance = path_distances[-1] if path_distances else 0.0
         self.missing_caravans = False
+        self.established = False
+        self.establish_progress = DEFAULT_MOVE_DISTANCE
         self.city_a.trade_routes.append(self)
         self.city_b.trade_routes.append(self)
         self.city_a.update_cumulative_farm_yield_net()
@@ -38,6 +41,14 @@ class TradeRoute:
         print(f"  export_material={self.export_material}  export_amount={self.export_amount}  max_export={self.max_export}")
         print(f"  import_material={self.import_material}  import_amount={self.import_amount}  max_import={self.max_import}")
         print(f"  caravan_job_a={self.caravan_job_a}  caravan_job_b={self.caravan_job_b}")
+        print(f"  path_distances={self.path_distances}")
+
+    def check_if_established(self):
+        return self.established
 
     def get_visual_path(self):
-        return self.path
+        if self.established:
+            return self.path
+        result = [node for node, d in zip(self.path, self.path_distances) if d <= self.establish_progress]
+        print(f"  get_visual_path: establish_progress={self.establish_progress}  returning={result}")
+        return result

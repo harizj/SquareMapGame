@@ -534,8 +534,8 @@ class Renderer:
                     continue
                 seen_routes.add(id(route))
                 path = route.get_visual_path()
-                if len(path) < 3:
-                    continue
+                # if len(path) < 1:
+                #     continue
 
                 def _edge_pt(r, c, nr, nc):
                     deg = _NEIGHBOR_EDGE_ANGLES[r % 2].get((nr - r, nc - c))
@@ -549,6 +549,7 @@ class Renderer:
                 _ROUTE_LIGHT = (180, 210, 255)
                 _ROUTE_OUTLINE_W = 5
                 _ROUTE_INNER_W = 3
+                destination = route.path[-1]
 
                 # Start city: center → edge toward path[1]
                 ep, center = _edge_pt(path[0][0], path[0][1], path[1][0], path[1][1])
@@ -575,7 +576,7 @@ class Renderer:
                     self._draw_dashed_curve(from_pt, (cx, cy), to_pt, _ROUTE_DARK,  width=_ROUTE_OUTLINE_W, dash_length=8, gap=6)
                     self._draw_dashed_curve(from_pt, (cx, cy), to_pt, _ROUTE_LIGHT, width=_ROUTE_INNER_W,   dash_length=8, gap=6)
 
-                # End city: edge toward path[-2] → center
+                # End city: edge toward path[-2] → center (only when destination reached)
                 ep, center = _edge_pt(path[-1][0], path[-1][1], path[-2][0], path[-2][1])
                 if ep and center:
                     self._draw_dashed_line(ep, center, _ROUTE_DARK,  width=_ROUTE_OUTLINE_W, dash_length=8, gap=6)
