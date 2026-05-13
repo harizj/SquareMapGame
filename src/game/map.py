@@ -95,6 +95,28 @@ class Map:
         del best[start]
         return best
 
+    def get_reachable_budget(self, row, col, budget):
+        """Dijkstra from (row, col) with a fixed move budget. Returns {(row, col): cost}."""
+        start = (row, col)
+        best = {start: 0}
+        queue = [(0, start)]
+        while queue:
+            cost, (r, c) = heapq.heappop(queue)
+            if cost > best[(r, c)]:
+                continue
+            for dr, dc in _NEIGHBORS[r % 2]:
+                nr, nc = r + dr, c + dc
+                if not (0 <= nr < self.rows and 0 <= nc < self.cols):
+                    continue
+                if self.tiles[nr][nc].terrain in IMPASSABLE_TERRAINS:
+                    continue
+                new_cost = cost + self._step_cost(r, c, nr, nc)
+                if new_cost <= budget and new_cost < best.get((nr, nc), float('inf')):
+                    best[(nr, nc)] = new_cost
+                    heapq.heappush(queue, (new_cost, (nr, nc)))
+        del best[start]
+        return best
+
     def get_city_range(self, city):
         """Dijkstra from city position. Returns {(row, col): cost} for all tiles within range, including city tile."""
         start = (city.row, city.col)

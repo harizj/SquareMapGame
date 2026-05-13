@@ -1325,13 +1325,13 @@ class Renderer:
         first_group = groups[0] if groups else None
         if first_group:
             btn_w, btn_h = 50, 20
-            btn_x = panel_x + PANEL_WIDTH - pad - btn_w
+            btn_x = x
+            selected_on_tile = [g for g in groups if g in self.selected_groups]
+            min_moves = min(g.moves_remaining for g in groups)
             self.move_button_rect = self._draw_button(
                 btn_x, y, btn_w, btn_h, "Move",
-                active=move_mode, disabled=first_group.moves_remaining == 0,
+                active=move_mode, disabled=min_moves == 0 or not selected_on_tile,
             )
-            surf = self.font_body.render(f"Moves: {first_group.moves_remaining:g} / {first_group.max_moves:g}", True, TEXT_COLOR)
-            self.screen.blit(surf, (x + 4, y + (btn_h - surf.get_height()) // 2))
             y += btn_h + 6
 
         icon_h = self.font_body.get_height()
@@ -1368,7 +1368,7 @@ class Renderer:
             for unit_type, count in type_counts.items():
                 if icon_to_use:
                     self.screen.blit(icon_to_use, (x + 4, y))
-                text_x = x + 4 + (icon_h + 4 if icon_to_use else 0)
+                text_x = x + 4 + (icon_h + 8 if icon_to_use else 0)
                 unit_text_color = (220, 50, 50) if group.pending_pop_loss > 0 else TEXT_COLOR
                 surf = self.font_body.render(f"{count} {unit_type.capitalize()}", True, unit_text_color)
                 self.screen.blit(surf, (text_x, y))

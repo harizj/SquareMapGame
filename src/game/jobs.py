@@ -39,7 +39,7 @@ class FarmJob(Job):
 
 class ProductionJob(Job):
     job_type = 'production'
-    label = 'Laborers'
+    label = 'Workers'
     YIELD_PER_POP = 1
 
     def __init__(self):

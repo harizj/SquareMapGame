@@ -34,6 +34,7 @@ def main():
     clock = pygame.time.Clock()
     selected_tile = None
     move_mode = False
+    move_mode_groups = []
     reachable = {}
     save_popup_active = False
     save_popup_text = ""
@@ -310,12 +311,17 @@ def main():
                 elif renderer.move_button_rect and renderer.move_button_rect.collidepoint(pos):
                     if move_mode:
                         move_mode = False
+                        move_mode_groups = []
                         reachable = {}
                     else:
-                        group = game_map.get_group(selected_tile.row, selected_tile.col)
-                        if group and group.moves_remaining > 0:
+                        all_groups = game_map.get_groups(selected_tile.row, selected_tile.col)
+                        candidates = [g for g in all_groups if g in renderer.selected_groups]
+                        candidates = [g for g in candidates if g.moves_remaining > 0]
+                        if candidates:
+                            budget = min(g.moves_remaining for g in candidates)
                             move_mode = True
-                            reachable = game_map.get_reachable(group)
+                            move_mode_groups = candidates
+                            reachable = game_map.get_reachable_budget(selected_tile.row, selected_tile.col, budget)
 
                 elif renderer.end_turn_button_rect and renderer.end_turn_button_rect.collidepoint(pos):
                     turn += 1
@@ -338,6 +344,7 @@ def main():
                                 seen.add(id(route))
                                 route.end_turn()
                     move_mode = False
+                    move_mode_groups = []
                     reachable = {}
                     game_log.append(f"TURN {turn}")
 
@@ -354,15 +361,19 @@ def main():
                 elif move_mode:
                     tile = renderer.get_tile_at(*pos)
                     if tile is not None and (tile.row, tile.col) in reachable:
-                        group = game_map.get_group(selected_tile.row, selected_tile.col)
-                        game_map.move_group(group, tile.row, tile.col, reachable[(tile.row, tile.col)])
+                        cost = reachable[(tile.row, tile.col)]
+                        for group in move_mode_groups:
+                            game_map.move_group(group, tile.row, tile.col, cost)
                         selected_tile = game_map.tiles[tile.row][tile.col]
                     move_mode = False
+                    move_mode_groups = []
                     reachable = {}
 
                 elif pos[0] < renderer.map_w:
                     selected_tile = renderer.get_tile_at(*pos)
                     renderer.selected_groups.clear()
+                    if selected_tile:
+                        renderer.selected_groups.update(game_map.get_groups(selected_tile.row, selected_tile.col))
 
         if not console_active and not save_popup_active:
             keys = pygame.key.get_pressed()
@@ -372,11 +383,10 @@ def main():
             if keys[pygame.K_a]: renderer.offset_x += pan_speed
             if keys[pygame.K_d]: renderer.offset_x -= pan_speed
 
-        moving_group = game_map.get_group(selected_tile.row, selected_tile.col) if move_mode and selected_tile else None
         renderer.draw(selected_tile, reachable, move_mode,
                       save_popup_active, save_popup_text,
                       terrain_popup_active, river_popup_active,
-                      moves_remaining=moving_group.moves_remaining if moving_group else None,
+                      moves_remaining=min(g.moves_remaining for g in move_mode_groups) if move_mode_groups else None,
                       game_log=game_log,
                       console_active=console_active,
                       console_input=console_input)
