@@ -431,6 +431,19 @@ def main():
                                 city.rebalance_pops()
                                 break
 
+                elif renderer.halt_growth_rect and renderer.halt_growth_rect.collidepoint(pos):
+                    city = selected_tile.city if selected_tile else None
+                    if city:
+                        city.growth_halted = not city.growth_halted
+                        if city.growth_halted and city.city_focus == 'Growth':
+                            city.city_focus = 'Production'
+                        city.rebalance_pops()
+
+                elif renderer.gates_closed_rect and renderer.gates_closed_rect.collidepoint(pos):
+                    city = selected_tile.city if selected_tile else None
+                    if city:
+                        city.gates_closed = not city.gates_closed
+
                 elif renderer.admin_minus_rect and renderer.admin_minus_rect.collidepoint(pos):
                     city = selected_tile.owning_city if selected_tile else None
                     if city:

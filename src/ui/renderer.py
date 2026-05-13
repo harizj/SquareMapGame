@@ -167,6 +167,8 @@ class Renderer:
         self.change_terrain_button_rect = None
         self.draw_river_button_rect = None
         self.rebalance_pops_button_rect = None
+        self.halt_growth_rect = None
+        self.gates_closed_rect = None
         self.admin_minus_rect = None
         self.admin_plus_rect = None
         self.city_focus_rects = {}
@@ -1267,7 +1269,7 @@ class Renderer:
             y += surf.get_height() + 6
             self.trade_route_delete_rects = []
             self.trade_route_reduce_rects = []
-            btn_s = 14
+            btn_s = 16
             for route in dest_routes:
                 name_line = route.city_a.name
                 if not route.established:
@@ -1277,7 +1279,7 @@ class Renderer:
                 self.screen.blit(name_surf, (x + 4, y))
                 del_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "x")
                 self.trade_route_delete_rects.append((del_rect, route))
-                red_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s * 2 - 4, y, btn_s, btn_s, "-")
+                red_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s * 2 - 3, y, btn_s, btn_s, "-")
                 self.trade_route_reduce_rects.append((red_rect, route))
                 y += name_surf.get_height() + 2
                 net_food = route.export_amount if route.export_material == 'food' else 0
@@ -1338,10 +1340,20 @@ class Renderer:
         focus_x = pad
         self.city_focus_rects = {}
         for label, fw in zip(("Growth", "Production", "Stockpile"), focus_widths):
+            disabled = label == 'Growth' and city.growth_halted
             rect = self._draw_button(focus_x, y, fw, focus_btn_h, label,
-                                     active=(label == city.city_focus))
-            self.city_focus_rects[label] = rect
+                                     active=(label == city.city_focus),
+                                     disabled=disabled)
+            if not disabled:
+                self.city_focus_rects[label] = rect
             focus_x += fw + 2
+        y += focus_btn_h + 6
+
+        half_w = (CITY_PANEL_WIDTH - pad * 2 - 4) // 2
+        self.halt_growth_rect = self._draw_button(
+            pad, y, half_w, focus_btn_h, "Halt Growth", active=city.growth_halted)
+        self.gates_closed_rect = self._draw_button(
+            pad + half_w + 4, y, half_w, focus_btn_h, "Close Gates", active=city.gates_closed)
         y += focus_btn_h + 10
 
         surf = self.font_header.render("POPS", True, HEADER_TEXT_COLOR)
@@ -1358,8 +1370,11 @@ class Renderer:
                 self.screen.blit(label_surf, (x + 4, y + (btn_s - label_surf.get_height()) // 2))
                 self.admin_plus_rect = self._draw_button(
                     CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "+")
-                self.admin_minus_rect = self._draw_button(
-                    CITY_PANEL_WIDTH - pad - btn_s * 2 - 3, y, btn_s, btn_s, "-")
+                if job.assigned > 1:
+                    self.admin_minus_rect = self._draw_button(
+                        CITY_PANEL_WIDTH - pad - btn_s * 2 - 3, y, btn_s, btn_s, "-")
+                else:
+                    self.admin_minus_rect = None
                 y += btn_s + 4
             else:
                 surf = self.font_body.render(f"{job.assigned} {_jlabel(job.label, job.assigned)}", True, TEXT_COLOR)
@@ -1437,7 +1452,7 @@ class Renderer:
 
         self.trade_route_delete_rects = []
         self.trade_route_reduce_rects = []
-        btn_s = 14
+        btn_s = 16
         for route in city.trade_routes:
             is_origin = route.city_a is city
             other_name = route.destination_name if is_origin else route.city_a.name
@@ -1458,7 +1473,7 @@ class Renderer:
             self.screen.blit(surf, (x + 4, y))
             del_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "x")
             self.trade_route_delete_rects.append((del_rect, route))
-            red_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s * 2 - 4, y, btn_s, btn_s, "-")
+            red_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s * 2 - 3, y, btn_s, btn_s, "-")
             self.trade_route_reduce_rects.append((red_rect, route))
             y += surf.get_height() + 2
             pops = route.get_pops_from_city(city)

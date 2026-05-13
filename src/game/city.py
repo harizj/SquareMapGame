@@ -30,6 +30,8 @@ class City:
         self.growth_progress = 0.0
         self.construction_progress = 0.0
         self.city_focus = 'Growth'
+        self.growth_halted = False
+        self.gates_closed = False
         self.trade_routes = []
         self.food_allocated_to_units = 0.0
         self.food_allocated_to_consumption = 0.0
@@ -178,6 +180,8 @@ class City:
         return total
 
     def _space_for_new_pop(self):
+        if self.growth_halted:
+            return False
         max_yield = self.cumulative_farm_yield_net[-1]
         return len(self.pops) + 1 <= max_yield
 
