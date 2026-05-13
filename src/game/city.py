@@ -32,6 +32,7 @@ class City:
         self.food_allocated_to_stockpile = 0.0
         self.food_shortfall = 0.0
         self.growth_allocated = 0.0
+        self.pending_pop_loss = 0.0
 
     @property
     def unassigned_pops(self):
@@ -139,7 +140,10 @@ class City:
             self.food_allocated_to_growth = 0
             self.growth_allocated = 0
 
-        self.food_allocated_to_stockpile = max(0.0, remaining) + self.food_allocated_to_min_stockpile
+        self.food_allocated_to_stockpile = max(0.0, remaining) + self.food_allocated_to_min_stockpile - self.food_shortfall
+        if self.food_stockpile + self.food_allocated_to_stockpile < 0:
+            self.pending_pop_loss = math.ceil(-(self.food_stockpile + self.food_allocated_to_stockpile))
+            self.food_allocated_to_stockpile = - self.food_stockpile
 
     def _get_pops_assigned_to_routes(self):
         total = 0

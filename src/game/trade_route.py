@@ -27,6 +27,8 @@ class TradeRoute:
         self.city_b.trade_routes.append(self)
         self.city_a.update_cumulative_farm_yield_net()
         self.city_b.update_cumulative_farm_yield_net()
+        self.city_a.rebalance_pops()
+        self.city_b.rebalance_pops()
         print(f"\n=== New TradeRoute ===")
         print(f"  city_a={self.city_a.name}  city_b={self.city_b.name}")
         print(f"  pops_a={self.pops_a}  pops_b={self.pops_b}")

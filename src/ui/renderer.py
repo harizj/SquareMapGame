@@ -692,16 +692,24 @@ class Renderer:
                 if i == 0 and food_max > 0:
                     proj = min(city.food_stockpile + city.food_allocated_to_stockpile, food_max)
                     proj_fill = max(int(mini_bar_w * proj / food_max), 0)
-                    if proj_fill > 0:
-                        pygame.draw.rect(self.screen, (200, 240, 165), (bx + mini_pad, bar_y, proj_fill, mini_bar_h))
+                    curr_fill = max(int(mini_bar_w * min(city.food_stockpile, food_max) / food_max), 0)
+                    if city.food_allocated_to_stockpile < 0:
+                        if curr_fill > 0:
+                            pygame.draw.rect(self.screen, (220, 110, 60), (bx + mini_pad, bar_y, curr_fill, mini_bar_h))
+                        if proj_fill > 0:
+                            pygame.draw.rect(self.screen, (120, 190, 80), (bx + mini_pad, bar_y, proj_fill, mini_bar_h))
+                    else:
+                        if proj_fill > 0:
+                            pygame.draw.rect(self.screen, (200, 240, 165), (bx + mini_pad, bar_y, proj_fill, mini_bar_h))
                 if i == 1:
                     proj = min(city.growth_progress + city.growth_allocated, 100)
                     proj_fill = max(int(mini_bar_w * proj / 100), 0)
                     if proj_fill > 0:
                         pygame.draw.rect(self.screen, (120, 210, 200), (bx + mini_pad, bar_y, proj_fill, mini_bar_h))
-                fill = max(int(mini_bar_w * min(val, mx) / mx), 0)
-                if fill > 0:
-                    pygame.draw.rect(self.screen, color, (bx + mini_pad, bar_y, fill, mini_bar_h))
+                if i != 0 or food_max <= 0:
+                    fill = max(int(mini_bar_w * min(val, mx) / mx), 0)
+                    if fill > 0:
+                        pygame.draw.rect(self.screen, color, (bx + mini_pad, bar_y, fill, mini_bar_h))
                 if i == 0 and food_max > 0 and 0 < min_stockpile < food_max:
                     tick_x = bx + mini_pad + int(mini_bar_w * min_stockpile / food_max)
                     pygame.draw.line(self.screen, (255, 255, 255), (tick_x, bar_y - 1), (tick_x, bar_y + mini_bar_h), 1)
@@ -1059,12 +1067,18 @@ class Renderer:
         pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
         if food_max > 0:
             proj = min(city.food_stockpile + city.food_allocated_to_stockpile, food_max)
-            proj_w = int(bar_w * proj / food_max)
-            if proj_w > 0:
-                pygame.draw.rect(self.screen, (200, 240, 165), (bar_x, y, proj_w, bar_h), border_radius=2)
+            proj_w = max(int(bar_w * proj / food_max), 0)
             fill_w = int(bar_w * min(city.food_stockpile, food_max) / food_max)
-            if fill_w > 0:
-                pygame.draw.rect(self.screen, (120, 190, 80), (bar_x, y, fill_w, bar_h), border_radius=2)
+            if city.food_allocated_to_stockpile < 0:
+                if fill_w > 0:
+                    pygame.draw.rect(self.screen, (220, 110, 60), (bar_x, y, fill_w, bar_h), border_radius=2)
+                if proj_w > 0:
+                    pygame.draw.rect(self.screen, (120, 190, 80), (bar_x, y, proj_w, bar_h), border_radius=2)
+            else:
+                if proj_w > 0:
+                    pygame.draw.rect(self.screen, (200, 240, 165), (bar_x, y, proj_w, bar_h), border_radius=2)
+                if fill_w > 0:
+                    pygame.draw.rect(self.screen, (120, 190, 80), (bar_x, y, fill_w, bar_h), border_radius=2)
             min_stockpile = min(len(city.pops), food_max)
             if 0 < min_stockpile < food_max:
                 tick_x = bar_x + int(bar_w * min_stockpile / food_max)
@@ -1171,10 +1185,14 @@ class Renderer:
             self.screen.blit(surf, (x + 12, y))
             y += surf.get_height() + 2
 
+        stockpile_val = city.food_allocated_to_stockpile
+        stockpile_text = (f"{abs(stockpile_val):.1f} from stockpile"
+                          if stockpile_val < 0 else
+                          f"{stockpile_val:.1f} to stockpile")
         for text in [
             f"{city.food_allocated_to_consumption:.1f} to consumption",
             f"{city.food_allocated_to_growth:.1f} to growth (adds {city.growth_allocated:.1f})",
-            f"{city.food_allocated_to_stockpile:.1f} to stockpile",
+            stockpile_text,
         ]:
             surf = self.font_body.render(text, True, TEXT_COLOR)
             self.screen.blit(surf, (x + 12, y))
