@@ -1319,21 +1319,26 @@ class Renderer:
         self.screen.blit(surf, (x, y))
         y += surf.get_height() + 6
 
-        group = self.map.get_group(tile.row, tile.col) if tile else None
-        if group:
+        groups = self.map.get_groups(tile.row, tile.col) if tile else []
+        first_group = groups[0] if groups else None
+        if first_group:
             btn_w, btn_h = 50, 20
             btn_x = panel_x + PANEL_WIDTH - pad - btn_w
             self.move_button_rect = self._draw_button(
                 btn_x, y, btn_w, btn_h, "Move",
-                active=move_mode, disabled=group.moves_remaining == 0,
+                active=move_mode, disabled=first_group.moves_remaining == 0,
             )
-            surf = self.font_body.render(f"Moves: {group.moves_remaining:g} / {group.max_moves:g}", True, TEXT_COLOR)
+            surf = self.font_body.render(f"Moves: {first_group.moves_remaining:g} / {first_group.max_moves:g}", True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y + (btn_h - surf.get_height()) // 2))
             y += btn_h + 6
 
-            icon_h = self.font_body.get_height()
-            icon_raw = self._icons_raw.get('sword')
-            small_icon = pygame.transform.scale(icon_raw, (icon_h, icon_h)) if icon_raw else None
+        icon_h = self.font_body.get_height()
+        icon_raw = self._icons_raw.get('sword')
+        small_icon = pygame.transform.scale(icon_raw, (icon_h, icon_h)) if icon_raw else None
+        bar_w = PANEL_WIDTH - pad * 2
+        bar_h = 6
+
+        for group in groups:
             type_counts = collections.Counter(u.unit_type for u in group.units)
             for unit_type, count in type_counts.items():
                 if small_icon:
@@ -1342,17 +1347,15 @@ class Renderer:
                 surf = self.font_body.render(f"{count} {unit_type.capitalize()}", True, TEXT_COLOR)
                 self.screen.blit(surf, (text_x, y))
                 y += icon_h + 4
-            y += 4
+            y += 2
 
-            bar_w = PANEL_WIDTH - pad * 2
-            bar_h = 6
             pygame.draw.rect(self.screen, (30, 30, 40), (x, y, bar_w, bar_h), border_radius=2)
             if group.max_moves > 0:
                 fill_w = int(bar_w * group.moves_remaining / group.max_moves)
                 if fill_w > 0:
                     pygame.draw.rect(self.screen, (180, 150, 40), (x, y, fill_w, bar_h), border_radius=2)
             pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, bar_w, bar_h), 1, border_radius=2)
-            y += bar_h + 6
+            y += bar_h + 4
 
             pygame.draw.rect(self.screen, (30, 30, 40), (x, y, bar_w, bar_h), border_radius=2)
             if group.max_food_stockpile > 0:

@@ -311,8 +311,9 @@ def main():
                 elif renderer.end_turn_button_rect and renderer.end_turn_button_rect.collidepoint(pos):
                     turn += 1
                     game_log.append("")
-                    for group in game_map.groups.values():
-                        group.reset_moves()
+                    for grp_list in game_map.groups.values():
+                        for group in grp_list:
+                            group.reset_moves()
                     for city in game_map.cities.values():
                         for msg in city.end_turn():
                             game_log.append(f"T{turn} {msg}")
