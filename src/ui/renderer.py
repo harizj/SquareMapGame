@@ -289,6 +289,13 @@ class Renderer:
                         result.blit(db, (dx, dy))
             result.blit(lb, (0, 0))
             self.icons_tinted['castle'] = result
+            dark_result = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+            for dx in range(-castle_outline_radius, castle_outline_radius + 1):
+                for dy in range(-castle_outline_radius, castle_outline_radius + 1):
+                    if dx * dx + dy * dy <= castle_outline_radius * 2:
+                        dark_result.blit(lb, (dx, dy))
+            dark_result.blit(db, (0, 0))
+            self.icons_dark['castle'] = dark_result
         if 'sword' in self._icons_raw:
             scaled = pygame.transform.scale(self._icons_raw['sword'], (sword_size, sword_size))
             self.icons['sword'] = scaled
@@ -734,67 +741,28 @@ class Renderer:
             pygame.draw.circle(self.screen, (160, 200, 255), (ddx, ddy), dot_radius + 1)
             pygame.draw.circle(self.screen, (255, 255, 255), (ddx, ddy), dot_radius)
 
-        # Pass 6: city markers
+        # Pass 6: city icons (castle, drawn below units)
         selected_city_pos = (selected_tile.row, selected_tile.col) if selected_tile else None
+        city_name_ys = {}
         for (r, c), city in self.map.cities.items():
             cx, cy = all_centers[(r, c)]
             if self.adding_one_way_route and (r, c) != selected_city_pos:
                 corners = [(int(px), int(py)) for px, py in self._hex_corners(cx, cy)]
                 pygame.draw.polygon(self.screen, (255, 210, 50), corners, 3)
-            icon = self.icons_tinted.get('castle')
+            icon = self.icons_tinted.get('castle') if (r, c) == selected_city_pos else self.icons_dark.get('castle')
             if icon:
                 ix = int(cx) - icon.get_width() // 2 + 2
                 iy = int(cy) - HEX_SIZE - 3.5
                 self.screen.blit(icon, (ix, iy))
-                name_y = iy + icon.get_height() - 12
+                city_name_ys[(r, c)] = iy + icon.get_height() - 12
             else:
                 s = 6
                 rect = pygame.Rect(int(cx) - s, int(cy) - s, s * 2, s * 2)
                 pygame.draw.rect(self.screen, COLOR_CITY, rect)
                 pygame.draw.rect(self.screen, COLOR_CITY_BORDER, rect, 1)
-                name_y = int(cy) + s + 2
-            mini_bar_w = 30
-            mini_bar_h = 2
-            mini_gap = 1
-            mini_pad = 2
-            block_w = mini_bar_w + mini_pad * 2
-            block_h = mini_bar_h * 3 + mini_gap * 2 + mini_pad * 2
-            circle_r = block_h
-            overlap = 1
-            total_w = circle_r * 2 + block_w - overlap
-            start_x = int(cx) - total_w // 2
-            by = name_y
-            circle_cx = start_x + circle_r
-            circle_cy = by + block_h // 2
-            bx = start_x + circle_r * 2 - overlap
-            bar_pad = 1
-            pygame.draw.rect(self.screen, (35, 65, 150), (bx - bar_pad, by - bar_pad, block_w + bar_pad * 2, block_h + bar_pad * 2))
-            inner_h = mini_bar_h * 3 + mini_gap * 2
-            pygame.draw.rect(self.screen, (0, 0, 0), (bx + mini_pad, by + mini_pad, mini_bar_w, inner_h))
-            mbx = bx + mini_pad
-            food_bar_y  = by + mini_pad
-            growth_bar_y = food_bar_y + mini_bar_h + mini_gap
-            constr_bar_y = growth_bar_y + mini_bar_h + mini_gap
-            self._draw_city_bar_fill(city, mbx, food_bar_y,  mini_bar_w, mini_bar_h, 'food')
-            self._draw_city_bar_fill(city, mbx, growth_bar_y, mini_bar_w, mini_bar_h, 'growth')
-            self._draw_city_bar_fill(city, mbx, constr_bar_y, mini_bar_w, mini_bar_h, 'construction')
-            pop_fill_r = circle_r
-            pop_ring_r = circle_r + 3
-            pygame.draw.circle(self.screen, (35, 65, 150), (circle_cx, circle_cy), pop_ring_r)
-            pygame.draw.circle(self.screen, (180, 210, 255), (circle_cx, circle_cy), pop_fill_r)
-            pop_str = str(len(city.pops))
-            pop_num_outline_r = 3
-            pop_outline = self.font_pop.render(pop_str, True, (35, 65, 150))
-            pop_white = self.font_pop.render(pop_str, True, (255, 255, 255))
-            tx = circle_cx - pop_white.get_width() // 2
-            ty = circle_cy - pop_white.get_height() // 2
-            for dx in range(-pop_num_outline_r, pop_num_outline_r + 1):
-                for dy in range(-pop_num_outline_r, pop_num_outline_r + 1):
-                    if (dx, dy) != (0, 0) and dx * dx + dy * dy <= pop_num_outline_r * pop_num_outline_r:
-                        self.screen.blit(pop_outline, (tx + dx, ty + dy))
-            self.screen.blit(pop_white, (tx, ty))
+                city_name_ys[(r, c)] = int(cy) + s + 2
 
-        # Pass 7: group markers
+        # Pass 7: group markers (drawn over city icons)
         for (r, c) in self.map.groups:
             cx, cy = all_centers[(r, c)]
             groups_here = self.map.groups[(r, c)]
@@ -857,6 +825,51 @@ class Renderer:
                 else:
                     if fill_w > 0:
                         pygame.draw.rect(self.screen, (120, 190, 80), (bar_x, bar_y, fill_w, bar_h))
+
+        # Pass 7b: city bars and population (drawn over everything)
+        for (r, c), city in self.map.cities.items():
+            cx, cy = all_centers[(r, c)]
+            name_y = city_name_ys.get((r, c), int(cy))
+            mini_bar_w = 30
+            mini_bar_h = 2
+            mini_gap = 1
+            mini_pad = 2
+            block_w = mini_bar_w + mini_pad * 2
+            block_h = mini_bar_h * 3 + mini_gap * 2 + mini_pad * 2
+            circle_r = block_h
+            overlap = 1
+            total_w = circle_r * 2 + block_w - overlap
+            start_x = int(cx) - total_w // 2
+            by = name_y
+            circle_cx = start_x + circle_r
+            circle_cy = by + block_h // 2
+            bx = start_x + circle_r * 2 - overlap
+            bar_pad = 1
+            pygame.draw.rect(self.screen, (35, 65, 150), (bx - bar_pad, by - bar_pad, block_w + bar_pad * 2, block_h + bar_pad * 2))
+            inner_h = mini_bar_h * 3 + mini_gap * 2
+            pygame.draw.rect(self.screen, (0, 0, 0), (bx + mini_pad, by + mini_pad, mini_bar_w, inner_h))
+            mbx = bx + mini_pad
+            food_bar_y  = by + mini_pad
+            growth_bar_y = food_bar_y + mini_bar_h + mini_gap
+            constr_bar_y = growth_bar_y + mini_bar_h + mini_gap
+            self._draw_city_bar_fill(city, mbx, food_bar_y,  mini_bar_w, mini_bar_h, 'food')
+            self._draw_city_bar_fill(city, mbx, growth_bar_y, mini_bar_w, mini_bar_h, 'growth')
+            self._draw_city_bar_fill(city, mbx, constr_bar_y, mini_bar_w, mini_bar_h, 'construction')
+            pop_fill_r = circle_r
+            pop_ring_r = circle_r + 3
+            pygame.draw.circle(self.screen, (35, 65, 150), (circle_cx, circle_cy), pop_ring_r)
+            pygame.draw.circle(self.screen, (180, 210, 255), (circle_cx, circle_cy), pop_fill_r)
+            pop_str = str(len(city.pops))
+            pop_num_outline_r = 3
+            pop_outline = self.font_pop.render(pop_str, True, (35, 65, 150))
+            pop_white = self.font_pop.render(pop_str, True, (255, 255, 255))
+            tx = circle_cx - pop_white.get_width() // 2
+            ty = circle_cy - pop_white.get_height() // 2
+            for dx in range(-pop_num_outline_r, pop_num_outline_r + 1):
+                for dy in range(-pop_num_outline_r, pop_num_outline_r + 1):
+                    if (dx, dy) != (0, 0) and dx * dx + dy * dy <= pop_num_outline_r * pop_num_outline_r:
+                        self.screen.blit(pop_outline, (tx + dx, ty + dy))
+            self.screen.blit(pop_white, (tx, ty))
 
         # Pass 8: selected tile border (drawn over all map content)
         if selected_tile is not None:
