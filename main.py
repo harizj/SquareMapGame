@@ -354,6 +354,10 @@ def main():
                     for city in game_map.cities.values():
                         for msg in city.end_turn():
                             game_log.append(f"T{turn} {msg}")
+                    collapsed = [city for city in game_map.cities.values() if not city.pops]
+                    for city in collapsed:
+                        game_log.append(f"T{turn} {city.name} has collapsed!")
+                        game_map.remove_city(city)
                     seen = set()
                     for city in game_map.cities.values():
                         for route in city.trade_routes:

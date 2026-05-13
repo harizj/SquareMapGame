@@ -209,6 +209,17 @@ class Map:
                     heapq.heappush(queue, (new_cost, (nr, nc)))
         return [], []
 
+    def remove_city(self, city):
+        for tile in city.owned_tiles:
+            tile.owning_city = None
+            tile.city_distance = None
+        for row in self.tiles:
+            for tile in row:
+                if city in tile.cities_in_range:
+                    tile.cities_in_range.remove(city)
+        self.tiles[city.row][city.col].city = None
+        del self.cities[(city.row, city.col)]
+
     def setup_city(self, city):
         city_range = self.get_city_range(city)
         city.owned_tiles = []
