@@ -1173,30 +1173,37 @@ class Renderer:
         self.screen.blit(surf, (x + 4, y))
         y += surf.get_height() + 2
 
-        farm_food = city._food_produced() - city._food_from_routes()
-        surf = self.font_body.render(f"{farm_food:.1f} from peasants", True, TEXT_COLOR)
-        self.screen.blit(surf, (x + 12, y))
-        y += surf.get_height() + 2
-
+        farm_food  = city._food_produced() - city._food_from_routes()
         route_food = city._food_from_routes()
-        if route_food != 0:
-            route_label = f"{abs(route_food):.1f} {'to' if route_food < 0 else 'from'} trade"
-            surf = self.font_body.render(route_label, True, TEXT_COLOR)
+
+        def _signed(v):
+            return f"+{v:.1f}" if v >= 0 else f"{v:.1f}"
+
+        positive_lines = [("Agriculture", farm_food)]
+        if route_food >= 0:
+            positive_lines.append(("Trade Routes", route_food))
+
+        negative_lines = []
+        if route_food < 0:
+            negative_lines.append(("Trade Routes", route_food))
+        negative_lines.append(("Consumption", -city.food_allocated_to_consumption))
+        growth_text = f"Growth (adds {city.growth_allocated:.1f})"
+        negative_lines.append((growth_text, -city.food_allocated_to_growth))
+
+        for label, val in positive_lines:
+            surf = self.font_body.render(f"{label}  {_signed(val)}", True, TEXT_COLOR)
             self.screen.blit(surf, (x + 12, y))
             y += surf.get_height() + 2
 
-        stockpile_val = city.food_allocated_to_stockpile
-        stockpile_text = (f"{abs(stockpile_val):.1f} from stockpile"
-                          if stockpile_val < 0 else
-                          f"{stockpile_val:.1f} to stockpile")
-        for text in [
-            f"{city.food_allocated_to_consumption:.1f} to consumption",
-            f"{city.food_allocated_to_growth:.1f} to growth (adds {city.growth_allocated:.1f})",
-            stockpile_text,
-        ]:
-            surf = self.font_body.render(text, True, TEXT_COLOR)
+        for label, val in negative_lines:
+            surf = self.font_body.render(f"{label}  {_signed(val)}", True, TEXT_COLOR)
             self.screen.blit(surf, (x + 12, y))
             y += surf.get_height() + 2
+
+        net = city.food_allocated_to_stockpile
+        net_surf = self.font_body.render(f"= {_signed(net)} Net Stockpile Change", True, HEADER_TEXT_COLOR)
+        self.screen.blit(net_surf, (x + 12, y))
+        y += net_surf.get_height() + 2
 
         y += 6
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
