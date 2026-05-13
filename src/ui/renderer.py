@@ -171,6 +171,7 @@ class Renderer:
         self.admin_plus_rect = None
         self.city_focus_rects = {}
         self.trade_route_delete_rects = []
+        self.trade_route_reduce_rects = []
         self.adding_trade_route = False
         self.adding_one_way_route = False
         self.add_one_way_route_button_rect = None
@@ -1206,33 +1207,33 @@ class Renderer:
         y = track_y + track_h + min_surf.get_height() + 14
 
         # Pops required calculation
+        # Rounded to nearest whole number, min 1. Consider switching to ceil + partial_pops
+        # in the future to eliminate arbitrage potential (players exploiting fractional rounding).
         pops_required_text = "Pops required: N/A"
         self.one_way_pops_required_whole = 0
         self.one_way_partial_pops = None
-        partial_pops = None
         if dist:
             travel_time = dist / DEFAULT_MOVE_DISTANCE
             carry_capacity = WATER_CARRY_CAPACITY if water else LAND_CARRY_CAPACITY
             denom = carry_capacity + 1 - 2 * travel_time
             if denom > 0 and travel_time > 0:
                 raw = (self.one_way_amount * 2 * travel_time) / denom
-                pops_required = math.ceil(raw * 10) / 10
-                pops_str = str(int(pops_required)) if pops_required == int(pops_required) else f"{pops_required:.1f}"
-                pops_required_text = f"Pops required: {pops_str}"
-                self.one_way_pops_required_whole = math.ceil(pops_required)
-                if pops_required != int(pops_required):
-                    partial_pops = round(math.ceil(pops_required) - pops_required, 1)
-                    self.one_way_partial_pops = partial_pops
+                pops_required = max(1, round(raw))
+                pops_required_text = f"Pops required: {pops_required}"
+                self.one_way_pops_required_whole = pops_required
+                # partial_pops = round(math.ceil(raw) - raw, 1)
+                # self.one_way_partial_pops = partial_pops
         surf = self.font_body.render(pops_required_text, True, TEXT_COLOR)
         self.screen.blit(surf, (x, y))
         y += surf.get_height() + 4
-        if partial_pops is not None:
-            frac_str = str(int(partial_pops)) if partial_pops == int(partial_pops) else f"{partial_pops:.1f}"
-            surf = self.font_body.render(f"{frac_str} remaining pops will work production", True, TEXT_COLOR)
-            self.screen.blit(surf, (x, y))
-            y += surf.get_height() + 10
-        else:
-            y += 6
+        # if self.one_way_partial_pops is not None:
+        #     frac_str = str(int(self.one_way_partial_pops)) if self.one_way_partial_pops == int(self.one_way_partial_pops) else f"{self.one_way_partial_pops:.1f}"
+        #     surf = self.font_body.render(f"{frac_str} remaining pops will work production", True, TEXT_COLOR)
+        #     self.screen.blit(surf, (x, y))
+        #     y += surf.get_height() + 10
+        # else:
+        #     y += 6
+        y += 6
 
         btn_w = (inner_w - 8) // 2
         self.one_way_confirm_rect = self._draw_button(x, y, btn_w, 24, "Confirm")
@@ -1265,6 +1266,7 @@ class Renderer:
             self.screen.blit(surf, (x, y))
             y += surf.get_height() + 6
             self.trade_route_delete_rects = []
+            self.trade_route_reduce_rects = []
             btn_s = 14
             for route in dest_routes:
                 name_line = route.city_a.name
@@ -1275,6 +1277,8 @@ class Renderer:
                 self.screen.blit(name_surf, (x + 4, y))
                 del_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "x")
                 self.trade_route_delete_rects.append((del_rect, route))
+                red_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s * 2 - 4, y, btn_s, btn_s, "-")
+                self.trade_route_reduce_rects.append((red_rect, route))
                 y += name_surf.get_height() + 2
                 net_food = route.export_amount if route.export_material == 'food' else 0
                 food_str = f"+{_fmt_amt(net_food)}" if net_food >= 0 else _fmt_amt(net_food)
@@ -1432,6 +1436,7 @@ class Renderer:
             return str(int(v)) if v == int(v) else f"{v:.1f}"
 
         self.trade_route_delete_rects = []
+        self.trade_route_reduce_rects = []
         btn_s = 14
         for route in city.trade_routes:
             is_origin = route.city_a is city
@@ -1453,6 +1458,8 @@ class Renderer:
             self.screen.blit(surf, (x + 4, y))
             del_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "x")
             self.trade_route_delete_rects.append((del_rect, route))
+            red_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s * 2 - 4, y, btn_s, btn_s, "-")
+            self.trade_route_reduce_rects.append((red_rect, route))
             y += surf.get_height() + 2
             pops = route.get_pops_from_city(city)
             food_str = f"+{_fmt_amt(net_food)}" if net_food >= 0 else _fmt_amt(net_food)

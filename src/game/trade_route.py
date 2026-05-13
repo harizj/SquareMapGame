@@ -1,5 +1,5 @@
 from src.game.jobs import CaravanJob
-from src.game.constants import DEFAULT_MOVE_DISTANCE
+from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, WATER_CARRY_CAPACITY
 import math
 
 
@@ -9,7 +9,8 @@ class TradeRoute:
                  partial_pops_a, partial_pops_b,
                  export_material, export_amount, max_export,
                  import_material, import_amount, max_import,
-                 path=None, path_distances=None):
+                 path=None, path_distances=None,
+                 water=False):
         self.city_a = city_a          # origin — allocates pops
         self.dest_tile = dest_tile    # destination tile (may or may not have a city)
         self.pops_a = pops_a
@@ -27,9 +28,11 @@ class TradeRoute:
         self.path = path or []
         self.path_distances = path_distances or []
         self.distance = path_distances[-1] if path_distances else 0.0
+        self.water = water
+        self.travel_time = self.distance / DEFAULT_MOVE_DISTANCE if self.distance > 0 else 0.0
         self.missing_caravans = False
-        self.established = False
         self.establish_progress = DEFAULT_MOVE_DISTANCE
+        self.established = self.establish_progress >= self.distance
 
         # Register with both endpoints
         self.city_a.trade_routes.append(self)
@@ -60,7 +63,7 @@ class TradeRoute:
     @property
     def destination_name(self):
         city = self.dest_tile.city
-        return city.name if city is not None else f"({self.dest_tile.row}, {self.dest_tile.col})"
+        return city.name if city is not None else "Supply Line"
 
     def destination_is(self, city):
         """Return True if the given city is the destination of this route."""
@@ -113,3 +116,24 @@ class TradeRoute:
             return self.path
         result = [node for node, d in zip(self.path, self.path_distances) if d <= self.establish_progress]
         return result
+
+    def reduce_export_amount(self):
+        if self.export_amount <= 1:
+            self.detach(rebalance=True)
+            return
+
+        self.export_amount -= 1
+        carry_capacity = WATER_CARRY_CAPACITY if self.water else LAND_CARRY_CAPACITY
+        denom = carry_capacity + 1 - 2 * self.travel_time
+        if denom > 0 and self.travel_time > 0:
+            raw = (self.export_amount * 2 * self.travel_time) / denom
+            self.pops_a = max(1, round(raw))
+            if self.caravan_job_a is not None:
+                self.caravan_job_a.slots = self.pops_a
+
+        self.city_a.update_cumulative_farm_yield_net()
+        self.city_a.rebalance_pops()
+        dest_city = self.dest_tile.city
+        if dest_city is not None:
+            dest_city.update_cumulative_farm_yield_net()
+            dest_city.rebalance_pops()

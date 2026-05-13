@@ -314,6 +314,7 @@ def main():
                         max_import=0,
                         path=path,
                         path_distances=path_distances,
+                        water=water,
                     )
                     renderer.one_way_route_pending = None
                     renderer.one_way_route_type = 'land'
@@ -383,6 +384,12 @@ def main():
                     for rect, route in renderer.trade_route_delete_rects:
                         if rect.collidepoint(pos):
                             route.detach(rebalance=True)
+                            break
+
+                elif any(r.collidepoint(pos) for r, _ in renderer.trade_route_reduce_rects):
+                    for rect, route in renderer.trade_route_reduce_rects:
+                        if rect.collidepoint(pos):
+                            route.reduce_export_amount()
                             break
 
                 elif renderer.one_way_slider_rect and renderer.one_way_slider_rect.collidepoint(pos):
