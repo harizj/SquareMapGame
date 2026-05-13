@@ -200,6 +200,8 @@ class Renderer:
         self.trade_route_max_import = 0.0
         self.terrain_option_rects = {}
         self.river_option_rects = {}
+        self.selected_groups = set()
+        self.group_icon_rects = []
 
     def _apply_zoom(self):
         sz = HEX_SIZE * self.zoom
@@ -1335,18 +1337,43 @@ class Renderer:
         icon_h = self.font_body.get_height()
         icon_raw = self._icons_raw.get('sword')
         small_icon = pygame.transform.scale(icon_raw, (icon_h, icon_h)) if icon_raw else None
+        small_icon_tinted = None
+        if icon_raw:
+            scaled = pygame.transform.scale(icon_raw, (icon_h, icon_h))
+            mask = scaled.copy()
+            mask.fill((255, 255, 255), special_flags=pygame.BLEND_RGB_MAX)
+            lb = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+            lb.fill((180, 210, 255, 255))
+            lb.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            db = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+            db.fill((35, 65, 150, 255))
+            db.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            outline_r = 2
+            result = pygame.Surface((icon_h + 2 * outline_r, icon_h + 2 * outline_r), pygame.SRCALPHA)
+            for dx in range(-outline_r, outline_r + 1):
+                for dy in range(-outline_r, outline_r + 1):
+                    if dx * dx + dy * dy <= outline_r * 2:
+                        result.blit(db, (outline_r + dx, outline_r + dy))
+            result.blit(lb, (outline_r, outline_r))
+            small_icon_tinted = result
         bar_w = PANEL_WIDTH - pad * 2
         bar_h = 6
 
+        self.group_icon_rects = []
         for group in groups:
+            selected = group in self.selected_groups
+            icon_to_use = small_icon_tinted if selected else small_icon
             type_counts = collections.Counter(u.unit_type for u in group.units)
+            row_top_y = y
             for unit_type, count in type_counts.items():
-                if small_icon:
-                    self.screen.blit(small_icon, (x + 4, y))
-                text_x = x + 4 + (icon_h + 4 if small_icon else 0)
+                if icon_to_use:
+                    self.screen.blit(icon_to_use, (x + 4, y))
+                text_x = x + 4 + (icon_h + 4 if icon_to_use else 0)
                 surf = self.font_body.render(f"{count} {unit_type.capitalize()}", True, TEXT_COLOR)
                 self.screen.blit(surf, (text_x, y))
                 y += icon_h + 4
+            icon_rect = pygame.Rect(x + 4, row_top_y, bar_w - 4, y - row_top_y)
+            self.group_icon_rects.append((icon_rect, group))
             y += 2
 
             pygame.draw.rect(self.screen, (30, 30, 40), (x, y, bar_w, bar_h), border_radius=2)
@@ -1354,6 +1381,9 @@ class Renderer:
                 fill_w = int(bar_w * group.moves_remaining / group.max_moves)
                 if fill_w > 0:
                     pygame.draw.rect(self.screen, (180, 150, 40), (x, y, fill_w, bar_h), border_radius=2)
+                for i in range(1, int(group.max_moves)):
+                    tx = x + int(bar_w * i / group.max_moves)
+                    pygame.draw.line(self.screen, (30, 30, 40), (tx, y), (tx, y + bar_h - 1))
             pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, bar_w, bar_h), 1, border_radius=2)
             y += bar_h + 4
 
@@ -1362,6 +1392,9 @@ class Renderer:
                 fill_w = int(bar_w * min(group.food_stockpile, group.max_food_stockpile) / group.max_food_stockpile)
                 if fill_w > 0:
                     pygame.draw.rect(self.screen, (120, 190, 80), (x, y, fill_w, bar_h), border_radius=2)
+                for i in range(1, int(group.max_food_stockpile)):
+                    tx = x + int(bar_w * i / group.max_food_stockpile)
+                    pygame.draw.line(self.screen, (30, 30, 40), (tx, y), (tx, y + bar_h - 1))
             pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, bar_w, bar_h), 1, border_radius=2)
             y += bar_h + 8
 

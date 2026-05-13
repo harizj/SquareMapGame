@@ -229,6 +229,15 @@ def main():
                     renderer.one_way_route_pending = None
                     renderer.one_way_route_type = 'land'
 
+                elif any(r.collidepoint(pos) for r, _ in renderer.group_icon_rects):
+                    for rect, group in renderer.group_icon_rects:
+                        if rect.collidepoint(pos):
+                            if group in renderer.selected_groups:
+                                renderer.selected_groups.discard(group)
+                            else:
+                                renderer.selected_groups.add(group)
+                            break
+
                 elif any(r.collidepoint(pos) for r, _ in renderer.trade_route_delete_rects):
                     for rect, route in renderer.trade_route_delete_rects:
                         if rect.collidepoint(pos):
@@ -348,6 +357,7 @@ def main():
 
                 elif pos[0] < renderer.map_w:
                     selected_tile = renderer.get_tile_at(*pos)
+                    renderer.selected_groups.clear()
 
         if not console_active and not save_popup_active:
             keys = pygame.key.get_pressed()
