@@ -53,8 +53,8 @@ class Map:
         result = {}
         for row in self.tiles:
             for tile in row:
-                if tile.groups:
-                    result[(tile.row, tile.col)] = tile.groups
+                if tile.unit_groups:
+                    result[(tile.row, tile.col)] = tile.unit_groups
         return result
 
     def _take_city_name(self):
@@ -63,10 +63,10 @@ class Map:
         return name
 
     def get_groups(self, row, col):
-        return self.tiles[row][col].groups
+        return self.tiles[row][col].unit_groups
 
     def get_group(self, row, col):
-        groups = self.tiles[row][col].groups
+        groups = self.tiles[row][col].unit_groups
         return groups[0] if groups else None
 
     def _step_cost(self, from_r, from_c, to_r, to_c):
@@ -223,13 +223,17 @@ class Map:
         city.setup_jobs()
 
     def move_group(self, group, row, col, cost):
-        self.tiles[group.row][group.col].groups.remove(group)
+        src_tile = self.tiles[group.row][group.col]
+        dst_tile = self.tiles[row][col]
+        src_tile.unit_groups.remove(group)
         group.row = row
         group.col = col
         group.moves_remaining -= cost
         if group.moves_remaining < MIN_TERRAIN_COST:
             group.move_exhausted = True
-        self.tiles[row][col].groups.append(group)
+        dst_tile.unit_groups.append(group)
+        src_tile.update_city_with_movement()
+        dst_tile.update_city_with_movement()
 
     def to_dict(self):
         return {
@@ -275,7 +279,7 @@ class Map:
         group_a.add_food(12.0)
         group_b = Group(5, 5, units=[Unit(Pop()) for _ in range(2)])
         group_b.add_food(3.0)
-        m.tiles[5][5].groups = [group_a, group_b]
+        m.tiles[5][5].unit_groups = [group_a, group_b]
         m._city_name_idx = 0
         m.cities = {(7, 2): City(7, 2, m._take_city_name()),
             (3, 6): City(3, 6, m._take_city_name()),

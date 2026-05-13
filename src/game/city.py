@@ -21,6 +21,7 @@ class City:
         self.col = col
         self.name = name
         self.pops = [Pop() for _ in range(20)]
+        self.unit_groups = []
         self.jobs = []
         self.owned_tiles = []
         self.cumulative_farm_yield = [0.0]

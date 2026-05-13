@@ -45,7 +45,7 @@ class Tile:
         self.col = col
         self.terrain = terrain  # 'desert', 'hills', 'river'
         self.river_edges = set()  # subset of {'NW','NE','E','SE','SW','W'}
-        self.groups = []
+        self.unit_groups = []
         self.city = None
         self.owning_city = None
         self.city_distance = None
@@ -64,6 +64,10 @@ class Tile:
             return FarmJob.YIELD_PER_POP
         key = round(round(self.city_distance / 0.25) * 0.25, 2)
         return FARM_YIELD_BY_DISTANCE.get(key, FarmJob.YIELD_PER_POP)
+
+    def update_city_with_movement(self):
+        if self.city is not None:
+            self.city.unit_groups = list(self.unit_groups)
 
     def _init_jobs(self):
         slots = TILE_FARM_SLOTS.get(self.terrain, 0)

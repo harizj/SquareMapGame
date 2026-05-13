@@ -256,7 +256,7 @@ def main():
                             target = selected_on_tile[0]
                             for other in selected_on_tile[1:]:
                                 target.merge(other)
-                                selected_tile.groups.remove(other)
+                                selected_tile.unit_groups.remove(other)
                                 renderer.selected_groups.discard(other)
 
                 elif any(r.collidepoint(pos) for r, _ in renderer.trade_route_delete_rects):
@@ -348,9 +348,9 @@ def main():
                     game_log.append("")
                     for row in game_map.tiles:
                         for tile in row:
-                            for group in tile.groups:
+                            for group in tile.unit_groups:
                                 group.end_turn()
-                            tile.groups = [g for g in tile.groups if g.units]
+                            tile.unit_groups = [g for g in tile.unit_groups if g.units]
                     for city in game_map.cities.values():
                         for msg in city.end_turn():
                             game_log.append(f"T{turn} {msg}")
