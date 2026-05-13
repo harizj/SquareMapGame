@@ -9,6 +9,7 @@ GROWTH_NEEDED_FOR_NEW_POP = 100
 POP_FOOD_CONSUMPTION = 1
 GROWTH_FOOD_REQUIREMENT = .2
 GROWTH_RATE = 2
+TURNS_WITH_STOCKPILE_LOSS_THRESHOLD = 5
 
 
 class City:
@@ -32,7 +33,8 @@ class City:
         self.food_allocated_to_stockpile = 0.0
         self.food_shortfall = 0.0
         self.growth_allocated = 0.0
-        self.pending_pop_loss = 0.0
+        self.pending_pop_loss = 0
+        self.turns_with_stockpile_loss = 0.0
 
     @property
     def unassigned_pops(self):
@@ -123,7 +125,7 @@ class City:
             self.pending_pop_loss = math.ceil(-(self.food_stockpile + remaining - consumption))
         else:
             self.food_allocated_to_consumption = consumption
-            self.pending_pop_loss = 0.0
+            self.pending_pop_loss = 0
 
         #self.food_shortfall = max(0.0, consumption - self.food_allocated_to_consumption)
         remaining -= self.food_allocated_to_consumption
@@ -231,8 +233,10 @@ class City:
                     (r.city_b is self and r.caravan_job_b is not None)),
                 None
             )
+
             if route_to_drop is None:
                 break
+            print('Route dropped due to pending pop loss!')
             route_to_drop.city_a.trade_routes.remove(route_to_drop)
             route_to_drop.city_b.trade_routes.remove(route_to_drop)
             route_to_drop.city_a.update_cumulative_farm_yield_net()
@@ -343,6 +347,13 @@ class City:
 
         # Step 1: stockpile replenishment
         self.food_stockpile = min(self.food_stockpile + self.food_allocated_to_stockpile, self._stockpile_max())
+        if (self.food_allocated_to_stockpile < 0) and (self.food_stockpile < .5 * len(self.pops) * POP_FOOD_CONSUMPTION):
+            self.turns_with_stockpile_loss += 1
+            if self.turns_with_stockpile_loss > TURNS_WITH_STOCKPILE_LOSS_THRESHOLD:
+                self.pending_pop_loss += 1
+                self.turns_with_stockpile_loss = 0
+        else:
+            self.turns_with_stockpile_loss = 0
 
         # Step 2: growth
         self.growth_progress += self.growth_allocated
@@ -353,7 +364,7 @@ class City:
         if self.pending_pop_loss > 0:
             del self.pops[:self.pending_pop_loss]
             self.growth_progress = 0.0
-            self.pending_pop_loss = 0.0
+            self.pending_pop_loss = 0
             # print(f"  [shortfall] {self.food_shortfall:.1f} shortfall, stockpile={self.food_stockpile:.1f}, pops={len(self.pops)}")
             #self._food_shortfall()
             # print(f"  [shortfall] after -> stockpile={self.food_stockpile:.1f}, pops={len(self.pops)}")
