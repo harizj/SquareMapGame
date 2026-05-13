@@ -38,6 +38,7 @@ def main():
     move_mode = False
     move_mode_groups = []
     reachable = {}
+    move_hover_tile = None
     save_popup_active = False
     save_popup_text = ""
     terrain_popup_active = False
@@ -110,6 +111,8 @@ def main():
                 renderer._recruit_food_slider_dragging = False
 
             elif event.type == pygame.MOUSEMOTION:
+                if move_mode:
+                    move_hover_tile = renderer.get_tile_at(*event.pos)
                 if renderer._slider_dragging and renderer.trade_route_slider_rect:
                     sr = renderer.trade_route_slider_rect
                     t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
@@ -395,6 +398,7 @@ def main():
                         move_mode = False
                         move_mode_groups = []
                         reachable = {}
+                        move_hover_tile = None
                     else:
                         all_groups = game_map.get_groups(selected_tile.row, selected_tile.col)
                         candidates = [g for g in all_groups if g in renderer.selected_groups]
@@ -429,6 +433,7 @@ def main():
                     move_mode = False
                     move_mode_groups = []
                     reachable = {}
+                    move_hover_tile = None
                     game_log.append(f"TURN {turn}")
 
                 elif renderer.adding_one_way_route and pos[0] < renderer.map_w:
@@ -451,6 +456,7 @@ def main():
                     move_mode = False
                     move_mode_groups = []
                     reachable = {}
+                    move_hover_tile = None
 
                 elif pos[0] < renderer.map_w:
                     selected_tile = renderer.get_tile_at(*pos)
@@ -471,6 +477,7 @@ def main():
                       terrain_popup_active, river_popup_active,
                       moves_remaining=min(g.moves_remaining for g in move_mode_groups) if move_mode_groups else None,
                       game_log=game_log,
+                      move_hover_tile=move_hover_tile,
                       console_active=console_active,
                       console_input=console_input)
         clock.tick(60)

@@ -525,6 +525,7 @@ class Renderer:
              save_popup_active=False, save_popup_text="",
              terrain_popup_active=False, river_popup_active=False,
              moves_remaining=None, game_log=None,
+             move_hover_tile=None,
              console_active=False, console_input=""):
         if reachable is None:
             reachable = {}
@@ -907,6 +908,9 @@ class Renderer:
         if selected_tile is not None:
             pygame.draw.polygon(self.screen, (255, 220, 50),
                                 all_corners[(selected_tile.row, selected_tile.col)], 4)
+        if move_mode and move_hover_tile and (move_hover_tile.row, move_hover_tile.col) in reachable:
+            pygame.draw.polygon(self.screen, (255, 220, 50),
+                                all_corners[(move_hover_tile.row, move_hover_tile.col)], 4)
 
         self._draw_city_panel(selected_tile)
         self._draw_panel(selected_tile, move_mode)
