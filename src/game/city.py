@@ -9,6 +9,9 @@ GROWTH_NEEDED_FOR_NEW_POP = 100
 POP_FOOD_CONSUMPTION = 1
 GROWTH_FOOD_REQUIREMENT = .2
 GROWTH_RATE = 2
+GROWTH_SLOWDOWN = 0.1
+POPS_PER_GROWTH_SLOWDOWN = 5
+GROWTH_SLOWDOWN_POP_THRESHOLD = 20
 TURNS_WITH_STOCKPILE_LOSS_THRESHOLD = 5
 
 
@@ -143,10 +146,11 @@ class City:
         if self._space_for_new_pop():
             self.food_allocated_to_growth = min(remaining, growth_food)
             remaining -= self.food_allocated_to_growth
-            self.growth_allocated = (self.food_allocated_to_growth / GROWTH_FOOD_REQUIREMENT) * GROWTH_RATE
+            self.growth_allocated = (self.food_allocated_to_growth / GROWTH_FOOD_REQUIREMENT) * self._effective_growth_rate()
         else:
             self.food_allocated_to_growth = 0
             self.growth_allocated = 0
+            self.growth_progress = 0
 
         self.food_allocated_to_stockpile = remaining + self.food_allocated_to_min_stockpile
         # if self.food_stockpile + self.food_allocated_to_stockpile < 0:
@@ -164,6 +168,12 @@ class City:
     def _space_for_new_pop(self):
         max_yield = self.cumulative_farm_yield_net[-1]
         return len(self.pops) + 1 <= max_yield
+
+    def _effective_growth_rate(self):
+        if len(self.pops) < GROWTH_SLOWDOWN_POP_THRESHOLD:
+            return GROWTH_RATE
+        steps = (len(self.pops) - GROWTH_SLOWDOWN_POP_THRESHOLD) // POPS_PER_GROWTH_SLOWDOWN + 1
+        return max(0.0, GROWTH_RATE - steps * GROWTH_SLOWDOWN)
 
     # No longer used
     def _food_shortfall(self):
