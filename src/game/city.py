@@ -163,6 +163,7 @@ class City:
         max_yield = self.cumulative_farm_yield_net[-1]
         return len(self.pops) + 1 <= max_yield
 
+    # No longer used
     def _food_shortfall(self):
         stockpile_used = min(self.food_shortfall, self.food_stockpile)
         self.food_stockpile -= stockpile_used
@@ -171,6 +172,26 @@ class City:
             to_remove = min(math.ceil(remaining_shortfall), len(self.pops))
             del self.pops[:to_remove]
             self.growth_progress = 0.0
+
+    def _collect_caravan_jobs(self):
+        for route in self.trade_routes:
+            job = route.caravan_job_a if route.city_a is self else route.caravan_job_b
+            if job is not None:
+                route.missing_caravans = False
+        jobs = []
+        for route in self.trade_routes:
+            job = route.caravan_job_a if route.city_a is self else route.caravan_job_b
+            if job is not None:
+                job.assigned = 0
+                jobs.append(job)
+        return jobs, sum(j.slots for j in jobs)
+
+    def _pop_loss_from_locked_jobs(self, locked_jobs):
+        farm_pops = min(max(0, len(self.pops) - locked_jobs), len(self.cumulative_farm_yield_net) - 1)
+        max_food = self.cumulative_farm_yield_net[farm_pops]
+        consumption = len(self.pops) * POP_FOOD_CONSUMPTION
+        return consumption > max_food + self.food_stockpile
+
 
     def rebalance_pops(self):
         admin_job = next((j for j in self.jobs if j.job_type == 'administrator'), None)
@@ -198,20 +219,29 @@ class City:
                 pop.assigned_job = admin_job
                 admin_job.assigned += 1
                 count += 1
+        admin_assigned = admin_job.assigned if admin_job else 0
 
         # Caravans (locked to trade routes)
-        for route in self.trade_routes:
-            job = route.caravan_job_a if route.city_a is self else route.caravan_job_b
-            if job is not None:
-                route.missing_caravans = False
-        route_caravan_jobs = []
-        for route in self.trade_routes:
-            job = route.caravan_job_a if route.city_a is self else route.caravan_job_b
-            if job is not None:
-                job.assigned = 0
-                route_caravan_jobs.append(job)
+        route_caravan_jobs, total_caravan_slots = self._collect_caravan_jobs()
 
-        total_caravan_slots = sum(j.slots for j in route_caravan_jobs)
+        while total_caravan_slots > 0 and self._pop_loss_from_locked_jobs(total_caravan_slots + admin_assigned):
+            route_to_drop = next(
+                (r for r in reversed(self.trade_routes)
+                 if (r.city_a is self and r.caravan_job_a is not None) or
+                    (r.city_b is self and r.caravan_job_b is not None)),
+                None
+            )
+            if route_to_drop is None:
+                break
+            route_to_drop.city_a.trade_routes.remove(route_to_drop)
+            route_to_drop.city_b.trade_routes.remove(route_to_drop)
+            route_to_drop.city_a.update_cumulative_farm_yield_net()
+            route_to_drop.city_b.update_cumulative_farm_yield_net()
+            dropped_job = route_to_drop.caravan_job_a if route_to_drop.city_a is self else route_to_drop.caravan_job_b
+            if dropped_job in route_caravan_jobs:
+                route_caravan_jobs.remove(dropped_job)
+            total_caravan_slots = sum(j.slots for j in route_caravan_jobs)
+
         caravan_assigned = 0
         for job in route_caravan_jobs:
             for pop in self.pops:
@@ -235,7 +265,6 @@ class City:
                 print(f"{self.name}: all {total_caravan_slots} caravan slots filled")
    
         # Farm: use cumulative yield list to find minimum pops needed
-        admin_assigned = admin_job.assigned if admin_job else 0
         remaining_pops = len(self.pops) - admin_assigned - caravan_assigned
         total_farm_slots = len(self.cumulative_farm_yield) - 1
         if total_farm_slots > 0:
