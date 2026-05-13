@@ -368,6 +368,21 @@ class Renderer:
             corners.append((cx + sz * math.cos(angle_rad), cy + sz * math.sin(angle_rad) * ISO_SCALE))
         return corners
 
+    def _draw_arrowhead(self, tip, from_pt, color, size=12):
+        dx = tip[0] - from_pt[0]
+        dy = tip[1] - from_pt[1]
+        length = math.hypot(dx, dy)
+        if length == 0:
+            return
+        ux, uy = dx / length, dy / length
+        px, py = -uy, ux
+        half_w = size * 0.5
+        base_x = tip[0] - ux * size
+        base_y = tip[1] - uy * size
+        p1 = (int(base_x + px * half_w), int(base_y + py * half_w))
+        p2 = (int(base_x - px * half_w), int(base_y - py * half_w))
+        pygame.draw.polygon(self.screen, color, [(int(tip[0]), int(tip[1])), p1, p2])
+
     def _draw_dashed_line(self, start, end, color, width=2, dash_length=8, gap=6):
         x0, y0 = start
         x1, y1 = end
@@ -628,6 +643,7 @@ class Renderer:
                 if ep and center:
                     self._draw_dashed_line(ep, center, _ROUTE_DARK,  width=_ROUTE_OUTLINE_W, dash_length=8, gap=6)
                     self._draw_dashed_line(ep, center, _ROUTE_LIGHT, width=_ROUTE_INNER_W,   dash_length=8, gap=6)
+                    self._draw_arrowhead(center, ep, _ROUTE_LIGHT, size=8)
 
         # Pass 3b: city territory borders
         for r in range(self.map.rows):
