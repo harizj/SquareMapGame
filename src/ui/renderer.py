@@ -810,14 +810,14 @@ class Renderer:
             # food bar
             total_food = sum(g.food_stockpile for g in groups_here)
             total_max = sum(g.max_food_stockpile for g in groups_here)
-            total_consumption = sum(g.consumption_per_turn() for g in groups_here)
+            total_from_stockpile = sum(g.food_allocated_from_stockpile for g in groups_here)
             bar_y = block_y + mini_pad + bar_h + bar_gap
             if total_max > 0:
                 current = min(total_food, total_max)
-                proj = max(0.0, min(current - total_consumption, total_max))
+                proj = max(0.0, min(current - total_from_stockpile, total_max))
                 fill_w = max(int(bar_w * current / total_max), 0)
                 proj_w = max(int(bar_w * proj / total_max), 0)
-                if total_consumption > 0:
+                if total_from_stockpile > 0:
                     if fill_w > 0:
                         pygame.draw.rect(self.screen, (220, 110, 60), (bar_x, bar_y, fill_w, bar_h))
                     if proj_w > 0:
@@ -1523,12 +1523,12 @@ class Renderer:
             food_bar_w = int(bar_w * group.max_moves / move_bar_max)
             pygame.draw.rect(self.screen, (30, 30, 40), (x, y, food_bar_w, bar_h), border_radius=2)
             if group.max_food_stockpile > 0:
-                consumption = group.consumption_per_turn()
+                from_stockpile = group.food_allocated_from_stockpile
                 current = min(group.food_stockpile, group.max_food_stockpile)
-                proj = max(0.0, min(current - consumption, group.max_food_stockpile))
+                proj = max(0.0, min(current - from_stockpile, group.max_food_stockpile))
                 fill_w = max(int(food_bar_w * current / group.max_food_stockpile), 0)
                 proj_w = max(int(food_bar_w * proj / group.max_food_stockpile), 0)
-                if consumption > 0:
+                if from_stockpile > 0:
                     if fill_w > 0:
                         pygame.draw.rect(self.screen, (220, 110, 60), (x, y, fill_w, bar_h), border_radius=2)
                     if proj_w > 0:

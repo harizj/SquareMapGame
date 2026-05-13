@@ -12,7 +12,8 @@ class Group:
         self.moves_remaining = DEFAULT_MOVE_DISTANCE
         self.food_stockpile = 0.0
         self.max_food_stockpile = self._carry_capacity()
-        self.food_allocated_to_consumption = 0.0
+        self.food_allocated_from_city = 0.0
+        self.food_allocated_from_stockpile = 0.0
         self.pending_pop_loss = 0
         self.move_exhausted = False
 
@@ -33,12 +34,13 @@ class Group:
 
     def allocate_food(self):
         consumption = self.consumption_per_turn()
-        self.food_allocated_to_consumption = max(0.0, min(self.food_stockpile, consumption))
-        self.pending_pop_loss = math.ceil(consumption - self.food_allocated_to_consumption)
+        remainder = max(0.0, consumption - self.food_allocated_from_city)
+        self.food_allocated_from_stockpile = min(self.food_stockpile, remainder)
+        self.pending_pop_loss = math.ceil(remainder - self.food_allocated_from_stockpile)
 
     def end_turn(self):
         self.allocate_food()
-        self.food_stockpile -= self.food_allocated_to_consumption
+        self.food_stockpile -= self.food_allocated_from_stockpile
         if self.pending_pop_loss > 0:
             self.units = self.units[self.pending_pop_loss:]
             self.max_food_stockpile = self._carry_capacity()

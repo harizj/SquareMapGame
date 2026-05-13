@@ -31,6 +31,7 @@ class City:
         self.construction_progress = 0.0
         self.city_focus = 'Growth'
         self.trade_routes = []
+        self.food_allocated_to_units = 0.0
         self.food_allocated_to_consumption = 0.0
         self.food_allocated_to_min_stockpile = 0.0
         self.food_allocated_to_growth = 0.0
@@ -52,6 +53,9 @@ class City:
     def total_farm_slots(self):
         return sum(j.slots for tile in self.owned_tiles for j in tile.jobs if j.job_type == 'farm')
 
+    def _get_unit_consumption(self):
+        return sum(len(g.units) for g in self.unit_groups) * POP_FOOD_CONSUMPTION
+
     def _food_from_routes(self):
         """Net food change from all active (fully staffed) trade routes."""
         net = 0.0
@@ -72,14 +76,15 @@ class City:
 
     def _food_target(self):
         num_pops = len(self.pops)
-        consumption = num_pops * POP_FOOD_CONSUMPTION
-        min_stockpile = min(consumption, self._stockpile_max())
+        pop_consumption = num_pops * POP_FOOD_CONSUMPTION
+        unit_consumption = self._get_unit_consumption()
+        min_stockpile = min(pop_consumption, self._stockpile_max())
         food_needed_for_min_stockpile = min_stockpile - self.food_stockpile
         if self.city_focus == 'Production' or not self._space_for_new_pop():
             growth_food = 0
         else:
             growth_food = num_pops * GROWTH_FOOD_REQUIREMENT
-        return consumption, food_needed_for_min_stockpile, growth_food
+        return unit_consumption, pop_consumption, food_needed_for_min_stockpile, growth_food
 
     def _stockpile_max(self):
         admin_job = next((j for j in self.jobs if j.job_type == 'administrator'), None)
@@ -121,14 +126,20 @@ class City:
         return food + self._food_from_routes()
 
     def _update_food_allocations(self):
-        consumption, food_needed_for_min_stockpile, growth_food = self._food_target()
+        unit_consumption, pop_consumption, food_needed_for_min_stockpile, growth_food = self._food_target()
         remaining = self._food_produced()
 
-        if self.food_stockpile + remaining - consumption < 0:
-            self.food_allocated_to_consumption = self.food_stockpile + remaining 
-            self.pending_pop_loss = math.ceil(-(self.food_stockpile + remaining - consumption))
+        self.food_allocated_to_units = min(unit_consumption, max(0.0, self.food_stockpile + remaining))
+        remaining -= self.food_allocated_to_units
+        for g in self.unit_groups:
+            g.food_allocated_from_city = (self.food_allocated_to_units * g.consumption_per_turn() / unit_consumption) if unit_consumption > 0 else 0.0
+            g.allocate_food()
+
+        if self.food_stockpile + remaining - pop_consumption < 0:
+            self.food_allocated_to_consumption = self.food_stockpile + remaining
+            self.pending_pop_loss = math.ceil(-(self.food_stockpile + remaining - pop_consumption))
         else:
-            self.food_allocated_to_consumption = consumption
+            self.food_allocated_to_consumption = pop_consumption
             self.pending_pop_loss = 0
 
         #self.food_shortfall = max(0.0, consumption - self.food_allocated_to_consumption)
@@ -290,8 +301,8 @@ class City:
             if self.city_focus == 'Stockpile':
                 pops_for_farm = min(remaining_pops, total_farm_slots)
             else:
-                consumption, food_needed_for_min_stockpile, growth_food = self._food_target()
-                food_target = consumption + food_needed_for_min_stockpile + growth_food
+                unit_consumption, pop_consumption, food_needed_for_min_stockpile, growth_food = self._food_target()
+                food_target = unit_consumption + pop_consumption + food_needed_for_min_stockpile + growth_food
                 pops_for_farm = bisect.bisect_left(self.cumulative_farm_yield_net, food_target)
                 pops_for_farm = min(pops_for_farm, total_farm_slots, remaining_pops)
 

@@ -68,6 +68,7 @@ class Tile:
     def update_city_with_movement(self):
         if self.city is not None:
             self.city.unit_groups = list(self.unit_groups)
+            self.city.rebalance_pops()
 
     def _init_jobs(self):
         slots = TILE_FARM_SLOTS.get(self.terrain, 0)

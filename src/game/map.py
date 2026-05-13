@@ -277,8 +277,10 @@ class Map:
             m.tiles.append(row)
         group_a = Group(5, 5, units=[Unit(Pop()) for _ in range(3)])
         group_a.add_food(12.0)
+        group_a.allocate_food()
         group_b = Group(5, 5, units=[Unit(Pop()) for _ in range(2)])
         group_b.add_food(3.0)
+        group_b.allocate_food()
         m.tiles[5][5].unit_groups = [group_a, group_b]
         m._city_name_idx = 0
         m.cities = {(7, 2): City(7, 2, m._take_city_name()),
