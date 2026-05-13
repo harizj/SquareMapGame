@@ -141,7 +141,8 @@ class Map:
         return None
 
     def get_path(self, from_r, from_c, to_r, to_c, water=False):
-        """Dijkstra from start to goal. Returns list of (r, c) tiles inclusive, or [] if unreachable."""
+        """Dijkstra from start to goal. Returns (path, path_distances) where path is a list of
+        (r, c) tiles inclusive and path_distances[i] is the cumulative cost to path[i], or ([], [])."""
         goal = (to_r, to_c)
         start = (from_r, from_c)
         best = {start: 0}
@@ -156,7 +157,8 @@ class Map:
                     path.append(node)
                     node = prev[node]
                 path.reverse()
-                return path
+                path_distances = [best[node] for node in path]
+                return path, path_distances
             if cost > best[(r, c)]:
                 continue
             for dr, dc in _NEIGHBORS[r % 2]:
@@ -170,7 +172,7 @@ class Map:
                     best[(nr, nc)] = new_cost
                     prev[(nr, nc)] = (r, c)
                     heapq.heappush(queue, (new_cost, (nr, nc)))
-        return []
+        return [], []
 
     def setup_city(self, city):
         city_range = self.get_city_range(city)

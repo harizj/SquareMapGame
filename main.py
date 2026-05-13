@@ -205,7 +205,7 @@ def main():
                 elif renderer.one_way_confirm_rect and renderer.one_way_confirm_rect.collidepoint(pos):
                     city_a, city_b = renderer.one_way_route_pending
                     water = renderer.one_way_route_type == 'water'
-                    path = game_map.get_path(city_a.row, city_a.col, city_b.row, city_b.col, water=water)
+                    path, path_distances = game_map.get_path(city_a.row, city_a.col, city_b.row, city_b.col, water=water)
                     TradeRoute(
                         city_a=city_a,
                         city_b=city_b,
@@ -220,6 +220,7 @@ def main():
                         import_amount=0,
                         max_import=0,
                         path=path,
+                        path_distances=path_distances,
                     )
                     renderer.one_way_route_pending = None
                     renderer.one_way_route_type = 'land'

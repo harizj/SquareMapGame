@@ -530,10 +530,12 @@ class Renderer:
         seen_routes = set()
         for city in self.map.cities.values():
             for route in city.trade_routes:
-                if id(route) in seen_routes or route.missing_caravans or len(route.path) < 3:
+                if id(route) in seen_routes or route.missing_caravans:
                     continue
                 seen_routes.add(id(route))
-                path = route.path
+                path = route.get_visual_path()
+                if len(path) < 3:
+                    continue
 
                 def _edge_pt(r, c, nr, nc):
                     deg = _NEIGHBOR_EDGE_ANGLES[r % 2].get((nr - r, nc - c))

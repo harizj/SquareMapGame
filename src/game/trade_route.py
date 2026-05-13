@@ -6,7 +6,7 @@ class TradeRoute:
                  partial_pops_a, partial_pops_b,
                  export_material, export_amount, max_export,
                  import_material, import_amount, max_import,
-                 path=None):
+                 path=None, path_distances=None):
         self.city_a = city_a          # origin — allocates pops
         self.city_b = city_b          # destination
         self.pops_a = pops_a
@@ -22,6 +22,8 @@ class TradeRoute:
         self.caravan_job_a = CaravanJob(slots=pops_a, trade_route=self) if pops_a > 0 else None
         self.caravan_job_b = CaravanJob(slots=pops_b, trade_route=self) if pops_b > 0 else None
         self.path = path or []
+        self.path_distances = path_distances or []
+        self.distance = path_distances[-1] if path_distances else 0.0
         self.missing_caravans = False
         self.city_a.trade_routes.append(self)
         self.city_b.trade_routes.append(self)
@@ -36,3 +38,6 @@ class TradeRoute:
         print(f"  export_material={self.export_material}  export_amount={self.export_amount}  max_export={self.max_export}")
         print(f"  import_material={self.import_material}  import_amount={self.import_amount}  max_import={self.max_import}")
         print(f"  caravan_job_a={self.caravan_job_a}  caravan_job_b={self.caravan_job_b}")
+
+    def get_visual_path(self):
+        return self.path
