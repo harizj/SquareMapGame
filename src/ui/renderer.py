@@ -1280,7 +1280,7 @@ class Renderer:
 
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
         y += 10
-        surf = self.font_header.render("RESOURCES", True, HEADER_TEXT_COLOR)
+        surf = self.font_header.render("YIELDS", True, HEADER_TEXT_COLOR)
         self.screen.blit(surf, (x, y))
         y += surf.get_height() + 4
 
@@ -1303,18 +1303,23 @@ class Renderer:
 
         negative_lines = []
         if route_food < 0:
-            negative_lines.append(("Trade Routes", route_food))
-        negative_lines.append(("Consumption", -city.food_allocated_to_consumption))
-        growth_text = f"Growth (adds {city.growth_allocated:.1f})"
-        negative_lines.append((growth_text, -city.food_allocated_to_growth))
+            negative_lines.append(("Trade Routes", route_food, None))
+        unit_consumption = city._get_unit_consumption()
+        if unit_consumption > 0:
+            negative_lines.append(("Units", -unit_consumption, None))
+        negative_lines.append((f"Pops", -city.food_allocated_to_consumption, None))
+        negative_lines.append(("Growth", -city.food_allocated_to_growth, f"(+{round(city.growth_allocated)} towards new pop)"))
 
         for label, val in positive_lines:
             surf = self.font_body.render(f"{label}  {_signed(val)}", True, TEXT_COLOR)
             self.screen.blit(surf, (x + 12, y))
             y += surf.get_height() + 2
 
-        for label, val in negative_lines:
-            surf = self.font_body.render(f"{label}  {_signed(val)}", True, TEXT_COLOR)
+        for label, val, suffix in negative_lines:
+            text = f"{label}  {_signed(val)}"
+            if suffix:
+                text += f"  {suffix}"
+            surf = self.font_body.render(text, True, TEXT_COLOR)
             self.screen.blit(surf, (x + 12, y))
             y += surf.get_height() + 2
 

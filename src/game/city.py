@@ -217,7 +217,7 @@ class City:
     def _pop_loss_from_locked_jobs(self, locked_jobs):
         farm_pops = min(max(0, len(self.pops) - locked_jobs), len(self.cumulative_farm_yield_net) - 1)
         max_food = self.cumulative_farm_yield_net[farm_pops]
-        consumption = len(self.pops) * POP_FOOD_CONSUMPTION
+        consumption = len(self.pops) * POP_FOOD_CONSUMPTION + self._get_unit_consumption()
         return consumption > max_food + self.food_stockpile
 
 
