@@ -256,17 +256,14 @@ class City:
             route_to_drop = next(
                 (r for r in reversed(self.trade_routes)
                  if (r.city_a is self and r.caravan_job_a is not None) or
-                    (r.city_b is self and r.caravan_job_b is not None)),
+                    (r.destination_is(self) and r.caravan_job_b is not None)),
                 None
             )
 
             if route_to_drop is None:
                 break
             print('Route dropped due to pending pop loss!')
-            route_to_drop.city_a.trade_routes.remove(route_to_drop)
-            route_to_drop.city_b.trade_routes.remove(route_to_drop)
-            route_to_drop.city_a.update_cumulative_farm_yield_net()
-            route_to_drop.city_b.update_cumulative_farm_yield_net()
+            route_to_drop.detach()
             dropped_job = route_to_drop.caravan_job_a if route_to_drop.city_a is self else route_to_drop.caravan_job_b
             if dropped_job in route_caravan_jobs:
                 route_caravan_jobs.remove(dropped_job)
@@ -357,11 +354,9 @@ class City:
         missing = [r for r in self.trade_routes if r.missing_caravans]
         if missing:
             for route in missing:
-                route.city_a.trade_routes.remove(route)
-                route.city_b.trade_routes.remove(route)
-                route.city_a.update_cumulative_farm_yield_net()
-                route.city_b.update_cumulative_farm_yield_net()
-                print(f"{self.name}: trade route to {(route.city_b if route.city_a is self else route.city_a).name} cancelled — not enough caravans")
+                other_name = route.destination_name if route.city_a is self else route.city_a.name
+                route.detach()
+                print(f"{self.name}: trade route to {other_name} cancelled — not enough caravans")
             self.rebalance_pops()
 
         log = []

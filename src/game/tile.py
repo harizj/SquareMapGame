@@ -48,6 +48,7 @@ class Tile:
         self.unit_groups = []
         self.city = None
         self.owning_city = None
+        self.trade_routes = []
         self.city_distance = None
         self.cities_in_range = []
         self.jobs = []

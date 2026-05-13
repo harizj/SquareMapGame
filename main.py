@@ -137,7 +137,7 @@ def main():
                 renderer._recruit_food_slider_dragging = False
 
             elif event.type == pygame.MOUSEMOTION:
-                if move_mode:
+                if move_mode or renderer.adding_one_way_route:
                     move_hover_tile = renderer.get_tile_at(*event.pos)
                 if renderer._slider_dragging and renderer.trade_route_slider_rect:
                     sr = renderer.trade_route_slider_rect
@@ -271,9 +271,10 @@ def main():
 
                 # elif renderer.trade_route_confirm_rect and renderer.trade_route_confirm_rect.collidepoint(pos):
                 #     city_a, city_b = renderer.trade_route_pending
+                #     dest_tile = game_map.tiles[city_b.row][city_b.col]
                 #     route = TradeRoute(
                 #         city_a=city_a,
-                #         city_b=city_b,
+                #         dest_tile=dest_tile,
                 #         pops_a=renderer.trade_route_pops,
                 #         pops_b=renderer.trade_route_pops,
                 #         partial_pops_a=None,
@@ -295,12 +296,12 @@ def main():
                             break
 
                 elif renderer.one_way_confirm_rect and renderer.one_way_confirm_rect.collidepoint(pos):
-                    city_a, city_b = renderer.one_way_route_pending
+                    city_a, dest_tile = renderer.one_way_route_pending
                     water = renderer.one_way_route_type == 'water'
-                    path, path_distances = game_map.get_path(city_a.row, city_a.col, city_b.row, city_b.col, water=water)
+                    path, path_distances = game_map.get_path(city_a.row, city_a.col, dest_tile.row, dest_tile.col, water=water)
                     TradeRoute(
                         city_a=city_a,
-                        city_b=city_b,
+                        dest_tile=dest_tile,
                         pops_a=renderer.one_way_pops_required_whole,
                         pops_b=0,
                         partial_pops_a=renderer.one_way_partial_pops,
@@ -381,12 +382,7 @@ def main():
                 elif any(r.collidepoint(pos) for r, _ in renderer.trade_route_delete_rects):
                     for rect, route in renderer.trade_route_delete_rects:
                         if rect.collidepoint(pos):
-                            route.city_a.trade_routes.remove(route)
-                            route.city_b.trade_routes.remove(route)
-                            route.city_a.update_cumulative_farm_yield_net()
-                            route.city_b.update_cumulative_farm_yield_net()
-                            route.city_a.rebalance_pops()
-                            route.city_b.rebalance_pops()
+                            route.detach(rebalance=True)
                             break
 
                 elif renderer.one_way_slider_rect and renderer.one_way_slider_rect.collidepoint(pos):
@@ -406,6 +402,7 @@ def main():
                     renderer.adding_trade_route = False
                     if not renderer.adding_one_way_route:
                         renderer.trade_route_pending = None
+                        move_hover_tile = None
 
                 elif renderer.draw_river_button_rect and renderer.draw_river_button_rect.collidepoint(pos):
                     river_popup_active = True
@@ -460,12 +457,13 @@ def main():
                 elif renderer.adding_one_way_route and pos[0] < renderer.map_w:
                     tile = renderer.get_tile_at(*pos)
                     current_city = selected_tile.owning_city if selected_tile else None
-                    if tile is not None:
-                        clicked_city = tile.owning_city
-                        if clicked_city and clicked_city is not current_city:
-                            renderer.one_way_route_pending = (current_city, clicked_city)
+                    if tile is not None and current_city is not None:
+                        origin_tile = game_map.tiles[current_city.row][current_city.col]
+                        if tile is not origin_tile:
+                            renderer.one_way_route_pending = (current_city, tile)
                             renderer.one_way_amount = 1
                     renderer.adding_one_way_route = False
+                    move_hover_tile = None
 
                 elif pos[0] < renderer.map_w:
                     clicked_tile = renderer.get_tile_at(*pos)

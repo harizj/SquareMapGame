@@ -763,9 +763,6 @@ class Renderer:
         city_name_ys = {}
         for (r, c), city in self.map.cities.items():
             cx, cy = all_centers[(r, c)]
-            if self.adding_one_way_route and (r, c) != selected_city_pos:
-                corners = [(int(px), int(py)) for px, py in self._hex_corners(cx, cy)]
-                pygame.draw.polygon(self.screen, (255, 210, 50), corners, 3)
             icon = self.icons_tinted.get('castle') if (r, c) == selected_city_pos else self.icons_dark.get('castle')
             if icon:
                 ix = int(cx) - icon.get_width() // 2 + 2
@@ -898,6 +895,9 @@ class Renderer:
             pygame.draw.polygon(self.screen, (255, 220, 50),
                                 all_corners[(selected_tile.row, selected_tile.col)], 4)
         if move_mode and move_hover_tile and (move_hover_tile.row, move_hover_tile.col) in reachable:
+            pygame.draw.polygon(self.screen, (255, 220, 50),
+                                all_corners[(move_hover_tile.row, move_hover_tile.col)], 4)
+        if self.adding_one_way_route and move_hover_tile and (move_hover_tile.row, move_hover_tile.col) in all_corners:
             pygame.draw.polygon(self.screen, (255, 220, 50),
                                 all_corners[(move_hover_tile.row, move_hover_tile.col)], 4)
 
@@ -1089,12 +1089,12 @@ class Renderer:
     def _draw_one_way_route_popup(self):
         if not self.one_way_route_pending:
             return
-        city_a, city_b = self.one_way_route_pending
-        water_reachable = self.map.get_travel_cost(city_a.row, city_a.col, city_b.row, city_b.col, water=True) is not None
+        city_a, dest_tile = self.one_way_route_pending
+        water_reachable = self.map.get_travel_cost(city_a.row, city_a.col, dest_tile.row, dest_tile.col, water=True) is not None
         if not water_reachable and self.one_way_route_type == 'water':
             self.one_way_route_type = 'land'
         water = self.one_way_route_type == 'water'
-        dist = self.map.get_travel_cost(city_a.row, city_a.col, city_b.row, city_b.col, water=water)
+        dist = self.map.get_travel_cost(city_a.row, city_a.col, dest_tile.row, dest_tile.col, water=water)
 
         pad = 16
         popup_w = 280
@@ -1113,7 +1113,8 @@ class Renderer:
         y = py + pad
         inner_w = popup_w - pad * 2
 
-        title = self.font_header.render(f"{city_a.name} -> {city_b.name}", True, HEADER_TEXT_COLOR)
+        dest_name = dest_tile.city.name if dest_tile.city is not None else f"({dest_tile.row}, {dest_tile.col})"
+        title = self.font_header.render(f"{city_a.name} -> {dest_name}", True, HEADER_TEXT_COLOR)
         self.screen.blit(title, (x, y))
         y += title.get_height() + 8
 
@@ -1362,7 +1363,7 @@ class Renderer:
         btn_s = 14
         for route in city.trade_routes:
             is_origin = route.city_a is city
-            other = route.city_b if is_origin else route.city_a
+            other_name = route.destination_name if is_origin else route.city_a.name
             if is_origin:
                 net_food = (route.import_amount if route.import_material == 'food' else 0) \
                          - (route.export_amount if route.export_material == 'food' else 0)
@@ -1372,10 +1373,10 @@ class Renderer:
             if route.missing_caravans:
                 print('Missing caravans!!')
             if route.established:
-                name_line = other.name
+                name_line = other_name
             else:
                 t = route.turns_until_established()
-                name_line = f"{other.name} ({t} {'turn' if t == 1 else 'turns'})"
+                name_line = f"{other_name} ({t} {'turn' if t == 1 else 'turns'})"
             surf = self.font_body.render(name_line, True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
             del_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "x")
