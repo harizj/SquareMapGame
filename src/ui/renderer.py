@@ -425,6 +425,40 @@ class Renderer:
         self.screen.blit(surf, (x + (w - surf.get_width()) // 2, y + (h - surf.get_height()) // 2))
         return rect
 
+    def _draw_city_bar_fill(self, city, bx, by, bar_w, bar_h, bar_type, tick_w=1, border_radius=0):
+        if bar_type == 'food':
+            food_max = city._stockpile_max()
+            if food_max > 0:
+                proj = min(city.food_stockpile + city.food_allocated_to_stockpile, food_max)
+                proj_w = max(int(bar_w * proj / food_max), 0)
+                fill_w = int(bar_w * min(city.food_stockpile, food_max) / food_max)
+                if city.food_allocated_to_stockpile < 0:
+                    if fill_w > 0:
+                        pygame.draw.rect(self.screen, (220, 110, 60), (bx, by, fill_w, bar_h), border_radius=border_radius)
+                    if proj_w > 0:
+                        pygame.draw.rect(self.screen, (120, 190, 80), (bx, by, proj_w, bar_h), border_radius=border_radius)
+                else:
+                    if proj_w > 0:
+                        pygame.draw.rect(self.screen, (200, 240, 165), (bx, by, proj_w, bar_h), border_radius=border_radius)
+                    if fill_w > 0:
+                        pygame.draw.rect(self.screen, (120, 190, 80), (bx, by, fill_w, bar_h), border_radius=border_radius)
+                min_stockpile = min(len(city.pops), food_max)
+                if 0 < min_stockpile < food_max:
+                    tick_x = bx + int(bar_w * min_stockpile / food_max)
+                    pygame.draw.line(self.screen, (255, 255, 255), (tick_x, by - 1), (tick_x, by + bar_h), tick_w)
+        elif bar_type == 'growth':
+            proj = min(city.growth_progress + city.growth_allocated, 100)
+            proj_w = max(int(bar_w * proj / 100), 0)
+            if proj_w > 0:
+                pygame.draw.rect(self.screen, (120, 210, 200), (bx, by, proj_w, bar_h), border_radius=border_radius)
+            fill_w = max(int(bar_w * min(city.growth_progress, 100) / 100), 0)
+            if fill_w > 0:
+                pygame.draw.rect(self.screen, (40, 160, 150), (bx, by, fill_w, bar_h), border_radius=border_radius)
+        elif bar_type == 'construction':
+            fill_w = max(int(bar_w * min(city.construction_progress, 1000) / 1000), 0)
+            if fill_w > 0:
+                pygame.draw.rect(self.screen, (130, 130, 140), (bx, by, fill_w, bar_h), border_radius=border_radius)
+
     def draw(self, selected_tile=None, reachable=None, move_mode=False,
              save_popup_active=False, save_popup_text="",
              terrain_popup_active=False, river_popup_active=False,
@@ -680,39 +714,13 @@ class Renderer:
             pygame.draw.rect(self.screen, (35, 65, 150), (bx - bar_pad, by - bar_pad, block_w + bar_pad * 2, block_h + bar_pad * 2))
             inner_h = mini_bar_h * 3 + mini_gap * 2
             pygame.draw.rect(self.screen, (0, 0, 0), (bx + mini_pad, by + mini_pad, mini_bar_w, inner_h))
-            food_max = city._stockpile_max()
-            bars = [
-                (city.food_stockpile, food_max if food_max > 0 else 1, (120, 190, 80)),
-                (city.growth_progress, 100, (40, 160, 150)),
-                (city.construction_progress, 1000, (130, 130, 140)),
-            ]
-            min_stockpile = min(len(city.pops), food_max)
-            for i, (val, mx, color) in enumerate(bars):
-                bar_y = by + mini_pad + i * (mini_bar_h + mini_gap)
-                if i == 0 and food_max > 0:
-                    proj = min(city.food_stockpile + city.food_allocated_to_stockpile, food_max)
-                    proj_fill = max(int(mini_bar_w * proj / food_max), 0)
-                    curr_fill = max(int(mini_bar_w * min(city.food_stockpile, food_max) / food_max), 0)
-                    if city.food_allocated_to_stockpile < 0:
-                        if curr_fill > 0:
-                            pygame.draw.rect(self.screen, (220, 110, 60), (bx + mini_pad, bar_y, curr_fill, mini_bar_h))
-                        if proj_fill > 0:
-                            pygame.draw.rect(self.screen, (120, 190, 80), (bx + mini_pad, bar_y, proj_fill, mini_bar_h))
-                    else:
-                        if proj_fill > 0:
-                            pygame.draw.rect(self.screen, (200, 240, 165), (bx + mini_pad, bar_y, proj_fill, mini_bar_h))
-                if i == 1:
-                    proj = min(city.growth_progress + city.growth_allocated, 100)
-                    proj_fill = max(int(mini_bar_w * proj / 100), 0)
-                    if proj_fill > 0:
-                        pygame.draw.rect(self.screen, (120, 210, 200), (bx + mini_pad, bar_y, proj_fill, mini_bar_h))
-                if i != 0 or food_max <= 0:
-                    fill = max(int(mini_bar_w * min(val, mx) / mx), 0)
-                    if fill > 0:
-                        pygame.draw.rect(self.screen, color, (bx + mini_pad, bar_y, fill, mini_bar_h))
-                if i == 0 and food_max > 0 and 0 < min_stockpile < food_max:
-                    tick_x = bx + mini_pad + int(mini_bar_w * min_stockpile / food_max)
-                    pygame.draw.line(self.screen, (255, 255, 255), (tick_x, bar_y - 1), (tick_x, bar_y + mini_bar_h), 1)
+            mbx = bx + mini_pad
+            food_bar_y  = by + mini_pad
+            growth_bar_y = food_bar_y + mini_bar_h + mini_gap
+            constr_bar_y = growth_bar_y + mini_bar_h + mini_gap
+            self._draw_city_bar_fill(city, mbx, food_bar_y,  mini_bar_w, mini_bar_h, 'food')
+            self._draw_city_bar_fill(city, mbx, growth_bar_y, mini_bar_w, mini_bar_h, 'growth')
+            self._draw_city_bar_fill(city, mbx, constr_bar_y, mini_bar_w, mini_bar_h, 'construction')
             pop_fill_r = circle_r
             pop_ring_r = circle_r + 3
             pygame.draw.circle(self.screen, (35, 65, 150), (circle_cx, circle_cy), pop_ring_r)
@@ -1065,24 +1073,7 @@ class Renderer:
         self.screen.blit(val, (bar_x + bar_w - val.get_width(), y))
         y += label.get_height() + 2
         pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
-        if food_max > 0:
-            proj = min(city.food_stockpile + city.food_allocated_to_stockpile, food_max)
-            proj_w = max(int(bar_w * proj / food_max), 0)
-            fill_w = int(bar_w * min(city.food_stockpile, food_max) / food_max)
-            if city.food_allocated_to_stockpile < 0:
-                if fill_w > 0:
-                    pygame.draw.rect(self.screen, (220, 110, 60), (bar_x, y, fill_w, bar_h), border_radius=2)
-                if proj_w > 0:
-                    pygame.draw.rect(self.screen, (120, 190, 80), (bar_x, y, proj_w, bar_h), border_radius=2)
-            else:
-                if proj_w > 0:
-                    pygame.draw.rect(self.screen, (200, 240, 165), (bar_x, y, proj_w, bar_h), border_radius=2)
-                if fill_w > 0:
-                    pygame.draw.rect(self.screen, (120, 190, 80), (bar_x, y, fill_w, bar_h), border_radius=2)
-            min_stockpile = min(len(city.pops), food_max)
-            if 0 < min_stockpile < food_max:
-                tick_x = bar_x + int(bar_w * min_stockpile / food_max)
-                pygame.draw.line(self.screen, (255, 255, 255), (tick_x, y - 2), (tick_x, y + bar_h + 1), 2)
+        self._draw_city_bar_fill(city, bar_x, y, bar_w, bar_h, 'food', tick_w=2, border_radius=2)
         pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
         y += bar_h + 8
 
@@ -1093,12 +1084,7 @@ class Renderer:
         self.screen.blit(val, (bar_x + bar_w - val.get_width(), y))
         y += label.get_height() + 2
         pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
-        proj_w = int(bar_w * min(city.growth_progress + city.growth_allocated, 100) / 100)
-        if proj_w > 0:
-            pygame.draw.rect(self.screen, (120, 210, 200), (bar_x, y, proj_w, bar_h), border_radius=2)
-        fill_w = int(bar_w * min(city.growth_progress, 100) / 100)
-        if fill_w > 0:
-            pygame.draw.rect(self.screen, (40, 160, 150), (bar_x, y, fill_w, bar_h), border_radius=2)
+        self._draw_city_bar_fill(city, bar_x, y, bar_w, bar_h, 'growth', border_radius=2)
         pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
         y += bar_h + 8
 
@@ -1109,9 +1095,7 @@ class Renderer:
         self.screen.blit(val, (bar_x + bar_w - val.get_width(), y))
         y += label.get_height() + 2
         pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
-        fill_w = int(bar_w * city.construction_progress / 1000)
-        if fill_w > 0:
-            pygame.draw.rect(self.screen, (130, 130, 140), (bar_x, y, fill_w, bar_h), border_radius=2)
+        self._draw_city_bar_fill(city, bar_x, y, bar_w, bar_h, 'construction', border_radius=2)
         pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
         y += bar_h + 12
 
