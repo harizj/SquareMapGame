@@ -780,9 +780,14 @@ class Renderer:
             any_selected = any(g in self.selected_groups for g in groups_here)
             icon = self.icons_tinted.get('sword') if any_selected else self.icons_dark.get('sword')
             if icon:
-                icon_x = int(cx) - icon.get_width() // 2
+                total_units = sum(len(g.units) for g in groups_here)
+                count = max(1, min(3, total_units))
+                icon_overlap = 7
+                combined_w = icon.get_width() + (count - 1) * icon_overlap
+                start_x = int(cx) - combined_w // 2
                 icon_y = int(cy) - icon.get_height() // 2
-                self.screen.blit(icon, (icon_x, icon_y))
+                for i in range(count):
+                    self.screen.blit(icon, (start_x + i * icon_overlap, icon_y))
             else:
                 self._draw_unit_marker(int(cx), int(cy))
                 icon_x = int(cx)
@@ -1196,13 +1201,9 @@ class Renderer:
         if not city:
             return
 
-        surf = self.font_header.render("CITY", True, HEADER_TEXT_COLOR)
+        surf = self.font_header.render(city.name.upper(), True, HEADER_TEXT_COLOR)
         self.screen.blit(surf, (x, y))
         y += surf.get_height() + 6
-
-        surf = self.font_body.render(city.name, True, TEXT_COLOR)
-        self.screen.blit(surf, (x + 4, y))
-        y += surf.get_height() + 8
 
         # Food stockpile bar
         food_max = city._stockpile_max()
@@ -1525,9 +1526,13 @@ class Renderer:
             type_counts = collections.Counter(u.unit_type for u in group.units)
             row_top_y = y
             for unit_type, count in type_counts.items():
+                icon_overlap = 5
+                icons_total_w = 0
                 if icon_to_use:
-                    self.screen.blit(icon_to_use, (x + 4, y))
-                text_x = x + 4 + (icon_h + 8 if icon_to_use else 0)
+                    for i in range(count):
+                        self.screen.blit(icon_to_use, (x + 4 + i * icon_overlap, y))
+                    icons_total_w = icon_h + (count - 1) * icon_overlap
+                text_x = x + 4 + (icons_total_w + 8 if icon_to_use else 0)
                 unit_text_color = (220, 50, 50) if group.pending_pop_loss > 0 else TEXT_COLOR
                 surf = self.font_body.render(f"{count} {unit_type.capitalize()}", True, unit_text_color)
                 self.screen.blit(surf, (text_x, y))
