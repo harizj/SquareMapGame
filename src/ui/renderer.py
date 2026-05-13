@@ -157,6 +157,9 @@ class Renderer:
         self.river_imgs = {}
         self.icons = {}
         self.icons_tinted = {}
+        self.icons_dark = {}
+        self.icons_light = {}
+        self.icons_selected = {}
         self._apply_zoom()
         self.move_button_rect = None
         self.end_turn_button_rect = None
@@ -306,6 +309,21 @@ class Renderer:
                         result.blit(db, (pad + dx, pad + dy))
             result.blit(lb, (pad, pad))
             self.icons_tinted['sword'] = result
+            dark_result = pygame.Surface((sword_size + 2 * pad, sword_size + 2 * pad), pygame.SRCALPHA)
+            for dx in range(-sword_outline_radius, sword_outline_radius + 1):
+                for dy in range(-sword_outline_radius, sword_outline_radius + 1):
+                    if dx * dx + dy * dy <= sword_outline_radius * 2:
+                        dark_result.blit(lb, (pad + dx, pad + dy))
+            dark_result.blit(db, (pad, pad))
+            self.icons_dark['sword'] = dark_result
+            self.icons_light['sword'] = lb
+            selected_result = pygame.Surface((sword_size + 2 * pad, sword_size + 2 * pad), pygame.SRCALPHA)
+            for dx in range(-sword_outline_radius, sword_outline_radius + 1):
+                for dy in range(-sword_outline_radius, sword_outline_radius + 1):
+                    if dx * dx + dy * dy <= sword_outline_radius * 2:
+                        selected_result.blit(lb, (pad + dx, pad + dy))
+            selected_result.blit(db, (pad, pad))
+            self.icons_selected['sword'] = selected_result
 
     def zoom_map(self, factor, mx, my):
         old_zoom = self.zoom
@@ -690,10 +708,7 @@ class Renderer:
                 self.screen.blit(shadow, (lx - hw + 1, ly - hh + 1))
                 self.screen.blit(surf, (lx - hw, ly - hh))
 
-        # Pass 5: selected border
-        if selected_tile is not None:
-            pygame.draw.polygon(self.screen, COLOR_SELECTED,
-                                all_corners[(selected_tile.row, selected_tile.col)], 2)
+        # Pass 5: selected border (moved to pass 8 to draw over everything)
 
         # Pass 6b: worked farm dots (top-left of each tile, one dot per assigned pop)
         dot_radius = 1
@@ -782,12 +797,18 @@ class Renderer:
         # Pass 7: group markers
         for (r, c) in self.map.groups:
             cx, cy = all_centers[(r, c)]
-            icon = self.icons_tinted.get('sword')
+            any_selected = any(g in self.selected_groups for g in self.map.groups[(r, c)])
+            icon = self.icons_tinted.get('sword') if any_selected else self.icons_dark.get('sword')
             if icon:
                 self.screen.blit(icon, (int(cx) - icon.get_width() // 2,
                                         int(cy) - icon.get_height() // 2))
             else:
                 self._draw_unit_marker(int(cx), int(cy))
+
+        # Pass 8: selected tile border (drawn over all map content)
+        if selected_tile is not None:
+            pygame.draw.polygon(self.screen, (255, 255, 255),
+                                all_corners[(selected_tile.row, selected_tile.col)], 4)
 
         self._draw_city_panel(selected_tile)
         self._draw_panel(selected_tile, move_mode)
@@ -1393,6 +1414,9 @@ class Renderer:
                         result.blit(db, (outline_r + dx, outline_r + dy))
             result.blit(lb, (outline_r, outline_r))
             small_icon_tinted = result
+            small_icon_dark = db
+        else:
+            small_icon_dark = None
         bar_w = PANEL_WIDTH - pad * 2
         bar_h = 6
 
