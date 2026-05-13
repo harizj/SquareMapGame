@@ -3,7 +3,7 @@ import math
 import os
 import pygame
 from src.game.city import STOCKPILE_MAX
-from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, WATER_CARRY_CAPACITY
+from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, WATER_CARRY_CAPACITY, MOVE_CARRY_OVER
 from src.game.map import TERRAIN_TYPES
 
 _ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'assets')
@@ -1377,24 +1377,30 @@ class Renderer:
             self.group_icon_rects.append((icon_rect, group))
             y += 2
 
-            pygame.draw.rect(self.screen, (30, 30, 40), (x, y, bar_w, bar_h), border_radius=2)
-            if group.max_moves > 0:
-                fill_w = int(bar_w * group.moves_remaining / group.max_moves)
-                if fill_w > 0:
+            move_bar_max = group.max_moves + MOVE_CARRY_OVER
+            move_rect_w = bar_w if group.moves_remaining > group.max_moves else int(bar_w * group.max_moves / move_bar_max)
+            pygame.draw.rect(self.screen, (30, 30, 40), (x, y, move_rect_w, bar_h), border_radius=2)
+            if move_bar_max > 0:
+                carryover_w = int(bar_w * min(group.moves_remaining, move_bar_max) / move_bar_max)
+                if carryover_w > 0:
+                    pygame.draw.rect(self.screen, (240, 210, 60), (x, y, carryover_w, bar_h), border_radius=2)
+                fill_w = int(bar_w * min(group.moves_remaining, group.max_moves) / move_bar_max)
+                if fill_w > 0 and group.moves_remaining > MOVE_CARRY_OVER:
                     pygame.draw.rect(self.screen, (180, 150, 40), (x, y, fill_w, bar_h), border_radius=2)
-                for i in range(1, int(group.max_moves)):
-                    tx = x + int(bar_w * i / group.max_moves)
+                for i in range(1, int(move_bar_max)):
+                    tx = x + int(bar_w * i / move_bar_max)
                     pygame.draw.line(self.screen, (30, 30, 40), (tx, y), (tx, y + bar_h - 1))
-            pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, bar_w, bar_h), 1, border_radius=2)
+            pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, move_rect_w, bar_h), 1, border_radius=2)
             y += bar_h + 4
 
-            pygame.draw.rect(self.screen, (30, 30, 40), (x, y, bar_w, bar_h), border_radius=2)
+            food_bar_w = int(bar_w * group.max_moves / move_bar_max)
+            pygame.draw.rect(self.screen, (30, 30, 40), (x, y, food_bar_w, bar_h), border_radius=2)
             if group.max_food_stockpile > 0:
                 consumption = group.consumption_per_turn()
                 current = min(group.food_stockpile, group.max_food_stockpile)
                 proj = max(0.0, min(current - consumption, group.max_food_stockpile))
-                fill_w = max(int(bar_w * current / group.max_food_stockpile), 0)
-                proj_w = max(int(bar_w * proj / group.max_food_stockpile), 0)
+                fill_w = max(int(food_bar_w * current / group.max_food_stockpile), 0)
+                proj_w = max(int(food_bar_w * proj / group.max_food_stockpile), 0)
                 if consumption > 0:
                     if fill_w > 0:
                         pygame.draw.rect(self.screen, (220, 110, 60), (x, y, fill_w, bar_h), border_radius=2)
@@ -1404,9 +1410,9 @@ class Renderer:
                     if fill_w > 0:
                         pygame.draw.rect(self.screen, (120, 190, 80), (x, y, fill_w, bar_h), border_radius=2)
                 for i in range(1, int(group.max_food_stockpile)):
-                    tx = x + int(bar_w * i / group.max_food_stockpile)
+                    tx = x + int(food_bar_w * i / group.max_food_stockpile)
                     pygame.draw.line(self.screen, (30, 30, 40), (tx, y), (tx, y + bar_h - 1))
-            pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, bar_w, bar_h), 1, border_radius=2)
+            pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, food_bar_w, bar_h), 1, border_radius=2)
             y += bar_h + 8
 
         # End Turn button anchored to bottom
