@@ -118,19 +118,25 @@ class City:
         consumption, food_needed_for_min_stockpile, growth_food = self._food_target()
         remaining = self._food_produced()
 
-        self.food_allocated_to_consumption = min(remaining, consumption)
-        self.food_shortfall = max(0.0, consumption - self.food_allocated_to_consumption)
+        if self.food_stockpile + remaining - consumption < 0:
+            self.food_allocated_to_consumption = self.food_stockpile + remaining 
+            self.pending_pop_loss = math.ceil(-(self.food_stockpile + remaining - consumption))
+        else:
+            self.food_allocated_to_consumption = consumption
+            self.pending_pop_loss = 0.0
+
+        #self.food_shortfall = max(0.0, consumption - self.food_allocated_to_consumption)
         remaining -= self.food_allocated_to_consumption
 
-        if self.food_shortfall > 0:
-            print(f"{math.ceil(self.food_shortfall)} pops in {self.name} will starve this turn!")
+        # if self.food_shortfall > 0:
+        #     print(f"{math.ceil(self.food_shortfall)} pops in {self.name} will starve this turn!")
 
         alloc_stockpile = max(0.0, food_needed_for_min_stockpile)
         self.food_allocated_to_min_stockpile = min(remaining, alloc_stockpile)
         remaining -= self.food_allocated_to_min_stockpile
 
-        if self.food_allocated_to_min_stockpile < alloc_stockpile:
-            print(f"Not enough food for stockpile in {self.name}")
+        # if self.food_allocated_to_min_stockpile < alloc_stockpile:
+        #     print(f"Not enough food for stockpile in {self.name}")
 
         if self._space_for_new_pop():
             self.food_allocated_to_growth = min(remaining, growth_food)
@@ -140,10 +146,10 @@ class City:
             self.food_allocated_to_growth = 0
             self.growth_allocated = 0
 
-        self.food_allocated_to_stockpile = max(0.0, remaining) + self.food_allocated_to_min_stockpile - self.food_shortfall
-        if self.food_stockpile + self.food_allocated_to_stockpile < 0:
-            self.pending_pop_loss = math.ceil(-(self.food_stockpile + self.food_allocated_to_stockpile))
-            self.food_allocated_to_stockpile = - self.food_stockpile
+        self.food_allocated_to_stockpile = remaining + self.food_allocated_to_min_stockpile
+        # if self.food_stockpile + self.food_allocated_to_stockpile < 0:
+        #     self.pending_pop_loss = math.ceil(-(self.food_stockpile + self.food_allocated_to_stockpile))
+        #     self.food_allocated_to_stockpile = - self.food_stockpile
 
     def _get_pops_assigned_to_routes(self):
         total = 0
@@ -315,9 +321,12 @@ class City:
             log.append(f"{self.name}: {self.growth_allocated:.0f} added to growth bar")
 
         # Step 3: starvation if shortfall exceeded stockpile
-        if self.food_shortfall > 0:
+        if self.pending_pop_loss > 0:
+            del self.pops[:self.pending_pop_loss]
+            self.growth_progress = 0.0
+            self.pending_pop_loss = 0.0
             # print(f"  [shortfall] {self.food_shortfall:.1f} shortfall, stockpile={self.food_stockpile:.1f}, pops={len(self.pops)}")
-            self._food_shortfall()
+            #self._food_shortfall()
             # print(f"  [shortfall] after -> stockpile={self.food_stockpile:.1f}, pops={len(self.pops)}")
 
         # Step 4: construction from laborers
