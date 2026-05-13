@@ -45,6 +45,8 @@ class Tile:
         self.col = col
         self.terrain = terrain  # 'desert', 'hills', 'river'
         self.river_edges = set()  # subset of {'NW','NE','E','SE','SW','W'}
+        self.groups = []
+        self.city = None
         self.owning_city = None
         self.city_distance = None
         self.cities_in_range = []

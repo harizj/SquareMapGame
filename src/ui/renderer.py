@@ -675,7 +675,7 @@ class Renderer:
             in_range = set(reachable.keys())
             in_range.add((selected_tile.row, selected_tile.col))
             sz = HEX_SIZE * self.zoom
-            border_line_w = 6
+            border_line_w = 4
             outline_radius = 2
             pad = outline_radius + border_line_w + 1
             surf_w = int(math.sqrt(3) * sz) + pad * 2
@@ -873,7 +873,7 @@ class Renderer:
 
         # Pass 8: selected tile border (drawn over all map content)
         if selected_tile is not None:
-            pygame.draw.polygon(self.screen, (255, 255, 255),
+            pygame.draw.polygon(self.screen, (255, 220, 50),
                                 all_corners[(selected_tile.row, selected_tile.col)], 4)
 
         self._draw_city_panel(selected_tile)

@@ -43,12 +43,19 @@ class Map:
             ]
             for r in range(GRID_ROWS)
         ]
-        center_r, center_c = self.rows // 2, self.cols // 2
-        self.groups = {}
         self._city_name_idx = 0
         self.cities = {(4, 4): City(4, 4, self._take_city_name())}
         for city in self.cities.values():
             self.setup_city(city)
+
+    @property
+    def groups(self):
+        result = {}
+        for row in self.tiles:
+            for tile in row:
+                if tile.groups:
+                    result[(tile.row, tile.col)] = tile.groups
+        return result
 
     def _take_city_name(self):
         name = CITY_NAMES[self._city_name_idx % len(CITY_NAMES)]
@@ -56,10 +63,10 @@ class Map:
         return name
 
     def get_groups(self, row, col):
-        return self.groups.get((row, col), [])
+        return self.tiles[row][col].groups
 
     def get_group(self, row, col):
-        groups = self.groups.get((row, col), [])
+        groups = self.tiles[row][col].groups
         return groups[0] if groups else None
 
     def _step_cost(self, from_r, from_c, to_r, to_c):
@@ -212,19 +219,17 @@ class Map:
                 tile.owning_city = city
                 tile.city_distance = cost
                 city.owned_tiles.append(tile)
+        self.tiles[city.row][city.col].city = city
         city.setup_jobs()
 
     def move_group(self, group, row, col, cost):
-        src = (group.row, group.col)
-        self.groups[src].remove(group)
-        if not self.groups[src]:
-            del self.groups[src]
+        self.tiles[group.row][group.col].groups.remove(group)
         group.row = row
         group.col = col
         group.moves_remaining -= cost
         if group.moves_remaining < MIN_TERRAIN_COST:
             group.move_exhausted = True
-        self.groups.setdefault((row, col), []).append(group)
+        self.tiles[row][col].groups.append(group)
 
     def to_dict(self):
         return {
@@ -270,7 +275,7 @@ class Map:
         group_a.add_food(12.0)
         group_b = Group(5, 5, units=[Unit(Pop()) for _ in range(2)])
         group_b.add_food(3.0)
-        m.groups = {(5, 5): [group_a, group_b]}
+        m.tiles[5][5].groups = [group_a, group_b]
         m._city_name_idx = 0
         m.cities = {(7, 2): City(7, 2, m._take_city_name()),
             (3, 6): City(3, 6, m._take_city_name()),
