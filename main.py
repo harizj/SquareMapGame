@@ -316,6 +316,12 @@ def main():
                     for city in game_map.cities.values():
                         for msg in city.end_turn():
                             game_log.append(f"T{turn} {msg}")
+                    seen = set()
+                    for city in game_map.cities.values():
+                        for route in city.trade_routes:
+                            if id(route) not in seen:
+                                seen.add(id(route))
+                                route.end_turn()
                     move_mode = False
                     reachable = {}
                     game_log.append(f"TURN {turn}")

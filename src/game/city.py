@@ -55,7 +55,7 @@ class City:
         """Net food change from all active (fully staffed) trade routes."""
         net = 0.0
         for route in self.trade_routes:
-            if route.missing_caravans:
+            if route.missing_caravans or not route.established:
                 continue
             if route.city_a is self:
                 if route.export_material == 'food':
@@ -187,11 +187,15 @@ class City:
 
     def _collect_caravan_jobs(self):
         for route in self.trade_routes:
+            if not route.established:
+                continue
             job = route.caravan_job_a if route.city_a is self else route.caravan_job_b
             if job is not None:
                 route.missing_caravans = False
         jobs = []
         for route in self.trade_routes:
+            if not route.established:
+                continue
             job = route.caravan_job_a if route.city_a is self else route.caravan_job_b
             if job is not None:
                 job.assigned = 0

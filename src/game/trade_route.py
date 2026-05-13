@@ -43,6 +43,18 @@ class TradeRoute:
         print(f"  caravan_job_a={self.caravan_job_a}  caravan_job_b={self.caravan_job_b}")
         print(f"  path_distances={self.path_distances}")
 
+    def end_turn(self):
+        if self.established:
+            return
+        self.establish_progress += DEFAULT_MOVE_DISTANCE
+        if self.establish_progress >= self.distance:
+            self.establish_progress = self.distance
+            self.established = True
+            self.city_a.update_cumulative_farm_yield_net()
+            self.city_b.update_cumulative_farm_yield_net()
+            self.city_a.rebalance_pops()
+            self.city_b.rebalance_pops()
+
     def check_if_established(self):
         return self.established
 
@@ -50,5 +62,4 @@ class TradeRoute:
         if self.established:
             return self.path
         result = [node for node, d in zip(self.path, self.path_distances) if d <= self.establish_progress]
-        print(f"  get_visual_path: establish_progress={self.establish_progress}  returning={result}")
         return result
