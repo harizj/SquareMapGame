@@ -4,6 +4,8 @@ from src.game.city import City
 from src.game.constants import DEFAULT_MOVE_DISTANCE, BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST
 from src.game.tile import Tile
 from src.game.group import Group
+from src.game.unit import Unit
+from src.game.pop import Pop
 
 GRID_COLS = 14
 GRID_ROWS = 14
@@ -42,7 +44,10 @@ class Map:
             for r in range(GRID_ROWS)
         ]
         center_r, center_c = self.rows // 2, self.cols // 2
-        self.groups = {(center_r, center_c): Group(center_r, center_c)}
+        starting_units = [Unit(Pop()) for _ in range(3)]
+        starting_group = Group(center_r, center_c, units=starting_units)
+        starting_group.add_food(12.0)
+        self.groups = {(center_r, center_c): starting_group}
         self._city_name_idx = 0
         self.cities = {(4, 4): City(4, 4, self._take_city_name())}
         for city in self.cities.values():
@@ -233,7 +238,10 @@ class Map:
                         t.river_edges.add(edge)
                 row.append(t)
             m.tiles.append(row)
-        m.groups = {(5, 5): Group(5, 5)}
+        starting_units = [Unit(Pop()) for _ in range(3)]
+        starting_group = Group(5, 5, units=starting_units)
+        starting_group.add_food(12.0)
+        m.groups = {(5, 5): starting_group}
         m._city_name_idx = 0
         m.cities = {(7, 2): City(7, 2, m._take_city_name()),
             (3, 6): City(3, 6, m._take_city_name()),

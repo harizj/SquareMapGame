@@ -1,3 +1,4 @@
+import collections
 import math
 import os
 import pygame
@@ -1322,16 +1323,44 @@ class Renderer:
         if group:
             btn_w, btn_h = 50, 20
             btn_x = panel_x + PANEL_WIDTH - pad - btn_w
-            name_surf = self.font_body.render(group.unit_type.capitalize(), True, TEXT_COLOR)
-            self.screen.blit(name_surf, (x + 4, y + (btn_h - name_surf.get_height()) // 2))
             self.move_button_rect = self._draw_button(
                 btn_x, y, btn_w, btn_h, "Move",
                 active=move_mode, disabled=group.moves_remaining == 0,
             )
-            y += btn_h + 6
             surf = self.font_body.render(f"Moves: {group.moves_remaining:g} / {group.max_moves:g}", True, TEXT_COLOR)
-            self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 12
+            self.screen.blit(surf, (x + 4, y + (btn_h - surf.get_height()) // 2))
+            y += btn_h + 6
+
+            icon_h = self.font_body.get_height()
+            icon_raw = self._icons_raw.get('sword')
+            small_icon = pygame.transform.scale(icon_raw, (icon_h, icon_h)) if icon_raw else None
+            type_counts = collections.Counter(u.unit_type for u in group.units)
+            for unit_type, count in type_counts.items():
+                if small_icon:
+                    self.screen.blit(small_icon, (x + 4, y))
+                text_x = x + 4 + (icon_h + 4 if small_icon else 0)
+                surf = self.font_body.render(f"{count} {unit_type.capitalize()}", True, TEXT_COLOR)
+                self.screen.blit(surf, (text_x, y))
+                y += icon_h + 4
+            y += 4
+
+            bar_w = PANEL_WIDTH - pad * 2
+            bar_h = 6
+            pygame.draw.rect(self.screen, (30, 30, 40), (x, y, bar_w, bar_h), border_radius=2)
+            if group.max_moves > 0:
+                fill_w = int(bar_w * group.moves_remaining / group.max_moves)
+                if fill_w > 0:
+                    pygame.draw.rect(self.screen, (180, 150, 40), (x, y, fill_w, bar_h), border_radius=2)
+            pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, bar_w, bar_h), 1, border_radius=2)
+            y += bar_h + 6
+
+            pygame.draw.rect(self.screen, (30, 30, 40), (x, y, bar_w, bar_h), border_radius=2)
+            if group.max_food_stockpile > 0:
+                fill_w = int(bar_w * min(group.food_stockpile, group.max_food_stockpile) / group.max_food_stockpile)
+                if fill_w > 0:
+                    pygame.draw.rect(self.screen, (120, 190, 80), (x, y, fill_w, bar_h), border_radius=2)
+            pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, bar_w, bar_h), 1, border_radius=2)
+            y += bar_h + 8
 
         # End Turn button anchored to bottom
         btn_w = PANEL_WIDTH - pad * 2
