@@ -740,8 +740,8 @@ class Renderer:
                         self.screen.blit(pop_outline, (tx + dx, ty + dy))
             self.screen.blit(pop_white, (tx, ty))
 
-        # Pass 7: unit markers
-        for (r, c) in self.map.units:
+        # Pass 7: group markers
+        for (r, c) in self.map.groups:
             cx, cy = all_centers[(r, c)]
             icon = self.icons_tinted.get('sword')
             if icon:
@@ -1313,23 +1313,23 @@ class Renderer:
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (panel_x + PANEL_WIDTH - pad, y), 1)
         y += 16
 
-        # Unit section
-        surf = self.font_header.render("UNIT", True, HEADER_TEXT_COLOR)
+        # Group section
+        surf = self.font_header.render("UNITS", True, HEADER_TEXT_COLOR)
         self.screen.blit(surf, (x, y))
         y += surf.get_height() + 6
 
-        unit = self.map.get_unit(tile.row, tile.col) if tile else None
-        if unit:
+        group = self.map.get_group(tile.row, tile.col) if tile else None
+        if group:
             btn_w, btn_h = 50, 20
             btn_x = panel_x + PANEL_WIDTH - pad - btn_w
-            name_surf = self.font_body.render(unit.unit_type.capitalize(), True, TEXT_COLOR)
+            name_surf = self.font_body.render(group.unit_type.capitalize(), True, TEXT_COLOR)
             self.screen.blit(name_surf, (x + 4, y + (btn_h - name_surf.get_height()) // 2))
             self.move_button_rect = self._draw_button(
                 btn_x, y, btn_w, btn_h, "Move",
-                active=move_mode, disabled=unit.moves_remaining == 0,
+                active=move_mode, disabled=group.moves_remaining == 0,
             )
             y += btn_h + 6
-            surf = self.font_body.render(f"Moves: {unit.moves_remaining:g} / {unit.max_moves:g}", True, TEXT_COLOR)
+            surf = self.font_body.render(f"Moves: {group.moves_remaining:g} / {group.max_moves:g}", True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
             y += surf.get_height() + 12
 

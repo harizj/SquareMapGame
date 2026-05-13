@@ -128,9 +128,9 @@ def main():
                             if terrain in ('hills', 'desert'):
                                 selected_tile.river_edges.clear()
                             if move_mode:
-                                unit = game_map.get_unit(selected_tile.row, selected_tile.col)
-                                if unit:
-                                    reachable = game_map.get_reachable(unit)
+                                group = game_map.get_group(selected_tile.row, selected_tile.col)
+                                if group:
+                                    reachable = game_map.get_reachable(group)
                             break
                     terrain_popup_active = False
 
@@ -140,9 +140,9 @@ def main():
                             selected_tile.river_edges.add(direction)
                             selected_tile.terrain = 'river'
                             if move_mode:
-                                unit = game_map.get_unit(selected_tile.row, selected_tile.col)
-                                if unit:
-                                    reachable = game_map.get_reachable(unit)
+                                group = game_map.get_group(selected_tile.row, selected_tile.col)
+                                if group:
+                                    reachable = game_map.get_reachable(group)
                             break
                     river_popup_active = False
 
@@ -303,16 +303,16 @@ def main():
                         move_mode = False
                         reachable = {}
                     else:
-                        unit = game_map.get_unit(selected_tile.row, selected_tile.col)
-                        if unit and unit.moves_remaining > 0:
+                        group = game_map.get_group(selected_tile.row, selected_tile.col)
+                        if group and group.moves_remaining > 0:
                             move_mode = True
-                            reachable = game_map.get_reachable(unit)
+                            reachable = game_map.get_reachable(group)
 
                 elif renderer.end_turn_button_rect and renderer.end_turn_button_rect.collidepoint(pos):
                     turn += 1
                     game_log.append("")
-                    for unit in game_map.units.values():
-                        unit.reset_moves()
+                    for group in game_map.groups.values():
+                        group.reset_moves()
                     for city in game_map.cities.values():
                         for msg in city.end_turn():
                             game_log.append(f"T{turn} {msg}")
@@ -339,8 +339,8 @@ def main():
                 elif move_mode:
                     tile = renderer.get_tile_at(*pos)
                     if tile is not None and (tile.row, tile.col) in reachable:
-                        unit = game_map.get_unit(selected_tile.row, selected_tile.col)
-                        game_map.move_unit(unit, tile.row, tile.col, reachable[(tile.row, tile.col)])
+                        group = game_map.get_group(selected_tile.row, selected_tile.col)
+                        game_map.move_group(group, tile.row, tile.col, reachable[(tile.row, tile.col)])
                         selected_tile = game_map.tiles[tile.row][tile.col]
                     move_mode = False
                     reachable = {}
@@ -356,11 +356,11 @@ def main():
             if keys[pygame.K_a]: renderer.offset_x += pan_speed
             if keys[pygame.K_d]: renderer.offset_x -= pan_speed
 
-        moving_unit = game_map.get_unit(selected_tile.row, selected_tile.col) if move_mode and selected_tile else None
+        moving_group = game_map.get_group(selected_tile.row, selected_tile.col) if move_mode and selected_tile else None
         renderer.draw(selected_tile, reachable, move_mode,
                       save_popup_active, save_popup_text,
                       terrain_popup_active, river_popup_active,
-                      moves_remaining=moving_unit.moves_remaining if moving_unit else None,
+                      moves_remaining=moving_group.moves_remaining if moving_group else None,
                       game_log=game_log,
                       console_active=console_active,
                       console_input=console_input)
