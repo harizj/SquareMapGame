@@ -1,5 +1,6 @@
 from src.game.jobs import CaravanJob
 from src.game.constants import DEFAULT_MOVE_DISTANCE
+import math
 
 
 class TradeRoute:
@@ -54,6 +55,12 @@ class TradeRoute:
             self.city_b.update_cumulative_farm_yield_net()
             self.city_a.rebalance_pops()
             self.city_b.rebalance_pops()
+
+    def get_pops_from_city(self, city):
+        return self.pops_a if self.city_a is city else self.pops_b
+
+    def turns_until_established(self):
+        return math.ceil((self.distance - self.establish_progress) / DEFAULT_MOVE_DISTANCE)
 
     def check_if_established(self):
         return self.established

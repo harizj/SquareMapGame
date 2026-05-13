@@ -141,10 +141,10 @@ class Renderer:
             ('sw2ne_2',   [(frozenset({'W',  'E'}),  -35, (0, 0)),
                        (frozenset({'NW', 'SE'}),   -95, (0, 0)),
                        (frozenset({'NE', 'SW'}),  25,  (0, 0))]),
-            ('nw2s',  [(frozenset({'NW', 'SW'}),  -30,  (0, 0)),
-                       (frozenset({'NE', 'W'}),   -95, (-5, 0)),
+            ('nw2s',  [(frozenset({'NW', 'SW'}),  -32,  (0, 0)),
+                       (frozenset({'NE', 'W'}),   -90, (-5, -3)),
                        (frozenset({'NW', 'E'}),   -150, (0, 0))]),
-            ('ne2s',  [(frozenset({'E',  'SW'}),  -35,  (2, 0)),
+            ('ne2s',  [(frozenset({'E',  'SW'}),  -35,  (-5, 0)),
                        (frozenset({'SE', 'W'}),   -90,  (0, 0)),
                        (frozenset({'NE', 'SE'}),  30,   (0, 0))]),
         ):
@@ -1124,10 +1124,14 @@ class Renderer:
         surf = self.font_header.render("POPS", True, HEADER_TEXT_COLOR)
         self.screen.blit(surf, (x, y))
         y += surf.get_height() + 4
+
+        def _jlabel(label, n):
+            return label[:-1] if n == 1 else label
+
         btn_s = 16
         for job in city.jobs:
             if job.job_type == 'administrator':
-                label_surf = self.font_body.render(f"{job.assigned} {job.label.lower()}", True, TEXT_COLOR)
+                label_surf = self.font_body.render(f"{job.assigned} {_jlabel(job.label, job.assigned)}", True, TEXT_COLOR)
                 self.screen.blit(label_surf, (x + 4, y + (btn_s - label_surf.get_height()) // 2))
                 self.admin_plus_rect = self._draw_button(
                     CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "+")
@@ -1135,15 +1139,16 @@ class Renderer:
                     CITY_PANEL_WIDTH - pad - btn_s * 2 - 3, y, btn_s, btn_s, "-")
                 y += btn_s + 4
             else:
-                surf = self.font_body.render(f"{job.assigned} {job.label.lower()}", True, TEXT_COLOR)
+                surf = self.font_body.render(f"{job.assigned} {_jlabel(job.label, job.assigned)}", True, TEXT_COLOR)
                 self.screen.blit(surf, (x + 4, y))
                 y += surf.get_height() + 2
         total_caravans = city._get_pops_assigned_to_routes()
         if total_caravans > 0:
-            surf = self.font_body.render(f"{total_caravans} caravans", True, TEXT_COLOR)
+            surf = self.font_body.render(f"{total_caravans} {_jlabel('Caravans', total_caravans)}", True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
             y += surf.get_height() + 2
-        surf = self.font_body.render(f"{city.total_farm_assigned}/{city.total_farm_slots} peasants", True, TEXT_COLOR)
+        n_peasants = city.total_farm_assigned
+        surf = self.font_body.render(f"{n_peasants}/{city.total_farm_slots} {_jlabel('Peasants', n_peasants)}", True, TEXT_COLOR)
         self.screen.blit(surf, (x + 4, y))
         y += surf.get_height() + 8
 
@@ -1213,18 +1218,26 @@ class Renderer:
             else:
                 net_food = (route.export_amount if route.export_material == 'food' else 0) \
                          - (route.import_amount if route.import_material == 'food' else 0)
-            suffix = " (ending)" if route.missing_caravans else ""
             if route.missing_caravans:
                 print('Missing caravans!!')
-            if net_food >= 0:
-                line = f"{_fmt_amt(net_food)} food from {other.name}{suffix}"
+            if route.established:
+                name_line = other.name
             else:
-                line = f"{_fmt_amt(abs(net_food))} food to {other.name}{suffix}"
-            surf = self.font_body.render(line, True, TEXT_COLOR)
+                t = route.turns_until_established()
+                name_line = f"{other.name} ({t} {'turn' if t == 1 else 'turns'})"
+            surf = self.font_body.render(name_line, True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
             del_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "x")
             self.trade_route_delete_rects.append((del_rect, route))
-            y += surf.get_height() + 4
+            y += surf.get_height() + 2
+            pops = route.get_pops_from_city(city)
+            food_str = f"+{_fmt_amt(net_food)}" if net_food >= 0 else _fmt_amt(net_food)
+            detail = f"{pops} pops, {food_str} food"
+            if route.missing_caravans:
+                detail += " (ending)"
+            surf = self.font_small.render(detail, True, TEXT_COLOR)
+            self.screen.blit(surf, (x + 4, y))
+            y += surf.get_height() + 6
 
         self.trade_route_slider_rect = None
         self.trade_route_amount_slider_rect = None
