@@ -66,7 +66,7 @@ class Tile:
         key = round(round(self.city_distance / 0.25) * 0.25, 2)
         return FARM_YIELD_BY_DISTANCE.get(key, FarmJob.YIELD_PER_POP)
 
-    def update_city_with_movement(self):
+    def _update_city_with_movement(self):
         if self.city is not None:
             self.city.unit_groups = list(self.unit_groups)
             self.city.rebalance_pops()
@@ -74,3 +74,7 @@ class Tile:
     def _init_jobs(self):
         slots = TILE_FARM_SLOTS.get(self.terrain, 0)
         self.jobs = [FarmJob(slots)] if slots > 0 else []
+
+    def update_after_movement(self):
+        self._update_city_with_movement()
+        # TO DO: update unit groups allocations

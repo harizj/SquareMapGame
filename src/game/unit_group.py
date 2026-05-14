@@ -14,6 +14,7 @@ class UnitGroup:
         self.max_food_stockpile = self._carry_capacity()
         self.food_allocated_from_city = 0.0
         self.food_allocated_from_stockpile = 0.0
+        self.food_allocated_from_routes = 0.0
         self.pending_pop_loss = 0
         self.move_exhausted = False
 
@@ -57,3 +58,8 @@ class UnitGroup:
             unit.reset_moves()
         self.update_moves_remaining()
         self.move_exhausted = False
+
+    def reset_after_movement(self):
+        self.food_allocated_from_city = 0.0
+        self.food_allocated_from_stockpile = 0.0
+        self.food_allocated_from_routes = 0.0

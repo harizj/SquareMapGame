@@ -243,8 +243,9 @@ class Map:
         if group.moves_remaining < MIN_TERRAIN_COST:
             group.move_exhausted = True
         dst_tile.unit_groups.append(group)
-        src_tile.update_city_with_movement()
-        dst_tile.update_city_with_movement()
+        group.reset_after_movement()
+        src_tile.update_after_movement()
+        dst_tile.update_after_movement()
 
     def to_dict(self):
         return {
