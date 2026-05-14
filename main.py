@@ -476,7 +476,7 @@ def main():
                 elif renderer.end_turn_button_rect and renderer.end_turn_button_rect.collidepoint(pos):
                     do_end_turn = True
 
-                elif renderer.adding_one_way_route and pos[0] < renderer.map_w:
+                elif renderer.adding_one_way_route and renderer.map_start_x <= pos[0] < renderer.map_w:
                     tile = renderer.get_tile_at(*pos)
                     current_city = selected_tile.owning_city if selected_tile else None
                     if tile is not None and current_city is not None:
@@ -487,7 +487,7 @@ def main():
                     renderer.adding_one_way_route = False
                     move_hover_tile = None
 
-                elif pos[0] < renderer.map_w:
+                elif renderer.map_start_x <= pos[0] < renderer.map_w:
                     clicked_tile = renderer.get_tile_at(*pos)
                     if clicked_tile and selected_tile and clicked_tile.row == selected_tile.row and clicked_tile.col == selected_tile.col:
                         unit_groups = game_map.get_unit_groups(selected_tile.row, selected_tile.col)

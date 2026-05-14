@@ -104,6 +104,7 @@ class Renderer:
         w = math.sqrt(3) * HEX_SIZE
         map_area_w = int(game_map.cols * w + w / 2 + 2 * MARGIN)
         self.map_w = CITY_PANEL_WIDTH + map_area_w
+        self.map_start_x = CITY_PANEL_WIDTH
         screen_h = int((game_map.rows - 1) * HEX_SIZE * 1.5 + 2 * HEX_SIZE + 2 * MARGIN)
         self.offset_x = CITY_PANEL_WIDTH + MARGIN + w / 2
         self.offset_y = MARGIN + HEX_SIZE
