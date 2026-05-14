@@ -861,24 +861,11 @@ class Renderer:
             pygame.draw.rect(self.screen, (35, 65, 150), (block_x - bar_pad, block_y - bar_pad, block_w + bar_pad * 2, block_h + bar_pad * 2))
             pygame.draw.rect(self.screen, (0, 0, 0), (bar_x, block_y + mini_pad, bar_w, inner_h))
 
-            # move bar
-            move_bar_max = unit_groups_here[0].max_moves + MOVE_CARRY_OVER
-            any_exhausted = any(g.move_exhausted for g in unit_groups_here)
-            min_moves = min(g.moves_remaining for g in unit_groups_here)
-            bar_y = block_y + mini_pad
-            if not any_exhausted and move_bar_max > 0:
-                carryover_w = int(bar_w * min(min_moves, move_bar_max) / move_bar_max)
-                if carryover_w > 0:
-                    pygame.draw.rect(self.screen, (255, 240, 60), (bar_x, bar_y, carryover_w, bar_h))
-                fill_w = int(bar_w * min(min_moves, unit_groups_here[0].max_moves) / move_bar_max)
-                if fill_w > 0 and min_moves > MOVE_CARRY_OVER:
-                    pygame.draw.rect(self.screen, (230, 195, 50), (bar_x, bar_y, fill_w, bar_h))
-
             # food bar
             total_food = sum(g.food_stockpile for g in unit_groups_here)
             total_max = sum(g.max_food_stockpile for g in unit_groups_here)
             total_from_stockpile = sum(-g.food_allocated_to_stockpile for g in unit_groups_here)
-            bar_y = block_y + mini_pad + bar_h + bar_gap
+            bar_y = block_y + mini_pad
             if total_max > 0:
                 current = min(total_food, total_max)
                 proj = max(0.0, min(current - total_from_stockpile, total_max))
@@ -892,6 +879,19 @@ class Renderer:
                 else:
                     if fill_w > 0:
                         pygame.draw.rect(self.screen, (120, 190, 80), (bar_x, bar_y, fill_w, bar_h))
+
+            # move bar
+            move_bar_max = unit_groups_here[0].max_moves + MOVE_CARRY_OVER
+            any_exhausted = any(g.move_exhausted for g in unit_groups_here)
+            min_moves = min(g.moves_remaining for g in unit_groups_here)
+            bar_y = block_y + mini_pad + bar_h + bar_gap
+            if not any_exhausted and move_bar_max > 0:
+                carryover_w = int(bar_w * min(min_moves, move_bar_max) / move_bar_max)
+                if carryover_w > 0:
+                    pygame.draw.rect(self.screen, (255, 240, 60), (bar_x, bar_y, carryover_w, bar_h))
+                fill_w = int(bar_w * min(min_moves, unit_groups_here[0].max_moves) / move_bar_max)
+                if fill_w > 0 and min_moves > MOVE_CARRY_OVER:
+                    pygame.draw.rect(self.screen, (230, 195, 50), (bar_x, bar_y, fill_w, bar_h))
 
         # Pass 7b: city bars and population (drawn over everything)
         for (r, c), city in self.map.cities.items():
@@ -1647,21 +1647,6 @@ class Renderer:
             y += 2
 
             move_bar_max = group.max_moves + MOVE_CARRY_OVER
-            move_rect_w = bar_w if group.moves_remaining > group.max_moves else int(bar_w * group.max_moves / move_bar_max)
-            pygame.draw.rect(self.screen, (30, 30, 40), (x, y, move_rect_w, bar_h), border_radius=2)
-            if move_bar_max > 0 and not group.move_exhausted:
-                carryover_w = int(bar_w * min(group.moves_remaining, move_bar_max) / move_bar_max)
-                if carryover_w > 0:
-                    pygame.draw.rect(self.screen, (255, 240, 60), (x, y, carryover_w, bar_h), border_radius=2)
-                fill_w = int(bar_w * min(group.moves_remaining, group.max_moves) / move_bar_max)
-                if fill_w > 0 and group.moves_remaining > MOVE_CARRY_OVER:
-                    pygame.draw.rect(self.screen, (230, 195, 50), (x, y, fill_w, bar_h), border_radius=2)
-                for i in range(1, int(move_bar_max)):
-                    tx = x + int(bar_w * i / move_bar_max)
-                    pygame.draw.line(self.screen, (30, 30, 40), (tx, y), (tx, y + bar_h - 1))
-            pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, move_rect_w, bar_h), 1, border_radius=2)
-            y += bar_h + 4
-
             food_bar_w = int(bar_w * group.max_moves / move_bar_max)
             pygame.draw.rect(self.screen, (30, 30, 40), (x, y, food_bar_w, bar_h), border_radius=2)
             if group.max_food_stockpile > 0:
@@ -1682,6 +1667,21 @@ class Renderer:
                     tx = x + int(food_bar_w * i / group.max_food_stockpile)
                     pygame.draw.line(self.screen, (30, 30, 40), (tx, y), (tx, y + bar_h - 1))
             pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, food_bar_w, bar_h), 1, border_radius=2)
+            y += bar_h + 4
+
+            move_rect_w = bar_w if group.moves_remaining > group.max_moves else int(bar_w * group.max_moves / move_bar_max)
+            pygame.draw.rect(self.screen, (30, 30, 40), (x, y, move_rect_w, bar_h), border_radius=2)
+            if move_bar_max > 0 and not group.move_exhausted:
+                carryover_w = int(bar_w * min(group.moves_remaining, move_bar_max) / move_bar_max)
+                if carryover_w > 0:
+                    pygame.draw.rect(self.screen, (255, 240, 60), (x, y, carryover_w, bar_h), border_radius=2)
+                fill_w = int(bar_w * min(group.moves_remaining, group.max_moves) / move_bar_max)
+                if fill_w > 0 and group.moves_remaining > MOVE_CARRY_OVER:
+                    pygame.draw.rect(self.screen, (230, 195, 50), (x, y, fill_w, bar_h), border_radius=2)
+                for i in range(1, int(move_bar_max)):
+                    tx = x + int(bar_w * i / move_bar_max)
+                    pygame.draw.line(self.screen, (30, 30, 40), (tx, y), (tx, y + bar_h - 1))
+            pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, move_rect_w, bar_h), 1, border_radius=2)
             y += bar_h + 8
 
         if unit_groups:

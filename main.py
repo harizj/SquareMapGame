@@ -217,11 +217,13 @@ def main():
                             recruited_pops = city.pops[:n]
                             city.pops = city.pops[n:]
                             city.food_stockpile -= food
+                            city.rebalance_pops()
                             new_group = UnitGroup(selected_tile.row, selected_tile.col, units=[Unit(p) for p in recruited_pops])
                             new_group.add_food(food)
-                            new_group.allocate_food()
                             selected_tile.unit_groups.append(new_group)
-                            selected_tile.update_city_with_movement()
+                            selected_tile.update_after_movement()
+                            city.rebalance_pops()
+                            new_group.allocate_food()
                         renderer.recruit_popup_active = False
                         renderer.recruit_popup_food = 0
                     elif renderer.recruit_popup_cancel_rect and renderer.recruit_popup_cancel_rect.collidepoint(pos):
@@ -361,7 +363,7 @@ def main():
                         for group in selected_on_tile:
                             selected_tile.unit_groups.remove(group)
                             renderer.selected_unit_groups.discard(group)
-                        selected_tile.update_city_with_movement()
+                        selected_tile.update_after_movement()
                     move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                     if not move_mode:
                         move_hover_tile = None
