@@ -1,7 +1,7 @@
 import json
 import os
 import pygame
-from src.game.group import Group
+from src.game.unit_group import UnitGroup
 from src.game.map import Map
 from src.game.save_load import load_map_data, save_map
 from src.game.trade_route import TradeRoute
@@ -19,9 +19,9 @@ def _load_config():
     return {'load_map': ''}
 
 
-def _compute_move_state(selected_groups, selected_tile, game_map):
-    if selected_groups and selected_tile:
-        candidates = [g for g in selected_groups if g.moves_remaining > 0 and not g.move_exhausted]
+def _compute_move_state(selected_unit_groups, selected_tile, game_map):
+    if selected_unit_groups and selected_tile:
+        candidates = [g for g in selected_unit_groups if g.moves_remaining > 0 and not g.move_exhausted]
         if candidates:
             budget = min(g.moves_remaining for g in candidates)
             return True, candidates, game_map.get_reachable_budget(selected_tile.row, selected_tile.col, budget)
@@ -45,7 +45,7 @@ def main():
     clock = pygame.time.Clock()
     selected_tile = None
     move_mode = False
-    move_mode_groups = []
+    move_mode_unit_groups = []
     reachable = {}
     move_hover_tile = None
     save_popup_active = False
@@ -115,14 +115,14 @@ def main():
                                    pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9):
                     if selected_tile:
                         idx = event.key - pygame.K_1
-                        groups = game_map.get_groups(selected_tile.row, selected_tile.col)
-                        if idx < len(groups):
-                            g = groups[idx]
-                            if g in renderer.selected_groups:
-                                renderer.selected_groups.discard(g)
+                        unit_groups = game_map.get_unit_groups(selected_tile.row, selected_tile.col)
+                        if idx < len(unit_groups):
+                            g = unit_groups[idx]
+                            if g in renderer.selected_unit_groups:
+                                renderer.selected_unit_groups.discard(g)
                             else:
-                                renderer.selected_groups.add(g)
-                        move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
+                                renderer.selected_unit_groups.add(g)
+                        move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                         if not move_mode:
                             move_hover_tile = None
                 elif event.key == pygame.K_ESCAPE:
@@ -168,11 +168,11 @@ def main():
                     tile = renderer.get_tile_at(*event.pos)
                     if tile is not None and (tile.row, tile.col) in reachable:
                         cost = reachable[(tile.row, tile.col)]
-                        for group in move_mode_groups:
+                        for group in move_mode_unit_groups:
                             game_map.move_group(group, tile.row, tile.col, cost)
                         selected_tile = game_map.tiles[tile.row][tile.col]
-                        renderer.selected_groups = {g for g in move_mode_groups}
-                        move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
+                        renderer.selected_unit_groups = {g for g in move_mode_unit_groups}
+                        move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                         if not move_mode:
                             move_hover_tile = None
 
@@ -186,7 +186,7 @@ def main():
                             if terrain in ('hills', 'desert'):
                                 selected_tile.river_edges.clear()
                             if move_mode:
-                                group = game_map.get_group(selected_tile.row, selected_tile.col)
+                                group = game_map.get_unit_group(selected_tile.row, selected_tile.col)
                                 if group:
                                     reachable = game_map.get_reachable(group)
                             break
@@ -198,7 +198,7 @@ def main():
                             selected_tile.river_edges.add(direction)
                             selected_tile.terrain = 'river'
                             if move_mode:
-                                group = game_map.get_group(selected_tile.row, selected_tile.col)
+                                group = game_map.get_unit_group(selected_tile.row, selected_tile.col)
                                 if group:
                                     reachable = game_map.get_reachable(group)
                             break
@@ -217,7 +217,7 @@ def main():
                             recruited_pops = city.pops[:n]
                             city.pops = city.pops[n:]
                             city.food_stockpile -= food
-                            new_group = Group(selected_tile.row, selected_tile.col, units=[Unit(p) for p in recruited_pops])
+                            new_group = UnitGroup(selected_tile.row, selected_tile.col, units=[Unit(p) for p in recruited_pops])
                             new_group.add_food(food)
                             new_group.allocate_food()
                             selected_tile.unit_groups.append(new_group)
@@ -326,27 +326,27 @@ def main():
                 elif any(r.collidepoint(pos) for r, _ in renderer.group_icon_rects):
                     for rect, group in renderer.group_icon_rects:
                         if rect.collidepoint(pos):
-                            if group in renderer.selected_groups:
-                                renderer.selected_groups.discard(group)
+                            if group in renderer.selected_unit_groups:
+                                renderer.selected_unit_groups.discard(group)
                             else:
-                                renderer.selected_groups.add(group)
+                                renderer.selected_unit_groups.add(group)
                             break
-                    move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
+                    move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                     if not move_mode:
                         move_hover_tile = None
 
                 elif renderer.select_all_button_rect and renderer.select_all_button_rect.collidepoint(pos):
                     if selected_tile:
-                        renderer.selected_groups.update(game_map.get_groups(selected_tile.row, selected_tile.col))
-                    move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
+                        renderer.selected_unit_groups.update(game_map.get_unit_groups(selected_tile.row, selected_tile.col))
+                    move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                     if not move_mode:
                         move_hover_tile = None
 
                 elif renderer.unselect_all_button_rect and renderer.unselect_all_button_rect.collidepoint(pos):
                     if selected_tile:
-                        for g in game_map.get_groups(selected_tile.row, selected_tile.col):
-                            renderer.selected_groups.discard(g)
-                    move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
+                        for g in game_map.get_unit_groups(selected_tile.row, selected_tile.col):
+                            renderer.selected_unit_groups.discard(g)
+                    move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                     if not move_mode:
                         move_hover_tile = None
 
@@ -357,26 +357,26 @@ def main():
 
                 elif renderer.disband_button_rect and renderer.disband_button_rect.collidepoint(pos):
                     if selected_tile and selected_tile.city:
-                        selected_on_tile = [g for g in game_map.get_groups(selected_tile.row, selected_tile.col) if g in renderer.selected_groups]
+                        selected_on_tile = [g for g in game_map.get_unit_groups(selected_tile.row, selected_tile.col) if g in renderer.selected_unit_groups]
                         for group in selected_on_tile:
                             selected_tile.unit_groups.remove(group)
-                            renderer.selected_groups.discard(group)
+                            renderer.selected_unit_groups.discard(group)
                         selected_tile.update_city_with_movement()
-                    move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
+                    move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                     if not move_mode:
                         move_hover_tile = None
 
                 elif renderer.merge_button_rect and renderer.merge_button_rect.collidepoint(pos):
                     if selected_tile:
-                        all_groups = game_map.get_groups(selected_tile.row, selected_tile.col)
-                        selected_on_tile = [g for g in all_groups if g in renderer.selected_groups]
+                        all_unit_groups = game_map.get_unit_groups(selected_tile.row, selected_tile.col)
+                        selected_on_tile = [g for g in all_unit_groups if g in renderer.selected_unit_groups]
                         if len(selected_on_tile) >= 2:
                             target = selected_on_tile[0]
                             for other in selected_on_tile[1:]:
                                 target.merge(other)
                                 selected_tile.unit_groups.remove(other)
-                                renderer.selected_groups.discard(other)
-                    move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
+                                renderer.selected_unit_groups.discard(other)
+                    move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                     if not move_mode:
                         move_hover_tile = None
 
@@ -467,7 +467,7 @@ def main():
                 elif renderer.move_button_rect and renderer.move_button_rect.collidepoint(pos):
                     if move_mode:
                         move_mode = False
-                        move_mode_groups = []
+                        move_mode_unit_groups = []
                         reachable = {}
                         move_hover_tile = None
 
@@ -488,17 +488,17 @@ def main():
                 elif pos[0] < renderer.map_w:
                     clicked_tile = renderer.get_tile_at(*pos)
                     if clicked_tile and selected_tile and clicked_tile.row == selected_tile.row and clicked_tile.col == selected_tile.col:
-                        groups = game_map.get_groups(selected_tile.row, selected_tile.col)
-                        if groups and all(g in renderer.selected_groups for g in groups):
-                            renderer.selected_groups.clear()
+                        unit_groups = game_map.get_unit_groups(selected_tile.row, selected_tile.col)
+                        if unit_groups and all(g in renderer.selected_unit_groups for g in unit_groups):
+                            renderer.selected_unit_groups.clear()
                         else:
-                            renderer.selected_groups.update(groups)
+                            renderer.selected_unit_groups.update(unit_groups)
                     else:
                         selected_tile = clicked_tile
-                        renderer.selected_groups.clear()
+                        renderer.selected_unit_groups.clear()
                         if selected_tile:
-                            renderer.selected_groups.update(game_map.get_groups(selected_tile.row, selected_tile.col))
-                    move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
+                            renderer.selected_unit_groups.update(game_map.get_unit_groups(selected_tile.row, selected_tile.col))
+                    move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                     if not move_mode:
                         move_hover_tile = None
 
@@ -524,7 +524,7 @@ def main():
                         seen.add(id(route))
                         route.end_turn()
             move_hover_tile = None
-            move_mode, move_mode_groups, reachable = _compute_move_state(renderer.selected_groups, selected_tile, game_map)
+            move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
             game_log.append(f"TURN {turn}")
 
         if not console_active and not save_popup_active:
@@ -538,7 +538,7 @@ def main():
         renderer.draw(selected_tile, reachable, move_mode,
                       save_popup_active, save_popup_text,
                       terrain_popup_active, river_popup_active,
-                      moves_remaining=min(g.moves_remaining for g in move_mode_groups) if move_mode_groups else None,
+                      moves_remaining=min(g.moves_remaining for g in move_mode_unit_groups) if move_mode_unit_groups else None,
                       game_log=game_log,
                       move_hover_tile=move_hover_tile,
                       console_active=console_active,

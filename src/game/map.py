@@ -3,7 +3,7 @@ import random
 from src.game.city import City
 from src.game.constants import DEFAULT_MOVE_DISTANCE, BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST, MIN_TERRAIN_COST
 from src.game.tile import Tile
-from src.game.group import Group
+from src.game.unit_group import UnitGroup
 from src.game.unit import Unit
 from src.game.pop import Pop
 
@@ -49,7 +49,7 @@ class Map:
             self.setup_city(city)
 
     @property
-    def groups(self):
+    def unit_groups(self):
         result = {}
         for row in self.tiles:
             for tile in row:
@@ -62,12 +62,12 @@ class Map:
         self._city_name_idx += 1
         return name
 
-    def get_groups(self, row, col):
+    def get_unit_groups(self, row, col):
         return self.tiles[row][col].unit_groups
 
-    def get_group(self, row, col):
-        groups = self.tiles[row][col].unit_groups
-        return groups[0] if groups else None
+    def get_unit_group(self, row, col):
+        unit_groups = self.tiles[row][col].unit_groups
+        return unit_groups[0] if unit_groups else None
 
     def _step_cost(self, from_r, from_c, to_r, to_c):
         from_terrain = self.tiles[from_r][from_c].terrain
@@ -252,12 +252,12 @@ class Map:
                 [{'terrain': t.terrain, 'river_edges': list(t.river_edges)} for t in row]
                 for row in self.tiles
             ],
-            'groups': [
+            'unit_groups': [
                 {
                     'row': u.row, 'col': u.col, 'unit_type': u.unit_type,
                     'max_moves': u.max_moves, 'moves_remaining': u.moves_remaining,
                 }
-                for u in self.groups.values()
+                for u in self.unit_groups.values()
             ],
             'cities': [
                 {'row': c.row, 'col': c.col, 'name': c.name}
@@ -286,10 +286,10 @@ class Map:
                         t.river_edges.add(edge)
                 row.append(t)
             m.tiles.append(row)
-        group_a = Group(5, 5, units=[Unit(Pop()) for _ in range(3)])
+        group_a = UnitGroup(5, 5, units=[Unit(Pop()) for _ in range(3)])
         group_a.add_food(12.0)
         group_a.allocate_food()
-        group_b = Group(5, 5, units=[Unit(Pop()) for _ in range(2)])
+        group_b = UnitGroup(5, 5, units=[Unit(Pop()) for _ in range(2)])
         group_b.add_food(3.0)
         group_b.allocate_food()
         m.tiles[5][5].unit_groups = [group_a, group_b]
@@ -299,12 +299,12 @@ class Map:
             (9, 4): City(9, 4, m._take_city_name())}
         for city in m.cities.values():
             m.setup_city(city)
-        # m.groups = {}
-        # for ud in data['groups']:
-        #     u = Group(ud['row'], ud['col'], ud['unit_type'])
+        # m.unit_groups = {}
+        # for ud in data['unit_groups']:
+        #     u = UnitGroup(ud['row'], ud['col'], ud['unit_type'])
         #     u.max_moves = ud['max_moves']
         #     u.moves_remaining = ud['moves_remaining']
-        #     m.groups[(u.row, u.col)] = u
+        #     m.unit_groups[(u.row, u.col)] = u
         # m.cities = {}
         # for cd in data.get('cities', []):
         #     city = City(cd['row'], cd['col'], cd['name'])

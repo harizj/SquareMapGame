@@ -206,7 +206,7 @@ class Renderer:
         self.trade_route_max_import = 0.0
         self.terrain_option_rects = {}
         self.river_option_rects = {}
-        self.selected_groups = set()
+        self.selected_unit_groups = set()
         self.group_icon_rects = []
         self.select_all_button_rect = None
         self.unselect_all_button_rect = None
@@ -825,13 +825,13 @@ class Renderer:
                                 self.screen.blit(flag_icon, (ix, iy))
 
         # Pass 7: group markers (drawn over city icons)
-        for (r, c) in self.map.groups:
+        for (r, c) in self.map.unit_groups:
             cx, cy = all_centers[(r, c)]
-            groups_here = self.map.groups[(r, c)]
-            any_selected = any(g in self.selected_groups for g in groups_here)
+            unit_groups_here = self.map.unit_groups[(r, c)]
+            any_selected = any(g in self.selected_unit_groups for g in unit_groups_here)
             icon = self.icons_tinted.get('sword') if any_selected else self.icons_dark.get('sword')
             if icon:
-                total_units = sum(len(g.units) for g in groups_here)
+                total_units = sum(len(g.units) for g in unit_groups_here)
                 count = max(1, min(3, total_units))
                 icon_overlap = 7
                 combined_w = icon.get_width() + (count - 1) * icon_overlap
@@ -862,22 +862,22 @@ class Renderer:
             pygame.draw.rect(self.screen, (0, 0, 0), (bar_x, block_y + mini_pad, bar_w, inner_h))
 
             # move bar
-            move_bar_max = groups_here[0].max_moves + MOVE_CARRY_OVER
-            any_exhausted = any(g.move_exhausted for g in groups_here)
-            min_moves = min(g.moves_remaining for g in groups_here)
+            move_bar_max = unit_groups_here[0].max_moves + MOVE_CARRY_OVER
+            any_exhausted = any(g.move_exhausted for g in unit_groups_here)
+            min_moves = min(g.moves_remaining for g in unit_groups_here)
             bar_y = block_y + mini_pad
             if not any_exhausted and move_bar_max > 0:
                 carryover_w = int(bar_w * min(min_moves, move_bar_max) / move_bar_max)
                 if carryover_w > 0:
                     pygame.draw.rect(self.screen, (255, 240, 60), (bar_x, bar_y, carryover_w, bar_h))
-                fill_w = int(bar_w * min(min_moves, groups_here[0].max_moves) / move_bar_max)
+                fill_w = int(bar_w * min(min_moves, unit_groups_here[0].max_moves) / move_bar_max)
                 if fill_w > 0 and min_moves > MOVE_CARRY_OVER:
                     pygame.draw.rect(self.screen, (230, 195, 50), (bar_x, bar_y, fill_w, bar_h))
 
             # food bar
-            total_food = sum(g.food_stockpile for g in groups_here)
-            total_max = sum(g.max_food_stockpile for g in groups_here)
-            total_from_stockpile = sum(g.food_allocated_from_stockpile for g in groups_here)
+            total_food = sum(g.food_stockpile for g in unit_groups_here)
+            total_max = sum(g.max_food_stockpile for g in unit_groups_here)
+            total_from_stockpile = sum(g.food_allocated_from_stockpile for g in unit_groups_here)
             bar_y = block_y + mini_pad + bar_h + bar_gap
             if total_max > 0:
                 current = min(total_food, total_max)
@@ -1559,18 +1559,18 @@ class Renderer:
             y += farms_surf.get_height() + 4
         y += 6
 
-        groups = self.map.get_groups(tile.row, tile.col) if tile else []
+        unit_groups = self.map.get_unit_groups(tile.row, tile.col) if tile else []
         has_city = tile and tile.city is not None
-        if groups or has_city:
+        if unit_groups or has_city:
             pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (panel_x + PANEL_WIDTH - pad, y), 1)
             y += 16
 
-            # Group section
+            # UnitGroup section
             surf = self.font_header.render("UNITS", True, HEADER_TEXT_COLOR)
             self.screen.blit(surf, (x, y))
             y += surf.get_height() + 6
 
-            selected_on_tile = [g for g in groups if g in self.selected_groups]
+            selected_on_tile = [g for g in unit_groups if g in self.selected_unit_groups]
             half_w = (PANEL_WIDTH - pad * 2 - 4) // 2
             recruit_disabled = not has_city
             disband_disabled = not has_city or len(selected_on_tile) == 0
@@ -1582,12 +1582,12 @@ class Renderer:
                 self.disband_button_rect = None
             y += btn_h + 6
 
-        first_group = groups[0] if groups else None
+        first_group = unit_groups[0] if unit_groups else None
         if first_group:
             btn_h = 20
             half_w = (PANEL_WIDTH - pad * 2 - 4) // 2
-            selected_on_tile = [g for g in groups if g in self.selected_groups]
-            min_moves = min(g.moves_remaining for g in groups)
+            selected_on_tile = [g for g in unit_groups if g in self.selected_unit_groups]
+            min_moves = min(g.moves_remaining for g in unit_groups)
             any_exhausted = any(g.move_exhausted for g in selected_on_tile)
             self.move_button_rect = self._draw_button(
                 x, y, half_w, btn_h, "Move",
@@ -1625,8 +1625,8 @@ class Renderer:
         bar_h = 6
 
         self.group_icon_rects = []
-        for group in groups:
-            selected = group in self.selected_groups
+        for group in unit_groups:
+            selected = group in self.selected_unit_groups
             icon_to_use = small_icon_tinted if selected else small_icon
             type_counts = collections.Counter(u.unit_type for u in group.units)
             row_top_y = y
@@ -1684,13 +1684,13 @@ class Renderer:
             pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, food_bar_w, bar_h), 1, border_radius=2)
             y += bar_h + 8
 
-        if groups:
+        if unit_groups:
             btn_h = 20
             half_w = (bar_w - 4) // 2
             self.select_all_button_rect = self._draw_button(x, y, half_w, btn_h, "Select All")
             self.unselect_all_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Unselect All")
             y += btn_h + 4
-            selected_on_tile = [g for g in groups if g in self.selected_groups]
+            selected_on_tile = [g for g in unit_groups if g in self.selected_unit_groups]
             self.merge_button_rect = self._draw_button(x, y, half_w, btn_h, "Merge", disabled=len(selected_on_tile) < 2)
             self.separate_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Separate", disabled=True)
             y += btn_h + 4

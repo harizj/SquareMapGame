@@ -2,7 +2,7 @@ import math
 from src.game.constants import DEFAULT_MOVE_DISTANCE, POP_FOOD_CONSUMPTION, MIN_TERRAIN_COST
 
 
-class Group:
+class UnitGroup:
     def __init__(self, row, col, units=None, unit_type='warrior'):
         self.row = row
         self.col = col
