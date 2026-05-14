@@ -877,7 +877,7 @@ class Renderer:
             # food bar
             total_food = sum(g.food_stockpile for g in unit_groups_here)
             total_max = sum(g.max_food_stockpile for g in unit_groups_here)
-            total_from_stockpile = sum(g.food_allocated_from_stockpile for g in unit_groups_here)
+            total_from_stockpile = sum(-g.food_allocated_to_stockpile for g in unit_groups_here)
             bar_y = block_y + mini_pad + bar_h + bar_gap
             if total_max > 0:
                 current = min(total_food, total_max)
@@ -1665,7 +1665,7 @@ class Renderer:
             food_bar_w = int(bar_w * group.max_moves / move_bar_max)
             pygame.draw.rect(self.screen, (30, 30, 40), (x, y, food_bar_w, bar_h), border_radius=2)
             if group.max_food_stockpile > 0:
-                from_stockpile = group.food_allocated_from_stockpile
+                from_stockpile = -group.food_allocated_to_stockpile
                 current = min(group.food_stockpile, group.max_food_stockpile)
                 proj = max(0.0, min(current - from_stockpile, group.max_food_stockpile))
                 fill_w = max(int(food_bar_w * current / group.max_food_stockpile), 0)

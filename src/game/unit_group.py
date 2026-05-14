@@ -13,7 +13,7 @@ class UnitGroup:
         self.food_stockpile = 0.0
         self.max_food_stockpile = self._carry_capacity()
         self.food_allocated_from_city = 0.0
-        self.food_allocated_from_stockpile = 0.0
+        self.food_allocated_to_stockpile = 0.0
         self.food_allocated_from_routes = 0.0
         self.pending_pop_loss = 0
         self.move_exhausted = False
@@ -35,13 +35,18 @@ class UnitGroup:
 
     def allocate_food(self):
         consumption = self.consumption_per_turn()
-        remainder = max(0.0, consumption - self.food_allocated_from_city)
-        self.food_allocated_from_stockpile = min(self.food_stockpile, remainder)
-        self.pending_pop_loss = math.ceil(remainder - self.food_allocated_from_stockpile)
+        remainder = self.food_allocated_from_city - consumption
+
+        # If city can't cover food costs, -remainder will be the amount needed from stockpile
+        # But can't be higher than current stockpile
+        self.food_allocated_to_stockpile = -min(-remainder, self.food_stockpile)
+        remainder -= self.food_allocated_to_stockpile
+        if remainder < 0:
+            self.pending_pop_loss = math.ceil(-remainder)
 
     def end_turn(self):
         self.allocate_food()
-        self.food_stockpile -= self.food_allocated_from_stockpile
+        self.food_stockpile += self.food_allocated_to_stockpile
         if self.pending_pop_loss > 0:
             self.units = self.units[self.pending_pop_loss:]
             self.max_food_stockpile = self._carry_capacity()
@@ -61,5 +66,5 @@ class UnitGroup:
 
     def reset_after_movement(self):
         self.food_allocated_from_city = 0.0
-        self.food_allocated_from_stockpile = 0.0
+        self.food_allocated_to_stockpile = 0.0
         self.food_allocated_from_routes = 0.0
