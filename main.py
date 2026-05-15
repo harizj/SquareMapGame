@@ -34,8 +34,10 @@ def _apply_game_config(game_map, game_config):
 
     for city_data in game_config.get('cities', []):
         r, c = city_data['row'], city_data['col']
-        name = city_data.get('name') or game_map._take_city_name()
-        city = City(r, c, name)
+        faction = factions.get(city_data.get('faction'))
+        name = city_data.get('name') or (faction.take_city_name() if faction else game_map._take_city_name())
+        population = city_data.get('population', 20)
+        city = City(r, c, name, faction=faction, population=population)
         game_map.cities[(r, c)] = city
         game_map.setup_city(city)
 

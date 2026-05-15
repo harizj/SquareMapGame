@@ -16,11 +16,12 @@ TURNS_WITH_STOCKPILE_LOSS_THRESHOLD = 5
 
 
 class City:
-    def __init__(self, row, col, name='City'):
+    def __init__(self, row, col, name='City', faction=None, population=20):
         self.row = row
         self.col = col
         self.name = name
-        self.pops = [Pop() for _ in range(20)]
+        self.faction = faction
+        self.pops = [Pop() for _ in range(population)]
         self.unit_groups = []
         self.jobs = []
         self.owned_tiles = []
@@ -91,6 +92,11 @@ class City:
     def min_admin_count(self):
         #In case of gates closing, this has to be addressed
         return math.ceil(len(self.pops) * POP_FOOD_CONSUMPTION / STOCKPILE_PER_ADMIN)
+
+    def get_city_color(self, color_type):
+        if self.faction:
+            return self.faction.colors[color_type]
+        return None
 
     def _stockpile_max(self):
         admin_job = next((j for j in self.jobs if j.job_type == 'administrator'), None)
