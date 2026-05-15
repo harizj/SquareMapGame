@@ -631,22 +631,17 @@ def main():
                                 enemy_city._build_cumulative_farm_yield()
                                 enemy_city.update_cumulative_farm_yield_net()
                                 enemy_city.rebalance_pops()
+                            source_group = selected_on_tile[0]
+                            detached_unit = source_group.units.pop(0)
+                            source_group.max_food_stockpile = source_group._carry_capacity()
+                            detached_unit.pop.assigned_job = None
+                            friendly_city.pops.append(detached_unit.pop)
                             selected_tile.owning_city = friendly_city
                             selected_tile.city_distance = game_map.get_travel_cost(friendly_city.row, friendly_city.col, selected_tile.row, selected_tile.col)
                             friendly_city.owned_tiles.append(selected_tile)
                             friendly_city._build_cumulative_farm_yield()
                             friendly_city.update_cumulative_farm_yield_net()
                             friendly_city.rebalance_pops()
-                            source_group = selected_on_tile[0]
-                            detached_unit = source_group.units.pop(0)
-                            source_group.max_food_stockpile = source_group._carry_capacity()
-                            garrison = UnitGroup(selected_tile.row, selected_tile.col,
-                                                 units=[detached_unit],
-                                                 faction=attacker_faction)
-                            garrison.moves_remaining = 0
-                            garrison.move_exhausted = True
-                            selected_tile.unit_groups.append(garrison)
-                            selected_tile.update_after_movement()
                             game_log.append(f"Captured tile ({selected_tile.row},{selected_tile.col}) for {friendly_city.name}.")
 
                 elif renderer.raid_button_rect and renderer.raid_button_rect.collidepoint(pos):

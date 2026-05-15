@@ -1618,6 +1618,15 @@ class Renderer:
             farms_surf = self.font_body.render(f"{tile.worked_farms} farms", True, TEXT_COLOR)
             self.screen.blit(farms_surf, (x + 4, y))
             y += farms_surf.get_height() + 4
+        if tile and tile.cities_in_range:
+            surf = self.font_body.render("Cities in range:", True, TEXT_COLOR)
+            self.screen.blit(surf, (x + 4, y))
+            y += surf.get_height() + 2
+            for city in tile.cities_in_range:
+                faction_name = city.faction.name if city.faction else "none"
+                surf = self.font_body.render(f"  {city.name} ({faction_name})", True, TEXT_COLOR)
+                self.screen.blit(surf, (x + 4, y))
+                y += surf.get_height() + 2
         if tile and tile.raided:
             label = f"Raided ({tile._raided_ticker} turns left)" if tile._raided_ticker > 0 else "Raided"
             surf = self.font_body.render(label, True, (200, 80, 80))

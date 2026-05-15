@@ -148,16 +148,15 @@ class Tile:
             self._restricted_ticker -= 1
 
     def can_be_captured(self, faction):
-        return (
-            self.city is not None and
-            self.city.faction is not faction
-        )
+        return any(c.faction is faction for c in self.cities_in_range)
 
     def update_after_movement(self):
         self._update_city_with_movement()
         self.update_unit_allocations()
         for group in self.unit_groups:
-            group.can_capture_tile = self.can_be_captured(group.faction)
+            result = self.can_be_captured(group.faction)
+            print(f"[capture check] tile=({self.row},{self.col}) city={self.city.name if self.city else None} city_faction={self.city.faction.name if self.city and self.city.faction else None} group_faction={group.faction.name if group.faction else None} -> {result}")
+            group.can_capture_tile = result
         # TO DO: update unit groups allocations
 
     def _food_from_routes(self):
