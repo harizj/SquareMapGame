@@ -163,6 +163,7 @@ class Renderer:
         self.icons_selected = {}
         self._faction_castle_icons = {}
         self._faction_sword_icons = {}
+        self._faction_flag_icons = {}
         self._apply_zoom()
         self.move_button_rect = None
         self.end_turn_button_rect = None
@@ -366,6 +367,11 @@ class Renderer:
                         dark_result.blit(lb, (dx, dy))
             dark_result.blit(db, (0, 0))
             self.icons_dark['flag'] = dark_result
+            self._faction_flag_icons = {}
+            for city in self.map.cities.values():
+                if city.faction and city.faction.name not in self._faction_flag_icons:
+                    t, d = self._make_icon_pair(scaled, city.get_city_color('light'), city.get_city_color('dark'), flag_outline_radius)
+                    self._faction_flag_icons[city.faction.name] = {'tinted': t, 'dark': d}
 
     def zoom_map(self, factor, mx, my):
         old_zoom = self.zoom
@@ -633,8 +639,8 @@ class Renderer:
                     return (cx + apothem * math.cos(math.radians(deg)),
                             cy + apothem * math.sin(math.radians(deg))), (cx, cy)
 
-                _ROUTE_DARK = (35, 65, 150)
-                _ROUTE_LIGHT = (180, 210, 255)
+                _ROUTE_DARK = route.faction.colors['dark'] if route.faction else (35, 65, 150)
+                _ROUTE_LIGHT = route.faction.colors['light'] if route.faction else (180, 210, 255)
                 _ROUTE_OUTLINE_W = 5
                 _ROUTE_INNER_W = 3
                 destination = route.path[-1]
@@ -821,7 +827,12 @@ class Renderer:
                         if key not in seen_dest_tiles and key in all_centers:
                             seen_dest_tiles.add(key)
                             is_selected = selected_tile is not None and (selected_tile.row, selected_tile.col) == key
-                            flag_icon = self.icons_tinted.get('flag') if is_selected else self.icons_dark.get('flag')
+                            faction_name = route.faction.name if route.faction else None
+                            faction_flag = self._faction_flag_icons.get(faction_name) if faction_name else None
+                            if faction_flag:
+                                flag_icon = faction_flag['tinted'] if is_selected else faction_flag['dark']
+                            else:
+                                flag_icon = self.icons_tinted.get('flag') if is_selected else self.icons_dark.get('flag')
                             if flag_icon:
                                 cx, cy = all_centers[key]
                                 ix = int(cx) - flag_icon.get_width() // 2 - 2

@@ -5,10 +5,10 @@
     {"name": "Assyrians",   "colors": "red",  "city_names": "assyria"}
   ],
   "cities": [
-    {"row": 7, "col": 2, "faction": "Babylonians", "population": 20},
+    {"row": 7, "col": 2, "faction": "Babylonians", "population": 40},
     {"row": 4, "col": 6, "faction": "Babylonians", "population": 30},
     {"row": 9, "col": 4, "faction": "Babylonians", "population": 15},
-    {"row": 10, "col": 9, "faction": "Assyrians",  "population": 18},
+    {"row": 10, "col": 9, "faction": "Assyrians",  "population": 40},
     {"row": 6,  "col": 8, "faction": "Assyrians",  "population": 30}
   ],
   "unit_groups": [

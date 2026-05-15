@@ -13,6 +13,7 @@ class TradeRoute:
                  water=False):
         self.city_a = city_a          # origin — allocates pops
         self.dest_tile = dest_tile    # destination tile (may or may not have a city)
+        self.faction = city_a.faction
         self.pops_a = pops_a
         self.pops_b = pops_b
         self.partial_pops_a = partial_pops_a

@@ -259,6 +259,7 @@ def main():
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 pos = event.pos
+                print(f"[LMB] pos={pos} battle={battle_popup_active} terrain={terrain_popup_active} river={river_popup_active} save={save_popup_active} recruit={renderer.recruit_popup_active} one_way_pending={renderer.one_way_route_pending is not None}")
 
                 if battle_popup_active:
                     if renderer.battle_popup_confirm_rect and renderer.battle_popup_confirm_rect.collidepoint(pos):
@@ -342,6 +343,8 @@ def main():
                             city.food_stockpile -= food
                             city.rebalance_pops()
                             new_group = UnitGroup(selected_tile.row, selected_tile.col, units=[Unit(p) for p in recruited_pops], faction=city.faction)
+                            new_group.moves_remaining = 0
+                            new_group.move_exhausted = True
                             new_group.add_food(food)
                             selected_tile.unit_groups.append(new_group)
                             selected_tile.update_after_movement()
@@ -449,18 +452,6 @@ def main():
                 elif renderer.one_way_cancel_rect and renderer.one_way_cancel_rect.collidepoint(pos):
                     renderer.one_way_route_pending = None
                     renderer.one_way_route_type = 'land'
-
-                elif any(r.collidepoint(pos) for r, _ in renderer.group_icon_rects):
-                    for rect, group in renderer.group_icon_rects:
-                        if rect.collidepoint(pos):
-                            if group in renderer.selected_unit_groups:
-                                renderer.selected_unit_groups.discard(group)
-                            else:
-                                renderer.selected_unit_groups.add(group)
-                            break
-                    move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
-                    if not move_mode:
-                        move_hover_tile = None
 
                 elif renderer.select_all_button_rect and renderer.select_all_button_rect.collidepoint(pos):
                     if selected_tile:
@@ -619,6 +610,9 @@ def main():
 
                 elif renderer.map_start_x <= pos[0] < renderer.map_w:
                     clicked_tile = renderer.get_tile_at(*pos)
+                    prev = f"({selected_tile.row},{selected_tile.col})" if selected_tile else "None"
+                    clicked = f"({clicked_tile.row},{clicked_tile.col}) city={clicked_tile.city.name if clicked_tile and clicked_tile.city else None}" if clicked_tile else "None"
+                    print(f"[CLICK] prev={prev} clicked={clicked} units_on_clicked={[str(g.faction.name if g.faction else '?') for g in (game_map.get_unit_groups(clicked_tile.row, clicked_tile.col) if clicked_tile else [])]}")
                     if clicked_tile and selected_tile and clicked_tile.row == selected_tile.row and clicked_tile.col == selected_tile.col:
                         unit_groups = game_map.get_unit_groups(selected_tile.row, selected_tile.col)
                         if unit_groups and all(g in renderer.selected_unit_groups for g in unit_groups):
