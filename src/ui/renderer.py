@@ -1873,8 +1873,8 @@ class Renderer:
         y += 6
 
         # Totals
-        at_surf = self.font_body.render(f"Total: {preview['attacker_total']}", True, TEXT_COLOR)
-        dt_surf = self.font_body.render(f"Total: {preview['defender_total']}", True, TEXT_COLOR)
+        at_surf = self.font_body.render(f"Total: {preview['attacker_total']:.2f}", True, TEXT_COLOR)
+        dt_surf = self.font_body.render(f"Total: {preview['defender_total']:.2f}", True, TEXT_COLOR)
         self.screen.blit(at_surf, (left_x, y))
         self.screen.blit(dt_surf, (right_x, y))
         y += 24
