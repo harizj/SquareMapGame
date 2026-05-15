@@ -43,7 +43,8 @@ def _apply_game_config(game_map, game_config):
 
     for ug_data in game_config.get('unit_groups', []):
         r, c = ug_data['row'], ug_data['col']
-        group = UnitGroup(r, c, units=[Unit(Pop()) for _ in range(ug_data['num_units'])])
+        faction = factions.get(ug_data.get('faction'))
+        group = UnitGroup(r, c, units=[Unit(Pop()) for _ in range(ug_data['num_units'])], faction=faction)
         group.add_food(ug_data['food'])
         group.allocate_food()
         game_map.tiles[r][c].unit_groups.append(group)
@@ -254,12 +255,14 @@ def main():
                             city.pops = city.pops[n:]
                             city.food_stockpile -= food
                             city.rebalance_pops()
-                            new_group = UnitGroup(selected_tile.row, selected_tile.col, units=[Unit(p) for p in recruited_pops])
+                            new_group = UnitGroup(selected_tile.row, selected_tile.col, units=[Unit(p) for p in recruited_pops], faction=city.faction)
                             new_group.add_food(food)
                             selected_tile.unit_groups.append(new_group)
                             selected_tile.update_after_movement()
                             city.rebalance_pops()
                             new_group.allocate_food()
+                            renderer.selected_unit_groups.add(new_group)
+                            move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                         renderer.recruit_popup_active = False
                         renderer.recruit_popup_food = 0
                     elif renderer.recruit_popup_cancel_rect and renderer.recruit_popup_cancel_rect.collidepoint(pos):

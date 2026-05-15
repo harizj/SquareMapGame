@@ -3,11 +3,12 @@ from src.game.constants import DEFAULT_MOVE_DISTANCE, POP_FOOD_CONSUMPTION, MIN_
 
 
 class UnitGroup:
-    def __init__(self, row, col, units=None, unit_type='warrior'):
+    def __init__(self, row, col, units=None, unit_type='warrior', faction=None):
         self.row = row
         self.col = col
         self.units = units or []
         self.unit_type = unit_type
+        self.faction = faction
         self.max_moves = DEFAULT_MOVE_DISTANCE
         self.moves_remaining = DEFAULT_MOVE_DISTANCE
         self.food_stockpile = 0.0
@@ -17,6 +18,11 @@ class UnitGroup:
         self.food_allocated_from_routes = 0.0
         self.pending_pop_loss = 0
         self.move_exhausted = False
+
+    def get_color(self, color_type):
+        if self.faction:
+            return self.faction.colors[color_type]
+        return None
 
     def add_food(self, amount):
         before = self.food_stockpile
