@@ -1371,7 +1371,7 @@ class Renderer:
                 self.screen.blit(label_surf, (x + 4, y + (btn_s - label_surf.get_height()) // 2))
                 self.admin_plus_rect = self._draw_button(
                     CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "+")
-                if job.assigned > 1:
+                if job.assigned > city.min_admin_count():
                     self.admin_minus_rect = self._draw_button(
                         CITY_PANEL_WIDTH - pad - btn_s * 2 - 3, y, btn_s, btn_s, "-")
                 else:

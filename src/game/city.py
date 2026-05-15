@@ -88,6 +88,10 @@ class City:
             growth_food = num_pops * GROWTH_FOOD_REQUIREMENT
         return unit_consumption, pop_consumption, food_needed_for_min_stockpile, growth_food
 
+    def min_admin_count(self):
+        #In case of gates closing, this has to be addressed
+        return math.ceil(len(self.pops) * POP_FOOD_CONSUMPTION / STOCKPILE_PER_ADMIN)
+
     def _stockpile_max(self):
         admin_job = next((j for j in self.jobs if j.job_type == 'administrator'), None)
         admin_count = admin_job.assigned if admin_job else 0
@@ -232,8 +236,9 @@ class City:
 
         # Preserve player-set admin count before reset
         admin_count = admin_job.assigned if admin_job else 0
-        if admin_count == 0 and admin_job and self.pops:
-            admin_count = 1
+        min_admin = self.min_admin_count()
+        if admin_count < min_admin and admin_job and self.pops:
+            admin_count = min_admin
 
         for pop in self.pops:
             pop.assigned_job = None

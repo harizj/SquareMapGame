@@ -472,7 +472,7 @@ def main():
                     city = selected_tile.owning_city if selected_tile else None
                     if city:
                         admin_job = next((j for j in city.jobs if j.job_type == 'administrator'), None)
-                        if admin_job and admin_job.assigned > 0:
+                        if admin_job and admin_job.assigned > city.min_admin_count():
                             admin_job.assigned -= 1
                             city.rebalance_pops()
 
