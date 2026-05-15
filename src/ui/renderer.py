@@ -134,7 +134,7 @@ class Renderer:
                 self._terrain_images_raw[name] = raw_variants
         self._icons_raw = {}
         icons_dir = os.path.join(_ASSETS_DIR, 'icons')
-        for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius'), ('flag', 'flag'), ('torch', 'torch')):
+        for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius'), ('flag', 'flag'), ('torch', 'restriction')):
             path = os.path.join(icons_dir, f'{file_name}.png')
             if os.path.exists(path):
                 self._icons_raw[icon_name] = pygame.image.load(path).convert_alpha()
@@ -932,6 +932,13 @@ class Renderer:
                 else:
                     if fill_w > 0:
                         pygame.draw.rect(self.screen, (120, 190, 80), (bar_x, bar_y, fill_w, bar_h))
+                total_consumption = sum(g.consumption_per_turn() for g in unit_groups_here)
+                if total_consumption > 0:
+                    tick = total_consumption
+                    while tick < total_max:
+                        tx = bar_x + int(bar_w * tick / total_max)
+                        pygame.draw.line(self.screen, (30, 30, 40), (tx, bar_y), (tx, bar_y + bar_h - 1))
+                        tick += total_consumption
 
             # move bar
             move_bar_max = unit_groups_here[0].max_moves + MOVE_CARRY_OVER
@@ -1769,9 +1776,13 @@ class Renderer:
                         pygame.draw.rect(self.screen, (200, 240, 165), (x, y, proj_w, bar_h), border_radius=2)
                     if fill_w > 0:
                         pygame.draw.rect(self.screen, (120, 190, 80), (x, y, fill_w, bar_h), border_radius=2)
-                for i in range(1, int(group.max_food_stockpile)):
-                    tx = x + int(food_bar_w * i / group.max_food_stockpile)
-                    pygame.draw.line(self.screen, (30, 30, 40), (tx, y), (tx, y + bar_h - 1))
+                tick_interval = group.consumption_per_turn()
+                if tick_interval > 0:
+                    tick = tick_interval
+                    while tick < group.max_food_stockpile:
+                        tx = x + int(food_bar_w * tick / group.max_food_stockpile)
+                        pygame.draw.line(self.screen, (30, 30, 40), (tx, y), (tx, y + bar_h - 1))
+                        tick += tick_interval
             pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, food_bar_w, bar_h), 1, border_radius=2)
             y += bar_h + 4
 
