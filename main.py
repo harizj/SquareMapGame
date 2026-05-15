@@ -2,6 +2,7 @@ import json
 import os
 import pygame
 from src.game.city import City
+from src.game.faction import Faction, COLOR_SETS, CITY_NAME_SETS
 from src.game.pop import Pop
 from src.game.unit_group import UnitGroup
 from src.game.map import Map
@@ -22,6 +23,15 @@ def _load_game_config():
 
 
 def _apply_game_config(game_map, game_config):
+    factions = {}
+    for f_data in game_config.get('factions', []):
+        faction = Faction(
+            name=f_data['name'],
+            colors=COLOR_SETS[f_data['colors']],
+            city_names=CITY_NAME_SETS[f_data['city_names']],
+        )
+        factions[f_data['name']] = faction
+
     for city_data in game_config.get('cities', []):
         r, c = city_data['row'], city_data['col']
         name = city_data.get('name') or game_map._take_city_name()
@@ -35,6 +45,8 @@ def _apply_game_config(game_map, game_config):
         group.add_food(ug_data['food'])
         group.allocate_food()
         game_map.tiles[r][c].unit_groups.append(group)
+
+    return factions
 
 
 def _compute_move_state(selected_unit_groups, selected_tile, game_map):
@@ -61,7 +73,7 @@ def main():
             game_map = Map()
     else:
         game_map = Map()
-    _apply_game_config(game_map, game_config)
+    factions = _apply_game_config(game_map, game_config)
 
     renderer = Renderer(game_map)
     clock = pygame.time.Clock()
