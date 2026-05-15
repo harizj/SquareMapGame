@@ -70,6 +70,10 @@ class Tile:
     def _update_city_with_movement(self):
         if self.city is not None:
             self.city.unit_groups = list(self.unit_groups)
+            if self.unit_groups:
+                moving_faction = self.unit_groups[0].faction
+                if moving_faction is not None and moving_faction is not self.city.faction:
+                    self.city.change_faction(moving_faction)
             self.city.rebalance_pops()
 
     def _init_jobs(self):

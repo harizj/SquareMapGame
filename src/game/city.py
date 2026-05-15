@@ -93,6 +93,9 @@ class City:
         #In case of gates closing, this has to be addressed
         return math.ceil(len(self.pops) * POP_FOOD_CONSUMPTION / STOCKPILE_PER_ADMIN)
 
+    def change_faction(self, new_faction):
+        self.faction = new_faction
+
     def get_city_color(self, color_type):
         if self.faction:
             return self.faction.colors[color_type]

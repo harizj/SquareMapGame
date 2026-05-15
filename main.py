@@ -229,11 +229,7 @@ def main():
                     if tile is not None and (tile.row, tile.col) in reachable:
                         controlling_faction = move_mode_unit_groups[0].faction if move_mode_unit_groups else None
                         enemy_groups = game_map.get_unit_groups(tile.row, tile.col)
-                        enemy_city = game_map.cities.get((tile.row, tile.col))
-                        is_enemy = (
-                            (enemy_groups and enemy_groups[0].faction is not controlling_faction) or
-                            (enemy_city and not enemy_groups and enemy_city.faction is not controlling_faction)
-                        )
+                        is_enemy = bool(enemy_groups and enemy_groups[0].faction is not controlling_faction)
                         if is_enemy:
                             path, _ = game_map.get_path(selected_tile.row, selected_tile.col, tile.row, tile.col)
                             if len(path) >= 2:
@@ -247,8 +243,7 @@ def main():
                                     move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                                 attacker_tile = selected_tile
                                 defender_tile = game_map.tiles[tile.row][tile.col]
-                                defender = enemy_city if enemy_city and not enemy_groups else list(enemy_groups)
-                                pending_combat_preview = compute_battle_preview(list(move_mode_unit_groups), defender, attacker_tile, defender_tile)
+                                pending_combat_preview = compute_battle_preview(list(move_mode_unit_groups), list(enemy_groups), attacker_tile, defender_tile)
                                 pending_combat_tile = defender_tile
                                 battle_popup_active = True
                                 move_hover_tile = None
@@ -276,16 +271,10 @@ def main():
                                 group.units.pop()
                                 a_losses -= 1
                         d_losses = result['defender_losses']
-                        if isinstance(defender, City):
-                            for _ in range(min(d_losses, len(defender.pops))):
-                                defender.pops.pop()
-                            if defender.pops:
-                                defender.rebalance_pops()
-                        else:
-                            for group in reversed(defender):
-                                while d_losses > 0 and group.units:
-                                    group.units.pop()
-                                    d_losses -= 1
+                        for group in reversed(defender):
+                            while d_losses > 0 and group.units:
+                                group.units.pop()
+                                d_losses -= 1
                         if result['outcome'] == 'attacker_wins':
                             if pending_combat_tile:
                                 pending_combat_tile.unit_groups = [g for g in pending_combat_tile.unit_groups if g.units]
@@ -495,10 +484,15 @@ def main():
 
                 elif renderer.disband_button_rect and renderer.disband_button_rect.collidepoint(pos):
                     if selected_tile and selected_tile.city:
+                        city = selected_tile.city
                         selected_on_tile = [g for g in game_map.get_unit_groups(selected_tile.row, selected_tile.col) if g in renderer.selected_unit_groups]
                         for group in selected_on_tile:
+                            city.pops.extend(unit.pop for unit in group.units)
+                            transferable = min(group.food_stockpile, city._stockpile_max() - city.food_stockpile)
+                            city.food_stockpile += max(0.0, transferable)
                             selected_tile.unit_groups.remove(group)
                             renderer.selected_unit_groups.discard(group)
+                        city.rebalance_pops()
                         selected_tile.update_after_movement()
                     move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                     if not move_mode:
