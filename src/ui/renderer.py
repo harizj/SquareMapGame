@@ -373,9 +373,9 @@ class Renderer:
             self.icons_dark['flag'] = dark_result
             self._faction_flag_icons = {}
         if 'torch' in self._icons_raw:
-            torch_size = int(HEX_SIZE * self.zoom * 0.5)
+            torch_size = int(HEX_SIZE * self.zoom * 0.45)
             scaled_torch = pygame.transform.scale(self._icons_raw['torch'], (torch_size, torch_size))
-            outline_r = 5
+            outline_r = 4
             torch_mask = scaled_torch.copy()
             torch_mask.fill((255, 255, 255), special_flags=pygame.BLEND_RGB_MAX)
             black_mask = scaled_torch.copy()
@@ -1888,25 +1888,24 @@ class Renderer:
         self.screen.blit(max_r_surf, (track_x + track_w - max_r_surf.get_width(), track_y + track_h + 3))
         self.recruit_popup_slider_rect = pygame.Rect(track_x, track_y - 6, track_w, track_h + 16)
 
-        carry_cap = amount * MILITARY_CARRY_CAPACITY
-        max_food = int(min(city.food_stockpile, carry_cap))
-        food = max(0, min(self.recruit_popup_food, max_food))
-        self.recruit_popup_food = food
+        max_food_per_pop = min(MILITARY_CARRY_CAPACITY, int(city.food_stockpile / amount)) if amount > 0 else 0
+        food_per_pop = max(0, min(self.recruit_popup_food, max_food_per_pop))
+        self.recruit_popup_food = food_per_pop
 
-        food_surf = self.font_body.render(f"{food} food", True, TEXT_COLOR)
+        food_surf = self.font_body.render(f"{food_per_pop} food/pop ({food_per_pop * amount} total)", True, TEXT_COLOR)
         self.screen.blit(food_surf, (sx + pad, sy + 88))
 
         f_track_y = sy + 106
         pygame.draw.rect(self.screen, (60, 60, 80), (track_x, f_track_y, track_w, track_h), border_radius=2)
-        if max_food > 0:
-            fhx = track_x + int(food / max_food * track_w)
+        if max_food_per_pop > 0:
+            fhx = track_x + int(food_per_pop / max_food_per_pop * track_w)
         else:
             fhx = track_x
         fhy = f_track_y + track_h // 2
         pygame.draw.circle(self.screen, (160, 190, 240), (fhx, fhy), 6)
         pygame.draw.circle(self.screen, (100, 130, 190), (fhx, fhy), 6, 1)
         self.screen.blit(self.font_small.render("0", True, PANEL_DIVIDER), (track_x, f_track_y + track_h + 3))
-        max_f_surf = self.font_small.render(str(max_food), True, PANEL_DIVIDER)
+        max_f_surf = self.font_small.render(str(max_food_per_pop), True, PANEL_DIVIDER)
         self.screen.blit(max_f_surf, (track_x + track_w - max_f_surf.get_width(), f_track_y + track_h + 3))
         self.recruit_popup_food_slider_rect = pygame.Rect(track_x, f_track_y - 6, track_w, track_h + 16)
 

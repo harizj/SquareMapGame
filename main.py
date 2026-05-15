@@ -220,9 +220,10 @@ def main():
                 if renderer._recruit_food_slider_dragging and renderer.recruit_popup_food_slider_rect and selected_tile and selected_tile.city:
                     from src.game.constants import MILITARY_CARRY_CAPACITY as MCC
                     sr = renderer.recruit_popup_food_slider_rect
-                    max_food = int(min(selected_tile.city.food_stockpile, renderer.recruit_popup_amount * MCC))
+                    n = renderer.recruit_popup_amount
+                    max_food_per_pop = min(MCC, int(selected_tile.city.food_stockpile / n)) if n > 0 else 0
                     t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
-                    renderer.recruit_popup_food = max(0, min(max_food, round(t * max_food)))
+                    renderer.recruit_popup_food = max(0, min(max_food_per_pop, round(t * max_food_per_pop)))
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
                 if move_mode and event.pos[0] < renderer.map_w:
@@ -338,7 +339,7 @@ def main():
                             from src.game.constants import MILITARY_CARRY_CAPACITY as MCC
                             city = selected_tile.city
                             n = renderer.recruit_popup_amount
-                            food = renderer.recruit_popup_food
+                            food = renderer.recruit_popup_food * n
                             recruited_pops = city.pops[:n]
                             city.pops = city.pops[n:]
                             city.food_stockpile -= food
@@ -368,9 +369,10 @@ def main():
                         renderer._recruit_food_slider_dragging = True
                         from src.game.constants import MILITARY_CARRY_CAPACITY as MCC
                         sr = renderer.recruit_popup_food_slider_rect
-                        max_food = int(min(selected_tile.city.food_stockpile, renderer.recruit_popup_amount * MCC)) if selected_tile and selected_tile.city else 0
+                        n = renderer.recruit_popup_amount
+                        max_food_per_pop = min(MCC, int(selected_tile.city.food_stockpile / n)) if (selected_tile and selected_tile.city and n > 0) else 0
                         t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
-                        renderer.recruit_popup_food = max(0, min(max_food, round(t * max_food)))
+                        renderer.recruit_popup_food = max(0, min(max_food_per_pop, round(t * max_food_per_pop)))
 
                 elif renderer.trade_route_import_slider_rect and renderer.trade_route_import_slider_rect.collidepoint(pos):
                     renderer.snap_import_amount(pos[0])
