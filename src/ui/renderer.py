@@ -1662,6 +1662,8 @@ class Renderer:
                     if proj_w > 0:
                         pygame.draw.rect(self.screen, (120, 190, 80), (x, y, proj_w, bar_h), border_radius=2)
                 else:
+                    if proj_w > 0:
+                        pygame.draw.rect(self.screen, (200, 240, 165), (x, y, proj_w, bar_h), border_radius=2)
                     if fill_w > 0:
                         pygame.draw.rect(self.screen, (120, 190, 80), (x, y, fill_w, bar_h), border_radius=2)
                 for i in range(1, int(group.max_food_stockpile)):
