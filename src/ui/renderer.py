@@ -161,6 +161,7 @@ class Renderer:
         self.icons_dark = {}
         self.icons_light = {}
         self.icons_selected = {}
+        self._faction_castle_icons = {}
         self._apply_zoom()
         self.move_button_rect = None
         self.end_turn_button_rect = None
@@ -229,6 +230,30 @@ class Renderer:
         self._recruit_slider_dragging = False
         self._recruit_food_slider_dragging = False
 
+    def _make_icon_pair(self, scaled, light_rgb, dark_rgb, outline_radius):
+        """Returns (tinted, dark_surf): tinted=light fill+dark outline, dark=dark fill+light outline."""
+        mask = scaled.copy()
+        mask.fill((255, 255, 255), special_flags=pygame.BLEND_RGB_MAX)
+        lb = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+        lb.fill((*light_rgb, 255))
+        lb.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+        db = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+        db.fill((*dark_rgb, 255))
+        db.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+        result = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+        for dx in range(-outline_radius, outline_radius + 1):
+            for dy in range(-outline_radius, outline_radius + 1):
+                if dx * dx + dy * dy <= outline_radius * 2:
+                    result.blit(db, (dx, dy))
+        result.blit(lb, (0, 0))
+        dark_result = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+        for dx in range(-outline_radius, outline_radius + 1):
+            for dy in range(-outline_radius, outline_radius + 1):
+                if dx * dx + dy * dy <= outline_radius * 2:
+                    dark_result.blit(lb, (dx, dy))
+        dark_result.blit(db, (0, 0))
+        return result, dark_result
+
     def _apply_zoom(self):
         sz = HEX_SIZE * self.zoom
         hex_w = int(math.sqrt(3) * sz)
@@ -281,36 +306,15 @@ class Renderer:
         if 'castle' in self._icons_raw:
             scaled = pygame.transform.scale(self._icons_raw['castle'], (castle_size, castle_size))
             self.icons['castle'] = scaled
-            mask = scaled.copy()
-            mask.fill((255, 255, 255), special_flags=pygame.BLEND_RGB_MAX)
-            lb = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
-            lb.fill((180, 210, 255, 255))
-            lb.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-            db = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
-            db.fill((35, 65, 150, 255))
-            db.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-            bk = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
-            bk.fill((0, 0, 0, 255))
-            bk.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-            result = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
-            # for dx in range(-3, 4):
-            #     for dy in range(-3, 4):
-            #         if dx * dx + dy * dy <= 9:
-            #             result.blit(bk, (dx, dy))
             castle_outline_radius = 8
-            for dx in range(-castle_outline_radius, castle_outline_radius+1):
-                for dy in range(-castle_outline_radius, castle_outline_radius+1):
-                    if dx * dx + dy * dy <= castle_outline_radius*2:
-                        result.blit(db, (dx, dy))
-            result.blit(lb, (0, 0))
-            self.icons_tinted['castle'] = result
-            dark_result = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
-            for dx in range(-castle_outline_radius, castle_outline_radius + 1):
-                for dy in range(-castle_outline_radius, castle_outline_radius + 1):
-                    if dx * dx + dy * dy <= castle_outline_radius * 2:
-                        dark_result.blit(lb, (dx, dy))
-            dark_result.blit(db, (0, 0))
-            self.icons_dark['castle'] = dark_result
+            tinted, dark_surf = self._make_icon_pair(scaled, (180, 210, 255), (35, 65, 150), castle_outline_radius)
+            self.icons_tinted['castle'] = tinted
+            self.icons_dark['castle'] = dark_surf
+            self._faction_castle_icons = {}
+            for city in self.map.cities.values():
+                if city.faction and city.faction.name not in self._faction_castle_icons:
+                    t, d = self._make_icon_pair(scaled, city.get_city_color('light'), city.get_city_color('dark'), castle_outline_radius)
+                    self._faction_castle_icons[city.faction.name] = {'tinted': t, 'dark': d}
         if 'sword' in self._icons_raw:
             scaled = pygame.transform.scale(self._icons_raw['sword'], (sword_size, sword_size))
             self.icons['sword'] = scaled
@@ -710,11 +714,13 @@ class Renderer:
                     lp1 = (int(p1[0] - cx + scx), int(p1[1] - cy + scy))
                     lp2 = (int(p2[0] - cx + scx), int(p2[1] - cy + scy))
                     pygame.draw.line(edge_surf, (255, 255, 255, 255), lp1, lp2, border_line_w)
+                border_dark  = tile.owning_city.get_city_color('dark')  or (35, 65, 150)
+                border_light = tile.owning_city.get_city_color('light') or (160, 200, 255)
                 lb_surf = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
-                lb_surf.fill((160, 200, 255, 170))
+                lb_surf.fill((*border_light, 170))
                 lb_surf.blit(edge_surf, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
                 base_surf = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
-                base_surf.fill((35, 65, 150, 255))
+                base_surf.fill((*border_dark, 255))
                 base_surf.blit(edge_surf, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
                 result = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
                 r2 = outline_radius * outline_radius
@@ -770,7 +776,7 @@ class Renderer:
         dot_spacing = 5
         dot_offset_x = int(apothem * 0.72)
         dot_start_y_offset = int(HEX_SIZE * self.zoom * ISO_SCALE * 0.4)
-        dot_positions = []
+        dot_positions = []  # (ddx, ddy, owning_city)
         for r in range(self.map.rows):
             for c in range(self.map.cols):
                 tile = self.map.tiles[r][c]
@@ -782,11 +788,13 @@ class Renderer:
                 for i in range(tile.worked_farms):
                     col_i = i // 3
                     row_i = i % 3
-                    dot_positions.append((dx + col_i * dot_spacing, dy + row_i * dot_spacing))
-        for ddx, ddy in dot_positions:
-            pygame.draw.circle(self.screen, (30, 60, 120), (ddx, ddy), dot_radius + 4)
-        for ddx, ddy in dot_positions:
-            pygame.draw.circle(self.screen, (160, 200, 255), (ddx, ddy), dot_radius + 1)
+                    dot_positions.append((dx + col_i * dot_spacing, dy + row_i * dot_spacing, tile.owning_city))
+        for ddx, ddy, city in dot_positions:
+            dot_dark = city.get_city_color('dark') if city else (30, 60, 120)
+            pygame.draw.circle(self.screen, dot_dark, (ddx, ddy), dot_radius + 4)
+        for ddx, ddy, city in dot_positions:
+            dot_light = city.get_city_color('light') if city else (160, 200, 255)
+            pygame.draw.circle(self.screen, dot_light, (ddx, ddy), dot_radius + 1)
             pygame.draw.circle(self.screen, (255, 255, 255), (ddx, ddy), dot_radius)
 
         # Pass 6: city icons (castle, drawn below units)
@@ -794,7 +802,12 @@ class Renderer:
         city_name_ys = {}
         for (r, c), city in self.map.cities.items():
             cx, cy = all_centers[(r, c)]
-            icon = self.icons_tinted.get('castle') if (r, c) == selected_city_pos else self.icons_dark.get('castle')
+            fname = city.faction.name if city.faction else None
+            faction_icons = self._faction_castle_icons.get(fname)
+            if faction_icons:
+                icon = faction_icons['tinted'] if (r, c) == selected_city_pos else faction_icons['dark']
+            else:
+                icon = self.icons_tinted.get('castle') if (r, c) == selected_city_pos else self.icons_dark.get('castle')
             if icon:
                 ix = int(cx) - icon.get_width() // 2 + 2
                 iy = int(cy) - HEX_SIZE - 3.5
@@ -913,7 +926,9 @@ class Renderer:
             circle_cy = by + block_h // 2
             bx = start_x + circle_r * 2 - overlap
             bar_pad = 1
-            pygame.draw.rect(self.screen, (35, 65, 150), (bx - bar_pad, by - bar_pad, block_w + bar_pad * 2, block_h + bar_pad * 2))
+            city_dark  = city.get_city_color('dark')  or (35, 65, 150)
+            city_light = city.get_city_color('light') or (180, 210, 255)
+            pygame.draw.rect(self.screen, city_dark, (bx - bar_pad, by - bar_pad, block_w + bar_pad * 2, block_h + bar_pad * 2))
             inner_h = mini_bar_h * 3 + mini_gap * 2
             pygame.draw.rect(self.screen, (0, 0, 0), (bx + mini_pad, by + mini_pad, mini_bar_w, inner_h))
             mbx = bx + mini_pad
@@ -925,11 +940,11 @@ class Renderer:
             self._draw_city_bar_fill(city, mbx, constr_bar_y, mini_bar_w, mini_bar_h, 'construction')
             pop_fill_r = circle_r
             pop_ring_r = circle_r + 3
-            pygame.draw.circle(self.screen, (35, 65, 150), (circle_cx, circle_cy), pop_ring_r)
-            pygame.draw.circle(self.screen, (180, 210, 255), (circle_cx, circle_cy), pop_fill_r)
+            pygame.draw.circle(self.screen, city_dark,  (circle_cx, circle_cy), pop_ring_r)
+            pygame.draw.circle(self.screen, city_light, (circle_cx, circle_cy), pop_fill_r)
             pop_str = str(len(city.pops))
             pop_num_outline_r = 3
-            pop_outline = self.font_pop.render(pop_str, True, (35, 65, 150))
+            pop_outline = self.font_pop.render(pop_str, True, city_dark)
             pop_white = self.font_pop.render(pop_str, True, (255, 255, 255))
             tx = circle_cx - pop_white.get_width() // 2
             ty = circle_cy - pop_white.get_height() // 2
