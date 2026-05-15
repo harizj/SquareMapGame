@@ -43,6 +43,7 @@ class TradeRoute:
             dest_city.rebalance_pops()
         else:
             dest_tile.trade_routes.append(self)
+            dest_tile.update_unit_allocations()
         self.city_a.update_cumulative_farm_yield_net()
         self.city_a.rebalance_pops()
 
@@ -89,18 +90,20 @@ class TradeRoute:
                 dest_city.rebalance_pops()
 
     def end_turn(self):
-        if self.established:
-            return
-        self.establish_progress += DEFAULT_MOVE_DISTANCE
-        if self.establish_progress >= self.distance:
-            self.establish_progress = self.distance
-            self.established = True
-            self.city_a.update_cumulative_farm_yield_net()
-            self.city_a.rebalance_pops()
-            dest_city = self.dest_tile.city
-            if dest_city is not None:
-                dest_city.update_cumulative_farm_yield_net()
-                dest_city.rebalance_pops()
+        if self.established == False:
+            self.establish_progress += DEFAULT_MOVE_DISTANCE
+            if self.establish_progress >= self.distance:
+                print('Trade route established!')
+                self.establish_progress = self.distance
+                self.established = True
+                self.city_a.update_cumulative_farm_yield_net()
+                self.city_a.rebalance_pops()
+                dest_city = self.dest_tile.city
+                if dest_city is not None:
+                    dest_city.update_cumulative_farm_yield_net()
+                    dest_city.rebalance_pops()
+                
+        self.dest_tile.update_unit_allocations()
 
     def get_pops_from_city(self, city):
         return self.pops_a if self.city_a is city else self.pops_b

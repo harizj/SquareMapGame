@@ -53,6 +53,7 @@ class Tile:
         self.cities_in_range = []
         self.jobs = []
         self._init_jobs()
+        self.food_allocated_from_routes = 0.0
 
     @property
     def worked_farms(self):
@@ -77,4 +78,24 @@ class Tile:
 
     def update_after_movement(self):
         self._update_city_with_movement()
+        self.update_unit_allocations()
         # TO DO: update unit groups allocations
+
+    def _food_from_routes(self):
+        return sum(
+            r.export_amount for r in self.trade_routes
+            if r.established and not r.missing_caravans and r.export_material == 'food'
+        )
+
+    def update_unit_allocations(self):
+        print('Updating unit allocations')
+        remaining = self._food_from_routes()
+        self.food_allocated_from_routes = 0.0
+        for g in self.unit_groups:
+            allocated = g.allocate_food(food_from_routes=remaining)
+            print('Allocated:', allocated)
+            self.food_allocated_from_routes += allocated
+            remaining = max(0.0, remaining - allocated)
+        print('Food allocated from routes:', self.food_allocated_from_routes)
+
+        # Later on will need to handle the leftover food

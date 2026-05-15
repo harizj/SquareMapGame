@@ -289,12 +289,6 @@ class City:
         if any(r.missing_caravans for r in self.trade_routes):
             self.update_cumulative_farm_yield_net()
 
-        if total_caravan_slots > 0:
-            if caravan_assigned < total_caravan_slots:
-                print(f"{self.name}: only {caravan_assigned}/{total_caravan_slots} caravan slots filled — not enough pops")
-            else:
-                print(f"{self.name}: all {total_caravan_slots} caravan slots filled")
-   
         # Farm: use cumulative yield list to find minimum pops needed
         remaining_pops = len(self.pops) - admin_assigned - caravan_assigned
         total_farm_slots = len(self.cumulative_farm_yield) - 1

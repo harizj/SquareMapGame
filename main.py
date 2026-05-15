@@ -21,7 +21,8 @@ def _load_config():
 
 def _compute_move_state(selected_unit_groups, selected_tile, game_map):
     if selected_unit_groups and selected_tile:
-        candidates = [g for g in selected_unit_groups if g.moves_remaining > 0 and not g.move_exhausted]
+        tile_groups = game_map.get_unit_groups(selected_tile.row, selected_tile.col)
+        candidates = [g for g in tile_groups if g in selected_unit_groups and g.moves_remaining > 0 and not g.move_exhausted]
         if candidates:
             budget = min(g.moves_remaining for g in candidates)
             return True, candidates, game_map.get_reachable_budget(selected_tile.row, selected_tile.col, budget)
@@ -525,6 +526,8 @@ def main():
                     if id(route) not in seen:
                         seen.add(id(route))
                         route.end_turn()
+            for (r, c) in game_map.unit_groups:
+                game_map.tiles[r][c].update_unit_allocations()
             move_hover_tile = None
             move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
             game_log.append(f"TURN {turn}")
