@@ -13,6 +13,7 @@
   ],
   "unit_groups": [
     {"row": 5, "col": 5, "num_units": 3, "food": 12.0, "faction": "Babylonians"},
-    {"row": 5, "col": 5, "num_units": 2, "food": 3.0,  "faction": "Babylonians"}
+    {"row": 4, "col": 6, "num_units": 2, "food": 6.0,  "faction": "Babylonians"},
+    {"row": 6, "col": 8, "num_units": 3, "food": 12.0,  "faction": "Assyrians"}
   ]
 }

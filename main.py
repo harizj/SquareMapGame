@@ -52,13 +52,32 @@ def _apply_game_config(game_map, game_config):
     return factions
 
 
+def _build_blocked(controlling_faction, start, game_map):
+    """Returns a set of (row, col) tiles occupied by enemy units or enemy cities."""
+    if controlling_faction is None:
+        return set()
+    blocked = set()
+    for (r, c), groups in game_map.unit_groups.items():
+        if (r, c) == start:
+            continue
+        if groups and groups[0].faction is not controlling_faction:
+            blocked.add((r, c))
+    for (r, c), city in game_map.cities.items():
+        if city.faction is not controlling_faction:
+            blocked.add((r, c))
+    return blocked
+
+
 def _compute_move_state(selected_unit_groups, selected_tile, game_map):
     if selected_unit_groups and selected_tile:
         tile_groups = game_map.get_unit_groups(selected_tile.row, selected_tile.col)
         candidates = [g for g in tile_groups if g in selected_unit_groups and g.moves_remaining > 0 and not g.move_exhausted]
         if candidates:
             budget = min(g.moves_remaining for g in candidates)
-            return True, candidates, game_map.get_reachable_budget(selected_tile.row, selected_tile.col, budget)
+            controlling_faction = candidates[0].faction
+            start = (selected_tile.row, selected_tile.col)
+            blocked = _build_blocked(controlling_faction, start, game_map)
+            return True, candidates, game_map.get_reachable_budget(selected_tile.row, selected_tile.col, budget, blocked=blocked)
     return False, [], {}
 
 

@@ -102,8 +102,11 @@ class Map:
         del best[start]
         return best
 
-    def get_reachable_budget(self, row, col, budget):
-        """Dijkstra from (row, col) with a fixed move budget. Returns {(row, col): cost}."""
+    def get_reachable_budget(self, row, col, budget, blocked=None):
+        """Dijkstra from (row, col) with a fixed move budget. Returns {(row, col): cost}.
+        blocked is a set of (row, col) tiles that can be reached as destinations but not
+        pathed through (e.g. enemy-occupied tiles)."""
+        blocked = blocked or set()
         start = (row, col)
         best = {start: 0}
         queue = [(0, start)]
@@ -120,7 +123,8 @@ class Map:
                 new_cost = cost + self._step_cost(r, c, nr, nc)
                 if new_cost <= budget and new_cost < best.get((nr, nc), float('inf')):
                     best[(nr, nc)] = new_cost
-                    heapq.heappush(queue, (new_cost, (nr, nc)))
+                    if (nr, nc) not in blocked:
+                        heapq.heappush(queue, (new_cost, (nr, nc)))
         del best[start]
         return best
 
