@@ -106,6 +106,7 @@ def main():
     move_mode_unit_groups = []
     reachable = {}
     move_hover_tile = None
+    city_drag_active = False
     save_popup_active = False
     save_popup_text = ""
     terrain_popup_active = False
@@ -196,6 +197,17 @@ def main():
                 renderer._one_way_slider_dragging = False
                 renderer._recruit_slider_dragging = False
                 renderer._recruit_food_slider_dragging = False
+                if city_drag_active and renderer.adding_one_way_route:
+                    tile = renderer.get_tile_at(*event.pos)
+                    current_city = selected_tile.city if selected_tile else None
+                    if tile is not None and current_city is not None:
+                        origin_tile = game_map.tiles[current_city.row][current_city.col]
+                        if tile is not origin_tile:
+                            renderer.one_way_route_pending = (current_city, tile)
+                            renderer.one_way_amount = 1
+                    renderer.adding_one_way_route = False
+                    move_hover_tile = None
+                city_drag_active = False
 
             elif event.type == pygame.MOUSEMOTION:
                 if move_mode or renderer.adding_one_way_route:
@@ -707,6 +719,9 @@ def main():
                     move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                     if not move_mode:
                         move_hover_tile = None
+                    if clicked_tile and clicked_tile.city:
+                        renderer.adding_one_way_route = True
+                        city_drag_active = True
 
         if do_end_turn:
             turn += 1
