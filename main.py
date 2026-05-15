@@ -1,6 +1,7 @@
 import json
 import os
 import pygame
+from src.game.battles import compute_battle_preview, resolve_battle
 from src.game.city import City
 from src.game.faction import Faction, COLOR_SETS, CITY_NAME_SETS
 from src.game.pop import Pop
@@ -108,6 +109,9 @@ def main():
     save_popup_text = ""
     terrain_popup_active = False
     river_popup_active = False
+    battle_popup_active = False
+    pending_combat_preview = None
+    pending_combat_tile = None
     game_log = []
     turn = 0
     console_active = False
@@ -223,19 +227,93 @@ def main():
                 if move_mode and event.pos[0] < renderer.map_w:
                     tile = renderer.get_tile_at(*event.pos)
                     if tile is not None and (tile.row, tile.col) in reachable:
-                        cost = reachable[(tile.row, tile.col)]
-                        for group in move_mode_unit_groups:
-                            game_map.move_group(group, tile.row, tile.col, cost)
-                        selected_tile = game_map.tiles[tile.row][tile.col]
-                        renderer.selected_unit_groups = {g for g in move_mode_unit_groups}
-                        move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
-                        if not move_mode:
-                            move_hover_tile = None
+                        controlling_faction = move_mode_unit_groups[0].faction if move_mode_unit_groups else None
+                        enemy_groups = game_map.get_unit_groups(tile.row, tile.col)
+                        enemy_city = game_map.cities.get((tile.row, tile.col))
+                        is_enemy = (
+                            (enemy_groups and enemy_groups[0].faction is not controlling_faction) or
+                            (enemy_city and not enemy_groups and enemy_city.faction is not controlling_faction)
+                        )
+                        if is_enemy:
+                            path, _ = game_map.get_path(selected_tile.row, selected_tile.col, tile.row, tile.col)
+                            if len(path) >= 2:
+                                stop_pos = path[-2]
+                                if stop_pos != (selected_tile.row, selected_tile.col):
+                                    stop_cost = reachable[stop_pos]
+                                    for group in move_mode_unit_groups:
+                                        game_map.move_group(group, stop_pos[0], stop_pos[1], stop_cost)
+                                    selected_tile = game_map.tiles[stop_pos[0]][stop_pos[1]]
+                                    renderer.selected_unit_groups = {g for g in move_mode_unit_groups}
+                                    move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
+                                attacker_tile = selected_tile
+                                defender_tile = game_map.tiles[tile.row][tile.col]
+                                defender = enemy_city if enemy_city and not enemy_groups else list(enemy_groups)
+                                pending_combat_preview = compute_battle_preview(list(move_mode_unit_groups), defender, attacker_tile, defender_tile)
+                                pending_combat_tile = defender_tile
+                                battle_popup_active = True
+                                move_hover_tile = None
+                        else:
+                            cost = reachable[(tile.row, tile.col)]
+                            for group in move_mode_unit_groups:
+                                game_map.move_group(group, tile.row, tile.col, cost)
+                            selected_tile = game_map.tiles[tile.row][tile.col]
+                            renderer.selected_unit_groups = {g for g in move_mode_unit_groups}
+                            move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
+                            if not move_mode:
+                                move_hover_tile = None
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 pos = event.pos
 
-                if terrain_popup_active:
+                if battle_popup_active:
+                    if renderer.battle_popup_confirm_rect and renderer.battle_popup_confirm_rect.collidepoint(pos):
+                        result = resolve_battle(pending_combat_preview)
+                        attacker_groups = pending_combat_preview['attacker_groups']
+                        defender = pending_combat_preview['defender']
+                        a_losses = result['attacker_losses']
+                        for group in reversed(attacker_groups):
+                            while a_losses > 0 and group.units:
+                                group.units.pop()
+                                a_losses -= 1
+                        d_losses = result['defender_losses']
+                        if isinstance(defender, City):
+                            for _ in range(min(d_losses, len(defender.pops))):
+                                defender.pops.pop()
+                            if defender.pops:
+                                defender.rebalance_pops()
+                        else:
+                            for group in reversed(defender):
+                                while d_losses > 0 and group.units:
+                                    group.units.pop()
+                                    d_losses -= 1
+                        if result['outcome'] == 'attacker_wins':
+                            if pending_combat_tile:
+                                pending_combat_tile.unit_groups = [g for g in pending_combat_tile.unit_groups if g.units]
+                                if not pending_combat_tile.unit_groups:
+                                    step_cost = game_map._step_cost(selected_tile.row, selected_tile.col, pending_combat_tile.row, pending_combat_tile.col)
+                                    survivors = [g for g in attacker_groups if g.units]
+                                    for group in survivors:
+                                        game_map.move_group(group, pending_combat_tile.row, pending_combat_tile.col, step_cost)
+                                    selected_tile = pending_combat_tile
+                                    renderer.selected_unit_groups = {g for g in survivors}
+                            game_log.append(f"Battle won! Losses — us: {result['attacker_losses']}, them: {result['defender_losses']}")
+                        elif result['outcome'] == 'defender_wins':
+                            game_log.append(f"Battle lost! Losses — us: {result['attacker_losses']}, them: {result['defender_losses']}")
+                        else:
+                            game_log.append(f"Battle drawn! Losses — us: {result['attacker_losses']}, them: {result['defender_losses']}")
+                        for row in game_map.tiles:
+                            for t in row:
+                                t.unit_groups = [g for g in t.unit_groups if g.units]
+                        move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
+                        battle_popup_active = False
+                        pending_combat_preview = None
+                        pending_combat_tile = None
+                    elif renderer.battle_popup_cancel_rect and renderer.battle_popup_cancel_rect.collidepoint(pos):
+                        battle_popup_active = False
+                        pending_combat_preview = None
+                        pending_combat_tile = None
+
+                elif terrain_popup_active:
                     for terrain, rect in renderer.terrain_option_rects.items():
                         if rect.collidepoint(pos):
                             selected_tile.terrain = terrain
@@ -604,7 +682,9 @@ def main():
                       game_log=game_log,
                       move_hover_tile=move_hover_tile,
                       console_active=console_active,
-                      console_input=console_input)
+                      console_input=console_input,
+                      battle_popup_active=battle_popup_active,
+                      battle_popup_preview=pending_combat_preview)
         clock.tick(60)
 
     pygame.quit()

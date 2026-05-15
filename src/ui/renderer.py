@@ -228,6 +228,8 @@ class Renderer:
         self.recruit_popup_food_slider_rect = None
         self.recruit_popup_confirm_rect = None
         self.recruit_popup_cancel_rect = None
+        self.battle_popup_confirm_rect = None
+        self.battle_popup_cancel_rect = None
         self._recruit_slider_dragging = False
         self._recruit_food_slider_dragging = False
 
@@ -548,7 +550,8 @@ class Renderer:
              terrain_popup_active=False, river_popup_active=False,
              moves_remaining=None, game_log=None,
              move_hover_tile=None,
-             console_active=False, console_input=""):
+             console_active=False, console_input="",
+             battle_popup_active=False, battle_popup_preview=None):
         if reachable is None:
             reachable = {}
         self.screen.fill(BG_COLOR)
@@ -975,6 +978,9 @@ class Renderer:
 
         if self.recruit_popup_active and selected_tile and selected_tile.city:
             self._draw_recruit_popup(selected_tile.city)
+
+        if battle_popup_active and battle_popup_preview:
+            self._draw_battle_popup(battle_popup_preview)
 
         if console_active:
             self._draw_console_overlay(console_input)
@@ -1801,6 +1807,84 @@ class Renderer:
         btn_w = (W - pad * 2 - 8) // 2
         self.recruit_popup_confirm_rect = self._draw_button(sx + pad, btn_y, btn_w, 24, "Confirm")
         self.recruit_popup_cancel_rect = self._draw_button(sx + pad + btn_w + 8, btn_y, btn_w, 24, "Cancel")
+
+    def _draw_battle_popup(self, preview):
+        from src.game.city import City
+        overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        self.screen.blit(overlay, (0, 0))
+
+        mod_count = len(preview['modifiers'])
+        W, H = 340, 180 + mod_count * 18
+        sx = (self.screen.get_width() - W) // 2
+        sy = (self.screen.get_height() - H) // 2
+        pad = 16
+        pygame.draw.rect(self.screen, (40, 40, 55), (sx, sy, W, H), border_radius=6)
+        pygame.draw.rect(self.screen, PANEL_DIVIDER, (sx, sy, W, H), 1, border_radius=6)
+
+        title = self.font_header.render("BATTLE", True, HEADER_TEXT_COLOR)
+        self.screen.blit(title, (sx + W // 2 - title.get_width() // 2, sy + 10))
+
+        # Divider below title
+        div_y = sy + 30
+        pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, div_y), (sx + W - pad, div_y))
+
+        # Attacker column (left) / Defender column (right)
+        col_w = (W - pad * 2) // 2
+        left_x = sx + pad
+        right_x = sx + pad + col_w
+        y = div_y + 8
+
+        def faction_name(side):
+            groups = preview['attacker_groups'] if side == 'attacker' else preview['defender']
+            if isinstance(groups, City):
+                return groups.faction.name if groups.faction else groups.name
+            return groups[0].faction.name if groups and groups[0].faction else '—'
+
+        for side, x, unit_key, str_key, total_key in [
+            ('attacker', left_x,  'attacker_units', 'attacker_strength', 'attacker_total'),
+            ('defender', right_x, 'defender_units', 'defender_strength', 'defender_total'),
+        ]:
+            color = HEADER_TEXT_COLOR
+            name_surf = self.font_header.render(faction_name(side), True, color)
+            self.screen.blit(name_surf, (x, y))
+            units_surf = self.font_body.render(f"{preview[unit_key]} units", True, TEXT_COLOR)
+            self.screen.blit(units_surf, (x, y + 18))
+            str_surf = self.font_body.render(f"Strength: {preview[str_key]}", True, TEXT_COLOR)
+            self.screen.blit(str_surf, (x, y + 34))
+
+        # Vertical divider between columns
+        mid_x = sx + W // 2
+        pygame.draw.line(self.screen, PANEL_DIVIDER, (mid_x, div_y + 4), (mid_x, div_y + 56))
+
+        y += 56
+        pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, y), (sx + W - pad, y))
+        y += 6
+
+        # Modifiers
+        for label, side, value in preview['modifiers']:
+            sign = '+' if value >= 0 else ''
+            text = f"{label} ({side}): {sign}{value}"
+            surf = self.font_body.render(text, True, (180, 200, 160) if value > 0 else (200, 160, 160))
+            self.screen.blit(surf, (sx + pad, y))
+            y += 18
+
+        pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, y), (sx + W - pad, y))
+        y += 6
+
+        # Totals
+        at_surf = self.font_body.render(f"Total: {preview['attacker_total']}", True, TEXT_COLOR)
+        dt_surf = self.font_body.render(f"Total: {preview['defender_total']}", True, TEXT_COLOR)
+        self.screen.blit(at_surf, (left_x, y))
+        self.screen.blit(dt_surf, (right_x, y))
+        y += 24
+
+        pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, y), (sx + W - pad, y))
+        y += 8
+
+        btn_w = (W - pad * 2 - 8) // 2
+        self.battle_popup_confirm_rect = self._draw_button(sx + pad, y, btn_w, 24, "Attack")
+        self.battle_popup_cancel_rect = self._draw_button(sx + pad + btn_w + 8, y, btn_w, 24, "Cancel")
 
     def _draw_save_popup(self, text):
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
