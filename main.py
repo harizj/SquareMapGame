@@ -1,6 +1,8 @@
 import json
 import os
 import pygame
+from src.game.city import City
+from src.game.pop import Pop
 from src.game.unit_group import UnitGroup
 from src.game.map import Map
 from src.game.save_load import load_map_data, save_map
@@ -9,14 +11,30 @@ from src.game.unit import Unit
 from src.ui.renderer import Renderer
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_PATH = os.path.join(_DIR, 'config.json')
+GAME_CONFIG_PATH = os.path.join(_DIR, 'game_config.json')
 
 
-def _load_config():
-    if os.path.exists(CONFIG_PATH):
-        with open(CONFIG_PATH) as f:
+def _load_game_config():
+    if os.path.exists(GAME_CONFIG_PATH):
+        with open(GAME_CONFIG_PATH) as f:
             return json.load(f)
-    return {'load_map': ''}
+    return {}
+
+
+def _apply_game_config(game_map, game_config):
+    for city_data in game_config.get('cities', []):
+        r, c = city_data['row'], city_data['col']
+        name = city_data.get('name') or game_map._take_city_name()
+        city = City(r, c, name)
+        game_map.cities[(r, c)] = city
+        game_map.setup_city(city)
+
+    for ug_data in game_config.get('unit_groups', []):
+        r, c = ug_data['row'], ug_data['col']
+        group = UnitGroup(r, c, units=[Unit(Pop()) for _ in range(ug_data['num_units'])])
+        group.add_food(ug_data['food'])
+        group.allocate_food()
+        game_map.tiles[r][c].unit_groups.append(group)
 
 
 def _compute_move_state(selected_unit_groups, selected_tile, game_map):
@@ -32,15 +50,18 @@ def _compute_move_state(selected_unit_groups, selected_tile, game_map):
 def main():
     pygame.init()
 
-    config = _load_config()
-    map_name = config.get('load_map', '').strip()
+    game_config = _load_game_config()
+    map_name = game_config.get('map', '').strip()
     if map_name:
         data = load_map_data(map_name)
-        game_map = Map.from_dict(data) if data else Map()
-        if not data:
-            print(f"Save '{map_name}' not found — starting fresh map.")
+        if data:
+            game_map = Map.from_dict(data)
+        else:
+            print(f"Map '{map_name}' not found — starting fresh map.")
+            game_map = Map()
     else:
         game_map = Map()
+    _apply_game_config(game_map, game_config)
 
     renderer = Renderer(game_map)
     clock = pygame.time.Clock()

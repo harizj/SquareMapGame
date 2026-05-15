@@ -288,27 +288,6 @@ class Map:
                         t.river_edges.add(edge)
                 row.append(t)
             m.tiles.append(row)
-        group_a = UnitGroup(5, 5, units=[Unit(Pop()) for _ in range(3)])
-        group_a.add_food(12.0)
-        group_a.allocate_food()
-        group_b = UnitGroup(5, 5, units=[Unit(Pop()) for _ in range(2)])
-        group_b.add_food(3.0)
-        group_b.allocate_food()
-        m.tiles[5][5].unit_groups = [group_a, group_b]
         m._city_name_idx = 0
-        m.cities = {(7, 2): City(7, 2, m._take_city_name()),
-            (3, 6): City(3, 6, m._take_city_name()),
-            (9, 4): City(9, 4, m._take_city_name())}
-        for city in m.cities.values():
-            m.setup_city(city)
-        # m.unit_groups = {}
-        # for ud in data['unit_groups']:
-        #     u = UnitGroup(ud['row'], ud['col'], ud['unit_type'])
-        #     u.max_moves = ud['max_moves']
-        #     u.moves_remaining = ud['moves_remaining']
-        #     m.unit_groups[(u.row, u.col)] = u
-        # m.cities = {}
-        # for cd in data.get('cities', []):
-        #     city = City(cd['row'], cd['col'], cd['name'])
-        #     m.cities[(city.row, city.col)] = city
+        m.cities = {}
         return m
