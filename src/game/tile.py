@@ -52,6 +52,10 @@ class Tile:
         self.trade_routes = []
         self.city_distance = None
         self.cities_in_range = []
+        self.raided = False
+        self._raided_ticker = 0
+        self.restricted = False
+        self._restricted_ticker = 0
         self.jobs = []
         self._init_jobs()
         self.food_allocated_from_routes = 0.0
@@ -75,9 +79,14 @@ class Tile:
                 moving_faction = self.unit_groups[0].faction
                 if moving_faction is not None and moving_faction is not self.city.faction:
                     self.city.change_faction(moving_faction)
+            self.city._build_cumulative_farm_yield()
+            self.city.update_cumulative_farm_yield_net()
             self.city.rebalance_pops()
 
     def _init_jobs(self):
+        if self.raided or self.restricted:
+            self.jobs = []
+            return
         slots = TILE_FARM_SLOTS.get(self.terrain, 0)
         self.jobs = [FarmJob(slots)] if slots > 0 else []
 
@@ -97,6 +106,10 @@ class Tile:
         raided_farms = min(num_units, self.worked_farms)
         result['raided_farms'] = raided_farms
         result['food_gained'] = raided_farms * self.farm_yield
+        self.raided = True
+        self._raided_ticker = 5
+        self._init_jobs()
+        city.rebalance_pops()
 
         captured_count = sum(1 for _ in range(raided_farms) if random.random() < 0.5)
         if captured_count > 0:
@@ -112,6 +125,23 @@ class Tile:
             result['captured_pops'] = to_capture
 
         return result
+
+    def has_active_tickers(self):
+        return self._raided_ticker > 0 or self._restricted_ticker > 0
+
+    def update_tickers(self):
+        if self._raided_ticker > 0:
+            self._raided_ticker -= 1
+            if self._raided_ticker == 0:
+                self.raided = False
+                self._init_jobs()
+                city = self.owning_city
+                if city is not None:
+                    city._build_cumulative_farm_yield()
+                    city.update_cumulative_farm_yield_net()
+                    city.rebalance_pops()
+        if self._restricted_ticker > 0:
+            self._restricted_ticker -= 1
 
     def update_after_movement(self):
         self._update_city_with_movement()

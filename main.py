@@ -512,6 +512,7 @@ def main():
                                 target.merge(other)
                                 selected_tile.unit_groups.remove(other)
                                 renderer.selected_unit_groups.discard(other)
+                            selected_tile.update_after_movement()
                     move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                     if not move_mode:
                         move_hover_tile = None
@@ -557,6 +558,17 @@ def main():
                     city = selected_tile.owning_city if selected_tile else None
                     if city:
                         city.rebalance_pops()
+
+                elif renderer.restrict_tile_button_rect and renderer.restrict_tile_button_rect.collidepoint(pos):
+                    if selected_tile:
+                        selected_tile.restricted = not selected_tile.restricted
+                        selected_tile._restricted_ticker = 5 if selected_tile.restricted else 0
+                        selected_tile._init_jobs()
+                        city = selected_tile.owning_city
+                        if city:
+                            city._build_cumulative_farm_yield()
+                            city.update_cumulative_farm_yield_net()
+                            city.rebalance_pops()
 
                 elif any(r.collidepoint(pos) for r in renderer.city_focus_rects.values()):
                     city = selected_tile.owning_city if selected_tile else None
@@ -612,6 +624,10 @@ def main():
                         selected_on_tile = [g for g in game_map.get_unit_groups(selected_tile.row, selected_tile.col) if g in renderer.selected_unit_groups]
                         num_units = sum(len(g.units) for g in selected_on_tile)
                         result = selected_tile.raid(num_units)
+                        for group in selected_on_tile:
+                            group.moves_remaining = max(0, group.moves_remaining - 2)
+                            if group.moves_remaining == 0:
+                                group.move_exhausted = True
                         raided = result['raided_farms']
                         captured_pops = result['captured_pops']
                         remaining_food = result['food_gained']
@@ -686,6 +702,10 @@ def main():
                     if id(route) not in seen:
                         seen.add(id(route))
                         route.end_turn()
+            for row in game_map.tiles:
+                for tile in row:
+                    if tile.has_active_tickers():
+                        tile.update_tickers()
             for (r, c) in game_map.unit_groups:
                 game_map.tiles[r][c].update_unit_allocations()
             move_hover_tile = None

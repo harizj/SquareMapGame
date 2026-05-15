@@ -213,6 +213,27 @@ class Map:
                     heapq.heappush(queue, (new_cost, (nr, nc)))
         return [], []
 
+    def recalculate_city_tiles(self, city):
+        for tile in city.owned_tiles:
+            tile.owning_city = None
+            tile.city_distance = None
+        for row in self.tiles:
+            for tile in row:
+                if city in tile.cities_in_range:
+                    tile.cities_in_range.remove(city)
+        city.owned_tiles = []
+        city_range = self.get_city_range(city)
+        for (r, c), cost in city_range.items():
+            tile = self.tiles[r][c]
+            tile.cities_in_range.append(city)
+            if tile.owning_city is None:
+                tile.owning_city = city
+                tile.city_distance = cost
+                city.owned_tiles.append(tile)
+        city._build_cumulative_farm_yield()
+        city.update_cumulative_farm_yield_net()
+        city.rebalance_pops()
+
     def remove_city(self, city):
         for tile in city.owned_tiles:
             tile.owning_city = None

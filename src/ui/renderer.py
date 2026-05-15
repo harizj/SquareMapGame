@@ -172,6 +172,7 @@ class Renderer:
         self.change_terrain_button_rect = None
         self.draw_river_button_rect = None
         self.rebalance_pops_button_rect = None
+        self.restrict_tile_button_rect = None
         self.halt_growth_rect = None
         self.gates_closed_rect = None
         self.admin_minus_rect = None
@@ -1530,6 +1531,7 @@ class Renderer:
     def _draw_panel(self, tile, move_mode=False):
         self.move_button_rect = None
         self.raid_button_rect = None
+        self.restrict_tile_button_rect = None
         self.save_map_button_rect = None
         self.change_terrain_button_rect = None
         self.draw_river_button_rect = None
@@ -1586,6 +1588,23 @@ class Renderer:
             farms_surf = self.font_body.render(f"{tile.worked_farms} farms", True, TEXT_COLOR)
             self.screen.blit(farms_surf, (x + 4, y))
             y += farms_surf.get_height() + 4
+        if tile and tile.raided:
+            label = f"Raided ({tile._raided_ticker} turns left)" if tile._raided_ticker > 0 else "Raided"
+            surf = self.font_body.render(label, True, (200, 80, 80))
+            self.screen.blit(surf, (x + 4, y))
+            y += surf.get_height() + 2
+        if tile and tile.restricted:
+            label = f"Restricted ({tile._restricted_ticker} turns left)" if tile._restricted_ticker > 0 else "Restricted"
+            surf = self.font_body.render(label, True, (200, 160, 60))
+            self.screen.blit(surf, (x + 4, y))
+            y += surf.get_height() + 2
+        if tile:
+            btn_label = "Unrestrict Tile" if tile.restricted else "Restrict Tile"
+            disabled = tile._restricted_ticker > 0
+            self.restrict_tile_button_rect = self._draw_button(x, y, PANEL_WIDTH - pad * 2, 20, btn_label, disabled=disabled)
+            if disabled:
+                self.restrict_tile_button_rect = None
+            y += 26
         y += 6
 
         unit_groups = self.map.get_unit_groups(tile.row, tile.col) if tile else []
@@ -1624,11 +1643,15 @@ class Renderer:
             )
             unit_faction = first_group.faction if first_group else None
             tile_faction = tile.owning_city.faction if tile and tile.owning_city else None
+            tile_farm_jobs = [j for j in tile.jobs if j.job_type == 'farm'] if tile else []
             raid_enabled = (
                 bool(selected_on_tile) and
                 unit_faction is not None and
                 tile_faction is not None and
-                tile_faction is not unit_faction
+                tile_faction is not unit_faction and
+                not any(g.move_exhausted for g in selected_on_tile) and
+                all(g.moves_remaining >= 2 for g in selected_on_tile) and
+                bool(tile_farm_jobs)
             )
             self.raid_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Raid", disabled=not raid_enabled)
             if not raid_enabled:
