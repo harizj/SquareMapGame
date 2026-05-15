@@ -18,6 +18,7 @@ class UnitGroup:
         self.food_allocated_from_routes = 0.0
         self.pending_pop_loss = 0
         self.move_exhausted = False
+        self.can_capture_tile = False
 
     def get_color(self, color_type):
         if self.faction:

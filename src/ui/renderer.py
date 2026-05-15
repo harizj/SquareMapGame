@@ -1678,10 +1678,9 @@ class Renderer:
             tile_farm_jobs = [j for j in tile.jobs if j.job_type == 'farm'] if tile else []
             capture_enabled = (
                 bool(selected_on_tile) and
-                unit_faction is not None and
-                tile_faction is not None and
-                tile_faction is not unit_faction and
-                not any(g.move_exhausted for g in selected_on_tile)
+                not any(g.move_exhausted for g in selected_on_tile) and
+                any(g.can_capture_tile for g in selected_on_tile) and
+                all(g.moves_remaining >= g.max_moves for g in selected_on_tile)
             )
             self.capture_button_rect = self._draw_button(x, y, half_w, btn_h, "Capture", disabled=not capture_enabled)
             if not capture_enabled:
