@@ -1,3 +1,4 @@
+import random
 from src.game.jobs import FarmJob
 
 # Yield per assigned pop at each distance increment (fill in from LP results later)
@@ -79,6 +80,38 @@ class Tile:
     def _init_jobs(self):
         slots = TILE_FARM_SLOTS.get(self.terrain, 0)
         self.jobs = [FarmJob(slots)] if slots > 0 else []
+
+    def raid(self, num_units):
+        """Raid worked farms on this tile.
+
+        Returns dict with:
+          raided_farms   -- number of farms raided
+          food_gained    -- food to distribute to attacking units
+          captured_pops  -- Pop objects removed from the defending city
+        """
+        result = {'raided_farms': 0, 'food_gained': 0.0, 'captured_pops': []}
+        city = self.owning_city
+        if not city or self.worked_farms == 0:
+            return result
+
+        raided_farms = min(num_units, self.worked_farms)
+        result['raided_farms'] = raided_farms
+        result['food_gained'] = raided_farms * self.farm_yield
+
+        captured_count = sum(1 for _ in range(raided_farms) if random.random() < 0.5)
+        if captured_count > 0:
+            # Prefer pops already assigned to farm jobs on this tile
+            farm_pops = [p for p in city.pops if p.assigned_job in self.jobs]
+            other_pops = [p for p in city.pops if p.assigned_job not in self.jobs]
+            to_capture = (farm_pops + other_pops)[:captured_count]
+            for pop in to_capture:
+                city.pops.remove(pop)
+                pop.assigned_job = None
+            if to_capture:
+                city.rebalance_pops()
+            result['captured_pops'] = to_capture
+
+        return result
 
     def update_after_movement(self):
         self._update_city_with_movement()

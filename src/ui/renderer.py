@@ -166,6 +166,7 @@ class Renderer:
         self._faction_flag_icons = {}
         self._apply_zoom()
         self.move_button_rect = None
+        self.raid_button_rect = None
         self.end_turn_button_rect = None
         self.save_map_button_rect = None
         self.change_terrain_button_rect = None
@@ -1528,6 +1529,7 @@ class Renderer:
 
     def _draw_panel(self, tile, move_mode=False):
         self.move_button_rect = None
+        self.raid_button_rect = None
         self.save_map_button_rect = None
         self.change_terrain_button_rect = None
         self.draw_river_button_rect = None
@@ -1620,7 +1622,17 @@ class Renderer:
                 x, y, half_w, btn_h, "Move",
                 active=move_mode, disabled=min_moves == 0 or not selected_on_tile or any_exhausted,
             )
-            self._draw_button(x + half_w + 4, y, half_w, btn_h, "Attack", disabled=True)
+            unit_faction = first_group.faction if first_group else None
+            tile_faction = tile.owning_city.faction if tile and tile.owning_city else None
+            raid_enabled = (
+                bool(selected_on_tile) and
+                unit_faction is not None and
+                tile_faction is not None and
+                tile_faction is not unit_faction
+            )
+            self.raid_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Raid", disabled=not raid_enabled)
+            if not raid_enabled:
+                self.raid_button_rect = None
             y += btn_h + 6
 
         icon_h = self.font_body.get_height()

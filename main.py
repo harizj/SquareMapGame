@@ -11,6 +11,7 @@ from src.game.save_load import load_map_data, save_map
 from src.game.trade_route import TradeRoute
 from src.game.unit import Unit
 from src.ui.renderer import Renderer
+from src.game.constants import DEFAULT_MOVE_DISTANCE
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
 GAME_CONFIG_PATH = os.path.join(_DIR, 'game_config.json')
@@ -453,6 +454,18 @@ def main():
                     renderer.one_way_route_pending = None
                     renderer.one_way_route_type = 'land'
 
+                elif any(r.collidepoint(pos) for r, _ in renderer.group_icon_rects):
+                    for rect, group in renderer.group_icon_rects:
+                        if rect.collidepoint(pos):
+                            if group in renderer.selected_unit_groups:
+                                renderer.selected_unit_groups.discard(group)
+                            else:
+                                renderer.selected_unit_groups.add(group)
+                            break
+                    move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
+                    if not move_mode:
+                        move_hover_tile = None
+
                 elif renderer.select_all_button_rect and renderer.select_all_button_rect.collidepoint(pos):
                     if selected_tile:
                         renderer.selected_unit_groups.update(game_map.get_unit_groups(selected_tile.row, selected_tile.col))
@@ -593,6 +606,30 @@ def main():
                         move_mode_unit_groups = []
                         reachable = {}
                         move_hover_tile = None
+
+                elif renderer.raid_button_rect and renderer.raid_button_rect.collidepoint(pos):
+                    if selected_tile:
+                        selected_on_tile = [g for g in game_map.get_unit_groups(selected_tile.row, selected_tile.col) if g in renderer.selected_unit_groups]
+                        num_units = sum(len(g.units) for g in selected_on_tile)
+                        result = selected_tile.raid(num_units)
+                        raided = result['raided_farms']
+                        captured_pops = result['captured_pops']
+                        remaining_food = result['food_gained']
+                        for group in selected_on_tile:
+                            if remaining_food <= 0:
+                                break
+                            remaining_food -= group.add_food(remaining_food)
+                        if captured_pops:
+                            attacker_faction = selected_on_tile[0].faction if selected_on_tile else None
+                            new_group = UnitGroup(selected_tile.row, selected_tile.col,
+                                                  units=[Unit(p) for p in captured_pops],
+                                                  faction=attacker_faction)
+                            new_group.moves_remaining = DEFAULT_MOVE_DISTANCE
+                            new_group.move_exhausted = False
+                            new_group.add_food(float(len(captured_pops)))
+                            selected_tile.unit_groups.append(new_group)
+                            selected_tile.update_after_movement()
+                        game_log.append(f"Raid: {raided} farms, {result['food_gained']:.0f} food, {len(captured_pops)} captured.")
 
                 elif renderer.end_turn_button_rect and renderer.end_turn_button_rect.collidepoint(pos):
                     do_end_turn = True
