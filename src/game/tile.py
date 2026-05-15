@@ -126,6 +126,10 @@ class Tile:
 
         return result
 
+    @property
+    def is_disrupted(self):
+        return self.raided or self.restricted
+
     def has_active_tickers(self):
         return self._raided_ticker > 0 or self._restricted_ticker > 0
 

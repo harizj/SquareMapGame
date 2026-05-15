@@ -134,7 +134,7 @@ class Renderer:
                 self._terrain_images_raw[name] = raw_variants
         self._icons_raw = {}
         icons_dir = os.path.join(_ASSETS_DIR, 'icons')
-        for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius'), ('flag', 'flag')):
+        for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius'), ('flag', 'flag'), ('torch', 'torch')):
             path = os.path.join(icons_dir, f'{file_name}.png')
             if os.path.exists(path):
                 self._icons_raw[icon_name] = pygame.image.load(path).convert_alpha()
@@ -164,8 +164,10 @@ class Renderer:
         self._faction_castle_icons = {}
         self._faction_sword_icons = {}
         self._faction_flag_icons = {}
+        self._faction_torch_icons = {}
         self._apply_zoom()
         self.move_button_rect = None
+        self.capture_button_rect = None
         self.raid_button_rect = None
         self.end_turn_button_rect = None
         self.save_map_button_rect = None
@@ -370,6 +372,27 @@ class Renderer:
             dark_result.blit(db, (0, 0))
             self.icons_dark['flag'] = dark_result
             self._faction_flag_icons = {}
+        if 'torch' in self._icons_raw:
+            torch_size = int(HEX_SIZE * self.zoom * 0.5)
+            scaled_torch = pygame.transform.scale(self._icons_raw['torch'], (torch_size, torch_size))
+            outline_r = 5
+            torch_mask = scaled_torch.copy()
+            torch_mask.fill((255, 255, 255), special_flags=pygame.BLEND_RGB_MAX)
+            black_mask = scaled_torch.copy()
+            black_mask.fill((0, 0, 0), special_flags=pygame.BLEND_RGB_MIN)
+            tw, th = scaled_torch.get_size()
+            outlined_torch = pygame.Surface((tw + outline_r * 2, th + outline_r * 2), pygame.SRCALPHA)
+            for _odx in range(-outline_r, outline_r + 1):
+                for _ody in range(-outline_r, outline_r + 1):
+                    if _odx * _odx + _ody * _ody <= outline_r * 2:
+                        outlined_torch.blit(black_mask, (outline_r + _odx, outline_r + _ody))
+            outlined_torch.blit(torch_mask, (outline_r, outline_r))
+            self.icons['torch'] = outlined_torch
+            self._faction_torch_icons = {}
+            for city in self.map.cities.values():
+                if city.faction and city.faction.name not in self._faction_torch_icons:
+                    t, d = self._make_icon_pair(scaled_torch, city.get_city_color('light'), city.get_city_color('dark'), outline_r, pad=outline_r)
+                    self._faction_torch_icons[city.faction.name] = {'tinted': t, 'dark': d}
             for city in self.map.cities.values():
                 if city.faction and city.faction.name not in self._faction_flag_icons:
                     t, d = self._make_icon_pair(scaled, city.get_city_color('light'), city.get_city_color('dark'), flag_outline_radius)
@@ -775,14 +798,20 @@ class Renderer:
         dot_offset_x = int(apothem * 0.72)
         dot_start_y_offset = int(HEX_SIZE * self.zoom * ISO_SCALE * 0.4)
         dot_positions = []  # (ddx, ddy, owning_city)
+        torch_icon = self.icons.get('torch')
         for r in range(self.map.rows):
             for c in range(self.map.cols):
                 tile = self.map.tiles[r][c]
-                if tile.worked_farms <= 0:
-                    continue
                 cx, cy = all_centers[(r, c)]
                 dx = int(cx) - dot_offset_x
                 dy = int(cy) - dot_start_y_offset
+                if tile.is_disrupted and torch_icon:
+                    faction = tile.owning_city.faction if tile.owning_city else None
+                    faction_torch = self._faction_torch_icons.get(faction.name, {}).get('tinted') if faction else None
+                    self.screen.blit(faction_torch or torch_icon, (dx - int(apothem * 0.4), dy - int(apothem * 0.3)))
+                    continue
+                if tile.worked_farms <= 0:
+                    continue
                 for i in range(tile.worked_farms):
                     col_i = i // 3
                     row_i = i % 3
@@ -1530,6 +1559,7 @@ class Renderer:
 
     def _draw_panel(self, tile, move_mode=False):
         self.move_button_rect = None
+        self.capture_button_rect = None
         self.raid_button_rect = None
         self.restrict_tile_button_rect = None
         self.save_map_button_rect = None
@@ -1633,17 +1663,29 @@ class Renderer:
         first_group = unit_groups[0] if unit_groups else None
         if first_group:
             btn_h = 20
-            half_w = (PANEL_WIDTH - pad * 2 - 4) // 2
+            full_w = PANEL_WIDTH - pad * 2
+            half_w = (full_w - 4) // 2
             selected_on_tile = [g for g in unit_groups if g in self.selected_unit_groups]
             min_moves = min(g.moves_remaining for g in unit_groups)
             any_exhausted = any(g.move_exhausted for g in selected_on_tile)
             self.move_button_rect = self._draw_button(
-                x, y, half_w, btn_h, "Move",
+                x, y, full_w, btn_h, "Move",
                 active=move_mode, disabled=min_moves == 0 or not selected_on_tile or any_exhausted,
             )
+            y += btn_h + 4
             unit_faction = first_group.faction if first_group else None
             tile_faction = tile.owning_city.faction if tile and tile.owning_city else None
             tile_farm_jobs = [j for j in tile.jobs if j.job_type == 'farm'] if tile else []
+            capture_enabled = (
+                bool(selected_on_tile) and
+                unit_faction is not None and
+                tile_faction is not None and
+                tile_faction is not unit_faction and
+                not any(g.move_exhausted for g in selected_on_tile)
+            )
+            self.capture_button_rect = self._draw_button(x, y, half_w, btn_h, "Capture", disabled=not capture_enabled)
+            if not capture_enabled:
+                self.capture_button_rect = None
             raid_enabled = (
                 bool(selected_on_tile) and
                 unit_faction is not None and
