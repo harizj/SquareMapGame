@@ -171,9 +171,11 @@ class Tile:
             self.city.rebalance_pops()
 
     def set_extraction_job(self, resource):
+        # print(f"[extraction] tile=({self.row},{self.col}) set_extraction_job: {resource}")
         self.current_extraction_job = resource
 
     def clear_extraction_job(self):
+        # print(f"[extraction] tile=({self.row},{self.col}) clear_extraction_job (was: {self.current_extraction_job})")
         self.current_extraction_job = None
 
     def _init_jobs(self):
@@ -302,7 +304,7 @@ class Tile:
         self.update_unit_allocations()
         for group in self.unit_groups:
             result = self.can_be_captured(group.faction)
-            print(f"[capture check] tile=({self.row},{self.col}) city={self.city.name if self.city else None} city_faction={self.city.faction.name if self.city and self.city.faction else None} group_faction={group.faction.name if group.faction else None} -> {result}")
+            # print(f"[capture check] tile=({self.row},{self.col}) city={self.city.name if self.city else None} city_faction={self.city.faction.name if self.city and self.city.faction else None} group_faction={group.faction.name if group.faction else None} -> {result}")
             group.can_capture_tile = result
         # TO DO: update unit groups allocations
 
@@ -313,14 +315,14 @@ class Tile:
         )
 
     def update_unit_allocations(self):
-        print('Updating unit allocations')
+        # print('Updating unit allocations')
         remaining = self._food_from_routes()
         self.food_allocated_from_routes = 0.0
         for g in self.unit_groups:
             allocated = g.allocate_food(food_from_routes=remaining)
-            print('Allocated:', allocated)
+            # print('Allocated:', allocated)
             self.food_allocated_from_routes += allocated
             remaining = max(0.0, remaining - allocated)
-        print('Food allocated from routes:', self.food_allocated_from_routes)
+        # print('Food allocated from routes:', self.food_allocated_from_routes)
 
         # Later on will need to handle the leftover food

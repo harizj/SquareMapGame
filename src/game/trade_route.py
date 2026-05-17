@@ -48,14 +48,14 @@ class TradeRoute:
         self.city_a.update_cumulative_farm_yield_net()
         self.city_a.rebalance_pops()
 
-        print(f"\n=== New TradeRoute ===")
-        print(f"  city_a={self.city_a.name}  dest={self.destination_name}")
-        print(f"  pops_a={self.pops_a}  pops_b={self.pops_b}")
-        print(f"  partial_pops_a={self.partial_pops_a}  partial_pops_b={self.partial_pops_b}")
-        print(f"  export_material={self.export_material}  export_amount={self.export_amount}  max_export={self.max_export}")
-        print(f"  import_material={self.import_material}  import_amount={self.import_amount}  max_import={self.max_import}")
-        print(f"  caravan_job_a={self.caravan_job_a}  caravan_job_b={self.caravan_job_b}")
-        print(f"  path_distances={self.path_distances}")
+        # print(f"\n=== New TradeRoute ===")
+        # print(f"  city_a={self.city_a.name}  dest={self.destination_name}")
+        # print(f"  pops_a={self.pops_a}  pops_b={self.pops_b}")
+        # print(f"  partial_pops_a={self.partial_pops_a}  partial_pops_b={self.partial_pops_b}")
+        # print(f"  export_material={self.export_material}  export_amount={self.export_amount}  max_export={self.max_export}")
+        # print(f"  import_material={self.import_material}  import_amount={self.import_amount}  max_import={self.max_import}")
+        # print(f"  caravan_job_a={self.caravan_job_a}  caravan_job_b={self.caravan_job_b}")
+        # print(f"  path_distances={self.path_distances}")
 
     @property
     def city_b(self):
@@ -94,7 +94,7 @@ class TradeRoute:
         if self.established == False:
             self.establish_progress += DEFAULT_MOVE_DISTANCE
             if self.establish_progress >= self.distance:
-                print('Trade route established!')
+                # print('Trade route established!')
                 self.establish_progress = self.distance
                 self.established = True
                 self.city_a.update_cumulative_farm_yield_net()

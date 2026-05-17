@@ -148,7 +148,7 @@ class Renderer:
                 self._terrain_images_raw[name] = raw_variants
         self._icons_raw = {}
         icons_dir = os.path.join(_ASSETS_DIR, 'icons')
-        for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius'), ('flag', 'flag'), ('torch', 'restriction')):
+        for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius'), ('flag', 'flag'), ('torch', 'restriction'), ('wood', 'wood'), ('iron', 'iron')):
             path = os.path.join(icons_dir, f'{file_name}.png')
             if os.path.exists(path):
                 self._icons_raw[icon_name] = pygame.image.load(path).convert_alpha()
@@ -179,6 +179,7 @@ class Renderer:
         self._faction_sword_icons = {}
         self._faction_flag_icons = {}
         self._faction_torch_icons = {}
+        self._faction_resource_icons = {}
         self._apply_zoom()
         self.move_button_rect = None
         self.capture_button_rect = None
@@ -420,6 +421,29 @@ class Renderer:
                     t, d, _ = self._make_icon_pair(scaled, city.get_city_color('light'), city.get_city_color('dark'), flag_outline_radius)
                     self._faction_flag_icons[city.faction.name] = {'tinted': t, 'dark': d}
 
+        resource_icon_size = int(HEX_SIZE * self.zoom * 0.35)
+        outline_r = 4
+        self._faction_resource_icons = {}
+        for resource in ('wood', 'iron'):
+            if resource in self._icons_raw:
+                scaled_res = pygame.transform.scale(self._icons_raw[resource], (resource_icon_size, resource_icon_size))
+                res_mask = scaled_res.copy()
+                res_mask.fill((255, 255, 255), special_flags=pygame.BLEND_RGB_MAX)
+                black_mask = scaled_res.copy()
+                black_mask.fill((0, 0, 0), special_flags=pygame.BLEND_RGB_MIN)
+                rw, rh = scaled_res.get_size()
+                outlined = pygame.Surface((rw + outline_r * 2, rh + outline_r * 2), pygame.SRCALPHA)
+                for _odx in range(-outline_r, outline_r + 1):
+                    for _ody in range(-outline_r, outline_r + 1):
+                        if _odx * _odx + _ody * _ody <= outline_r * 2:
+                            outlined.blit(black_mask, (outline_r + _odx, outline_r + _ody))
+                outlined.blit(res_mask, (outline_r, outline_r))
+                self.icons[resource] = outlined
+                for city in self.map.cities.values():
+                    if city.faction and (city.faction.name, resource) not in self._faction_resource_icons:
+                        t, d, _ = self._make_icon_pair(scaled_res, city.get_city_color('light'), city.get_city_color('dark'), outline_r, pad=outline_r)
+                        self._faction_resource_icons[(city.faction.name, resource)] = {'tinted': t, 'dark': d}
+
     def zoom_map(self, factor, mx, my):
         old_zoom = self.zoom
         new_zoom = max(0.4, min(3.0, old_zoom * factor))
@@ -568,8 +592,11 @@ class Renderer:
         """Return the icon surface to display for a tile's active extraction job.
         Extend this to return resource-specific icons keyed by resource name."""
         faction = tile.owning_city.faction if tile.owning_city else None
-        faction_torch = self._faction_torch_icons.get(faction.name, {}).get('dark') if faction else None
-        return faction_torch or self.icons.get('torch')
+        if faction:
+            icon = self._faction_resource_icons.get((faction.name, resource), {}).get('tinted')
+            if icon:
+                return icon
+        return self.icons.get(resource) or self.icons.get('torch')
 
     def _draw_city_bar_fill(self, city, bx, by, bar_w, bar_h, bar_type, tick_w=1, border_radius=0):
         if bar_type == 'food':
@@ -1575,7 +1602,18 @@ class Renderer:
         pt = city.production_target
         pt_label = f"Production: {pt.label}"
         self.production_target_button_rect = self._draw_button(x, y, CITY_PANEL_WIDTH - pad * 2, 22, pt_label)
-        y += 22 + 6
+        y += 22 + 4
+        prod_job = next((j for j in city.jobs if j.job_type == 'production'), None)
+        prod_assigned = prod_job.assigned if prod_job else 0
+        prod_line = f"Production: {city.production_yield:.1f}" if city.production_yield > 0 else "No Production"
+        prod_surf = self.font_body.render(prod_line, True, TEXT_COLOR)
+        self.screen.blit(prod_surf, (x + 4, y))
+        y += prod_surf.get_height() + 2
+        efficiency = city.production_yield / prod_assigned if prod_assigned > 0 else 0.0
+        eff_line = f"Extraction Efficiency: {efficiency:.2f}"
+        eff_surf = self.font_body.render(eff_line, True, TEXT_COLOR)
+        self.screen.blit(eff_surf, (x + 4, y))
+        y += eff_surf.get_height() + 4
 
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
         y += 10
@@ -1598,8 +1636,7 @@ class Renderer:
             else:
                 net_food = (route.export_amount if route.export_material == 'food' else 0) \
                          - (route.import_amount if route.import_material == 'food' else 0)
-            if route.missing_caravans:
-                print('Missing caravans!!')
+
             if route.established:
                 name_line = other_name
             else:

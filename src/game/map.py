@@ -216,7 +216,7 @@ class Map:
         group.reset_after_movement()
         src_tile.update_after_movement()
         dst_tile.update_after_movement()
-        print('Calling dst tile after movement')
+        # print('Calling dst tile after movement')
 
     def to_dict(self):
         return {

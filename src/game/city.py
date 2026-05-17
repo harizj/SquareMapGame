@@ -167,7 +167,7 @@ class City:
 
     def update_cumulative_farm_yield_net(self):
         net_food_from_routes = self._food_from_routes()
-        print('Net food from routes:',net_food_from_routes)
+        # print('Net food from routes:',net_food_from_routes)
         self.cumulative_farm_yield_net = [v + net_food_from_routes for v in self.cumulative_farm_yield]
 
     def _food_produced(self):
@@ -319,7 +319,7 @@ class City:
 
             if route_to_drop is None:
                 break
-            print('Route dropped due to pending pop loss!')
+            # print('Route dropped due to pending pop loss!')
             route_to_drop.detach()
             dropped_job = route_to_drop.caravan_job_a if route_to_drop.city_a is self else route_to_drop.caravan_job_b
             if dropped_job in route_caravan_jobs:
@@ -337,7 +337,7 @@ class City:
                     caravan_assigned += 1
             if job.assigned < job.slots:
                 job.trade_route.missing_caravans = True
-                print('Missing caravan!')
+                # print('Missing caravan!')
 
         if any(r.missing_caravans for r in self.trade_routes):
             self.update_cumulative_farm_yield_net()
@@ -378,6 +378,10 @@ class City:
         if self.extraction_tile:
             self.extraction_tile.clear_extraction_job()
         self.extraction_tile = None
+        # pt = self.production_target
+        # print(f"[extraction] {self.name} rebalance_pops: prod_job={prod_job} prod_job.assigned={prod_job.assigned if prod_job else 'N/A'} target={pt.type}/{pt.target}")
+        # if prod_job and prod_job.assigned == 0:
+        #     pt.clear()
         if prod_job and prod_job.assigned > 0:
             self.production_yield = prod_job.assigned
             pt = self.production_target
@@ -387,10 +391,14 @@ class City:
                     key=lambda t: t.extraction_yield,
                     reverse=True,
                 )
+                # print(f"[extraction] {self.name}: target={pt.target} deposit_tiles={[(t.row,t.col,t.extraction_yield) for t in deposit_tiles]}")
                 if deposit_tiles:
                     self.extraction_tile = deposit_tiles[0]
                     self.extraction_tile.set_extraction_job(pt.target)
                     self.production_yield = prod_job.assigned * self.extraction_tile.extraction_yield
+                    # print(f"[extraction] {self.name}: extraction_tile=({self.extraction_tile.row},{self.extraction_tile.col}) production_yield={self.production_yield:.2f}")
+                else:
+                    print(f"[extraction] {self.name}: no deposit tiles found for {pt.target}")
 
         self.update_production_bar()
         self._update_food_allocations()
@@ -427,7 +435,7 @@ class City:
             for route in missing:
                 other_name = route.destination_name if route.city_a is self else route.city_a.name
                 route.detach()
-                print(f"{self.name}: trade route to {other_name} cancelled — not enough caravans")
+                # print(f"{self.name}: trade route to {other_name} cancelled — not enough caravans")
             self.rebalance_pops()
 
         log = []
@@ -468,10 +476,12 @@ class City:
         pt = self.production_target
         if pt.type == 'extraction' and pt.target and self.production_yield > 0 and self.extraction_tile:
             resource = pt.target
+            # print(f"[extraction] {self.name} end_turn: extracting {self.production_yield:.2f} {resource} from ({self.extraction_tile.row},{self.extraction_tile.col}) deposit={self.extraction_tile.resource_deposits.get(resource, 0):.1f}")
             extracted = self.extraction_tile.extraction(self.production_yield, resource)
             city_tile = next((t for t in self.owned_tiles if t.row == self.row and t.col == self.col), None)
             if city_tile:
                 city_tile.add_resources_to_stockpile(extracted, resource)
+                # print(f"[extraction] {self.name} end_turn: extracted={extracted:.2f}, city_tile stockpile={city_tile.resource_stockpiles}")
 
         # Step 5: spawn new pops
         spawned = 0

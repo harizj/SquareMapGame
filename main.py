@@ -14,7 +14,7 @@ from src.ui.renderer import Renderer
 from src.game.constants import DEFAULT_MOVE_DISTANCE
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
-GAME_CONFIG_PATH = os.path.join(_DIR, 'game_config.json')
+GAME_CONFIG_PATH = os.path.join(_DIR, 'game_config_kalimdor.json')
 
 
 def _load_game_config():
@@ -92,7 +92,7 @@ def main():
         if data:
             game_map = Map.from_dict(data)
         else:
-            print(f"Map '{map_name}' not found — starting fresh map.")
+            # print(f"Map '{map_name}' not found — starting fresh map.")
             game_map = Map()
     else:
         game_map = Map()
@@ -157,7 +157,7 @@ def main():
                     if event.key == pygame.K_RETURN and save_popup_text.strip():
                         name = save_popup_text.strip().replace(' ', '_')
                         path = save_map(game_map, name)
-                        print(f"Saved: {path}")
+                        # print(f"Saved: {path}")
                         save_popup_active = False
                         save_popup_text = ""
                     elif event.key == pygame.K_ESCAPE:
@@ -277,7 +277,7 @@ def main():
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 pos = event.pos
-                print(f"[LMB] pos={pos} battle={battle_popup_active} terrain={terrain_popup_active} river={river_popup_active} save={save_popup_active} recruit={renderer.recruit_popup_active} one_way_pending={renderer.one_way_route_pending is not None}")
+                # print(f"[LMB] pos={pos} battle={battle_popup_active} terrain={terrain_popup_active} river={river_popup_active} save={save_popup_active} recruit={renderer.recruit_popup_active} one_way_pending={renderer.one_way_route_pending is not None}")
 
                 if battle_popup_active:
                     if renderer.battle_popup_confirm_rect and renderer.battle_popup_confirm_rect.collidepoint(pos):
@@ -749,7 +749,7 @@ def main():
                     clicked_tile = renderer.get_tile_at(*pos)
                     prev = f"({selected_tile.row},{selected_tile.col})" if selected_tile else "None"
                     clicked = f"({clicked_tile.row},{clicked_tile.col}) city={clicked_tile.city.name if clicked_tile and clicked_tile.city else None}" if clicked_tile else "None"
-                    print(f"[CLICK] prev={prev} clicked={clicked} units_on_clicked={[str(g.faction.name if g.faction else '?') for g in (game_map.get_unit_groups(clicked_tile.row, clicked_tile.col) if clicked_tile else [])]}")
+                    # print(f"[CLICK] prev={prev} clicked={clicked} units_on_clicked={[str(g.faction.name if g.faction else '?') for g in (game_map.get_unit_groups(clicked_tile.row, clicked_tile.col) if clicked_tile else [])]}")
                     if clicked_tile and selected_tile and clicked_tile.row == selected_tile.row and clicked_tile.col == selected_tile.col:
                         unit_groups = game_map.get_unit_groups(selected_tile.row, selected_tile.col)
                         if unit_groups and all(g in renderer.selected_unit_groups for g in unit_groups):
