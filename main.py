@@ -249,12 +249,13 @@ def main():
                             if len(path) >= 2:
                                 stop_pos = path[-2]
                                 if stop_pos != (selected_tile.row, selected_tile.col):
-                                    stop_cost = reachable[stop_pos]
+                                    #stop_cost = reachable[stop_pos]
+                                    cost = reachable[(tile.row, tile.col)]
                                     for group in move_mode_unit_groups:
-                                        game_map.move_group(group, stop_pos[0], stop_pos[1], stop_cost)
+                                        game_map.move_group(group, stop_pos[0], stop_pos[1], cost)
                                     selected_tile = game_map.tiles[stop_pos[0]][stop_pos[1]]
                                     renderer.selected_unit_groups = {g for g in move_mode_unit_groups}
-                                    move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
+                                    #move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                                 attacker_tile = selected_tile
                                 defender_tile = game_map.tiles[tile.row][tile.col]
                                 pending_combat_preview = compute_battle_preview(list(move_mode_unit_groups), list(enemy_groups), attacker_tile, defender_tile)
@@ -297,7 +298,7 @@ def main():
                                     step_cost = game_map._step_cost(selected_tile.row, selected_tile.col, pending_combat_tile.row, pending_combat_tile.col)
                                     survivors = [g for g in attacker_groups if g.units]
                                     for group in survivors:
-                                        game_map.move_group(group, pending_combat_tile.row, pending_combat_tile.col, step_cost)
+                                        game_map.move_group(group, pending_combat_tile.row, pending_combat_tile.col, 0)
                                     selected_tile = pending_combat_tile
                                     renderer.selected_unit_groups = {g for g in survivors}
                             game_log.append(f"Battle won! Losses — us: {result['attacker_losses']}, them: {result['defender_losses']}")
