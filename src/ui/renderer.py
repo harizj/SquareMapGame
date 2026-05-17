@@ -608,6 +608,27 @@ class Renderer:
             fill_w = max(int(bar_w * min(city.construction_progress, 1000) / 1000), 0)
             if fill_w > 0:
                 pygame.draw.rect(self.screen, (130, 130, 140), (bx, by, fill_w, bar_h), border_radius=border_radius)
+        elif bar_type == 'production':
+            total = city.production_complete
+            if total and total > 0:
+                proj = min(city.production_progress + city.production_yield, total)
+                proj_w = max(int(bar_w * proj / total), 0)
+                if proj_w > 0:
+                    pygame.draw.rect(self.screen, (210, 175, 110), (bx, by, proj_w, bar_h), border_radius=border_radius)
+                fill_w = max(int(bar_w * min(city.production_progress, total) / total), 0)
+                if fill_w > 0:
+                    pygame.draw.rect(self.screen, (170, 120, 55), (bx, by, fill_w, bar_h), border_radius=border_radius)
+
+    def _draw_labeled_bar(self, city, label_text, value_text, bar_type, x, y, bar_w, bar_h, gap=8, **kwargs):
+        label = self.font_small.render(label_text, True, TEXT_COLOR)
+        val = self.font_small.render(value_text, True, TEXT_COLOR)
+        self.screen.blit(label, (x, y))
+        self.screen.blit(val, (x + bar_w - val.get_width(), y))
+        y += label.get_height() + 2
+        pygame.draw.rect(self.screen, (30, 30, 40), (x, y, bar_w, bar_h), border_radius=2)
+        self._draw_city_bar_fill(city, x, y, bar_w, bar_h, bar_type, border_radius=2, **kwargs)
+        pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, bar_w, bar_h), 1, border_radius=2)
+        return y + bar_h + gap
 
     def draw(self, selected_tile=None, reachable=None, move_mode=False,
              save_popup_active=False, save_popup_text="",
@@ -1017,7 +1038,7 @@ class Renderer:
             constr_bar_y = growth_bar_y + mini_bar_h + mini_gap
             self._draw_city_bar_fill(city, mbx, food_bar_y,  mini_bar_w, mini_bar_h, 'food')
             self._draw_city_bar_fill(city, mbx, growth_bar_y, mini_bar_w, mini_bar_h, 'growth')
-            self._draw_city_bar_fill(city, mbx, constr_bar_y, mini_bar_w, mini_bar_h, 'construction')
+            self._draw_city_bar_fill(city, mbx, constr_bar_y, mini_bar_w, mini_bar_h, 'production')
             pop_fill_r = circle_r
             pop_ring_r = circle_r + 3
             pygame.draw.circle(self.screen, city_dark,  (circle_cx, circle_cy), pop_ring_r)
@@ -1406,37 +1427,19 @@ class Renderer:
 
         # Food stockpile bar
         food_max = city._stockpile_max()
-        label = self.font_small.render("Food", True, TEXT_COLOR)
-        val = self.font_small.render(f"{int(city.food_stockpile)}/{food_max}", True, TEXT_COLOR)
-        self.screen.blit(label, (bar_x, y))
-        self.screen.blit(val, (bar_x + bar_w - val.get_width(), y))
-        y += label.get_height() + 2
-        pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
-        self._draw_city_bar_fill(city, bar_x, y, bar_w, bar_h, 'food', tick_w=2, border_radius=2)
-        pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
-        y += bar_h + 8
+        y = self._draw_labeled_bar(city, "Food", f"{int(city.food_stockpile)}/{food_max}", 'food', bar_x, y, bar_w, bar_h, gap=8, tick_w=2)
 
         # Growth bar
-        label = self.font_small.render("Growth", True, TEXT_COLOR)
-        val = self.font_small.render(f"{int(city.growth_progress)}/100", True, TEXT_COLOR)
-        self.screen.blit(label, (bar_x, y))
-        self.screen.blit(val, (bar_x + bar_w - val.get_width(), y))
-        y += label.get_height() + 2
-        pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
-        self._draw_city_bar_fill(city, bar_x, y, bar_w, bar_h, 'growth', border_radius=2)
-        pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
-        y += bar_h + 8
+        y = self._draw_labeled_bar(city, "Growth", f"{int(city.growth_progress)}/100", 'growth', bar_x, y, bar_w, bar_h, gap=8)
 
-        # Construction bar
-        label = self.font_small.render("Construction", True, TEXT_COLOR)
-        val = self.font_small.render(f"{int(city.construction_progress)}/1000", True, TEXT_COLOR)
-        self.screen.blit(label, (bar_x, y))
-        self.screen.blit(val, (bar_x + bar_w - val.get_width(), y))
-        y += label.get_height() + 2
-        pygame.draw.rect(self.screen, (30, 30, 40), (bar_x, y, bar_w, bar_h), border_radius=2)
-        self._draw_city_bar_fill(city, bar_x, y, bar_w, bar_h, 'construction', border_radius=2)
-        pygame.draw.rect(self.screen, PANEL_DIVIDER, (bar_x, y, bar_w, bar_h), 1, border_radius=2)
-        y += bar_h + 12
+        # Production bar
+        pt = city.production_target
+        prod_label = pt.label if pt.type else "Production"
+        if city.production_complete is not None:
+            prod_val = f"{int(city.production_progress)}/{int(city.production_complete)}"
+        else:
+            prod_val = "—"
+        y = self._draw_labeled_bar(city, prod_label, prod_val, 'production', bar_x, y, bar_w, bar_h, gap=12)
 
         btn_w2 = CITY_PANEL_WIDTH - pad * 2
         btn_h2 = 22

@@ -16,6 +16,9 @@ TURNS_WITH_STOCKPILE_LOSS_THRESHOLD = 5
 
 
 from src.game.production import ProductionTarget
+from src.game.tile import DEPOSIT_STARTING_WOOD, DEPOSIT_STARTING_IRON
+
+_DEPOSIT_STARTING = {'wood': DEPOSIT_STARTING_WOOD, 'iron': DEPOSIT_STARTING_IRON}
 
 
 class City:
@@ -49,6 +52,7 @@ class City:
         self.production_target = ProductionTarget()
         self.production_yield = 0.0
         self.production_progress = 0.0
+        self.production_complete = None
 
     @property
     def unassigned_pops(self):
@@ -114,6 +118,27 @@ class City:
 
     def has_deposit(self, resource):
         return any(resource in t.resource_deposits for t in self.owned_tiles)
+
+    def update_production_bar(self):
+        pt = self.production_target
+        if not pt.type or not pt.target:
+            self.production_complete = None
+            self.production_progress = 0.0
+            return
+        if pt.type == 'extraction':
+            deposit_tiles = sorted(
+                [t for t in self.owned_tiles if pt.target in t.resource_deposits],
+                key=lambda t: t.extraction_yield,
+                reverse=True,
+            )
+            if deposit_tiles:
+                current = deposit_tiles[0].resource_deposits[pt.target]
+                starting = _DEPOSIT_STARTING.get(pt.target, 1)
+                self.production_complete = float(starting)
+                self.production_progress = starting - current
+            else:
+                self.production_complete = None
+                self.production_progress = 0.0
 
     def check_additional_resources(self, resource):
         if not self.has_deposit(resource):
@@ -361,6 +386,7 @@ class City:
                 if deposit_tiles:
                     self.production_yield = prod_job.assigned * deposit_tiles[0].extraction_yield
 
+        self.update_production_bar()
         self._update_food_allocations()
 
     def setup_jobs(self):
