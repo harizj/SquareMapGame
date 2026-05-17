@@ -82,11 +82,12 @@ class Map:
         to_tile = self.tiles[to_r][to_c]
         from_river = 'river' in from_tile.terrain_features
         to_river = 'river' in to_tile.terrain_features
-        if from_river and to_river:
+        no_city = 'city' not in from_tile.terrain_features and 'city' not in to_tile.terrain_features
+        if no_city and from_river and to_river:
             return MOVE_COSTS['with_river']
-        elif from_river:
+        elif no_city and from_river:
             return MOVE_COSTS['cross_river'] / 2 + to_tile.movement_cost / 2
-        elif to_river:
+        elif no_city and to_river:
             return from_tile.movement_cost / 2 + MOVE_COSTS['cross_river'] / 2
         return from_tile.movement_cost / 2 + to_tile.movement_cost / 2
 
@@ -164,6 +165,7 @@ class Map:
             for tile in row:
                 if city in tile.cities_in_range:
                     tile.cities_in_range.remove(city)
+        self._apply_city_tile_features(city)
         city.owned_tiles = []
         city_range = self.get_reachable_from(city.row, city.col, DEFAULT_MOVE_DISTANCE, mode='any', include_start=True)
         for (r, c), cost in city_range.items():
@@ -185,10 +187,32 @@ class Map:
             for tile in row:
                 if city in tile.cities_in_range:
                     tile.cities_in_range.remove(city)
-        self.tiles[city.row][city.col].city = None
+        city_tile = self.tiles[city.row][city.col]
+        city_tile.terrain_features = [f for f in city_tile.terrain_features if f not in ('city', 'water_access')]
+        city_tile.update_terrain_properties()
+        city_tile.city = None
         del self.cities[(city.row, city.col)]
 
+    def _apply_city_tile_features(self, city):
+        city_tile = self.tiles[city.row][city.col]
+        features = city_tile.terrain_features
+        if 'city' not in features:
+            features.append('city')
+        water_adjacent = {'river', 'water'}
+        has_water_neighbor = any(
+            'river' in self.tiles[city.row + dr][city.col + dc].terrain_features or
+            'water' in self.tiles[city.row + dr][city.col + dc].terrain_features
+            for dr, dc in _NEIGHBORS[city.row % 2]
+            if 0 <= city.row + dr < self.rows and 0 <= city.col + dc < self.cols
+        )
+        if has_water_neighbor and 'water_access' not in features:
+            features.append('water_access')
+        city_tile.update_terrain_properties()
+
     def setup_city(self, city):
+        city_tile = self.tiles[city.row][city.col]
+        city_tile.city = city
+        self._apply_city_tile_features(city)
         city_range = self.get_reachable_from(city.row, city.col, DEFAULT_MOVE_DISTANCE, mode='any', include_start=True)
         city.owned_tiles = []
         for (r, c), cost in city_range.items():
@@ -198,8 +222,6 @@ class Map:
                 tile.owning_city = city
                 tile.city_distance = cost
                 city.owned_tiles.append(tile)
-        city_tile = self.tiles[city.row][city.col]
-        city_tile.city = city
         city.unit_groups = list(city_tile.unit_groups)
         city.setup_jobs()
 

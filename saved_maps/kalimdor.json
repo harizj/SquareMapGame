@@ -350,7 +350,9 @@
       {
         "biome": "temperate",
         "terrain_features": [
-          "floodplain"
+          "floodplain",
+          "city",
+          "water_access"
         ],
         "river_edges": []
       },
@@ -496,7 +498,9 @@
       {
         "biome": "taiga",
         "terrain_features": [
-          "forest"
+          "forest",
+          "city",
+          "water_access"
         ],
         "river_edges": []
       },
@@ -625,14 +629,15 @@
       {
         "biome": "temperate",
         "terrain_features": [
-          "forest"
+          "city"
         ],
         "river_edges": []
       },
       {
         "biome": "temperate",
         "terrain_features": [
-          "forest"
+          "forest",
+          "floodplain"
         ],
         "river_edges": []
       },
@@ -768,7 +773,8 @@
         "biome": "badlands",
         "terrain_features": [
           "hills",
-          "river"
+          "river",
+          "floodplain"
         ],
         "river_edges": [
           "NE",
@@ -880,8 +886,10 @@
       {
         "biome": "badlands",
         "terrain_features": [
-          "hills",
-          "river"
+          "river",
+          "city",
+          "water_access",
+          "floodplain"
         ],
         "river_edges": [
           "NW",
@@ -975,7 +983,9 @@
       },
       {
         "biome": "arid",
-        "terrain_features": [],
+        "terrain_features": [
+          "city"
+        ],
         "river_edges": []
       },
       {
@@ -991,7 +1001,8 @@
       {
         "biome": "badlands",
         "terrain_features": [
-          "river"
+          "river",
+          "floodplain"
         ],
         "river_edges": [
           "NE",
@@ -1278,13 +1289,17 @@
         "biome": "temperate",
         "terrain_features": [
           "floodplain",
-          "hills"
+          "hills",
+          "city",
+          "water_access"
         ],
         "river_edges": []
       },
       {
         "biome": "temperate",
-        "terrain_features": [],
+        "terrain_features": [
+          "floodplain"
+        ],
         "river_edges": []
       },
       {
@@ -1307,7 +1322,8 @@
       {
         "biome": "temperate",
         "terrain_features": [
-          "floodplain"
+          "city",
+          "water_access"
         ],
         "river_edges": []
       },
@@ -1722,8 +1738,8 @@
           "river"
         ],
         "river_edges": [
-          "W",
-          "NE"
+          "NE",
+          "W"
         ]
       },
       {
@@ -1754,8 +1770,8 @@
           "river"
         ],
         "river_edges": [
-          "NW",
-          "E"
+          "E",
+          "NW"
         ]
       },
       {

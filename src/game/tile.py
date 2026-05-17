@@ -85,7 +85,8 @@ TERRAIN_FEATURE_FARM_SLOTS = {
     'hills': -1,
     'forest': -2,
     'floodplain': 1,
-    'river': -1
+    'river': -1,
+    'mountains': -5
 }
 
 BIOME_FEATURE_FARM_INTERACTIONS = {
@@ -211,7 +212,12 @@ class Tile:
 
     def update_terrain_properties(self):
         difficult = {'hills', 'forest'}
-        self.movement_cost = DIFFICULT_TERRAIN_COST if any(f in difficult for f in self.terrain_features) else BASE_TERRAIN_COST
+        if 'city' in self.terrain_features:
+            self.movement_cost = BASE_TERRAIN_COST
+        elif any(f in difficult for f in self.terrain_features) or self.biome == 'wetlands':
+            self.movement_cost = DIFFICULT_TERRAIN_COST
+        else:
+            self.movement_cost = BASE_TERRAIN_COST
         self.passable = 'mountain' not in self.terrain_features
         self.water = 'water' in self.terrain_features
         self.water_access = 'water_access' in self.terrain_features

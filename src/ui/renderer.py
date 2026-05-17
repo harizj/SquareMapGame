@@ -1746,6 +1746,8 @@ class Renderer:
             dist_surf = self.font_body.render(f"Distance {tile.city_distance:.2f}", True, TEXT_COLOR)
             self.screen.blit(dist_surf, (x + 4, y))
             y += dist_surf.get_height() + 2
+            # city_tile = self.game_map.tiles[tile.owning_city.row][tile.owning_city.col]
+            # print(f"[terrain] city={tile.owning_city.name} tile=({city_tile.row},{city_tile.col}) movement_cost={city_tile.movement_cost} features={city_tile.terrain_features}")
             yield_surf = self.font_body.render(f"Food Yield: {tile.farm_yield:.2f}", True, TEXT_COLOR)
             self.screen.blit(yield_surf, (x + 4, y))
             y += yield_surf.get_height() + 2
