@@ -1649,9 +1649,6 @@ class Renderer:
         self.screen.blit(surf, (x, y))
         y += surf.get_height() + 6
 
-        def _fmt_amt(v):
-            return str(int(v)) if v == int(v) else f"{v:.1f}"
-
         self.trade_route_delete_rects = []
         self.trade_route_reduce_rects = []
         btn_s = 16
@@ -1678,8 +1675,13 @@ class Renderer:
             self.trade_route_reduce_rects.append((red_rect, route))
             y += surf.get_height() + 2
             pops = route.get_pops_from_city(city)
-            food_str = f"+{_fmt_amt(net_food)}" if net_food >= 0 else _fmt_amt(net_food)
-            detail = f"{pops} pops, {food_str} food"
+            res = route.export_resource if route.export_resource and route.export_resource != 'food' else None
+            if res:
+                sign = "-" if is_origin else "+"
+                resource_str = f"{sign}{route.export_amount:.1f}/{route.max_amount:.1f} {res.title()}"
+            else:
+                resource_str = f"{net_food:+.1f} Food"
+            detail = f"{pops} Pops, {resource_str}"
             if route.missing_caravans:
                 detail += " (ending)"
             surf = self.font_small.render(detail, True, TEXT_COLOR)
