@@ -332,11 +332,17 @@ class City:
         # Caravans (locked to trade routes)
         route_caravan_jobs, total_caravan_slots = self._collect_caravan_jobs()
 
-        while total_caravan_slots > 0 and self._pop_loss_from_locked_jobs(total_caravan_slots + admin_assigned):
+        food_caravan_jobs = [
+            r.caravan_job_a for r in self.trade_routes
+            if r.established and r.city_a is self and
+               r.caravan_job_a is not None and r.export_resource == 'food'
+        ]
+        food_pop_slots = sum(j.slots for j in food_caravan_jobs)
+
+        while food_pop_slots > 0 and self._pop_loss_from_locked_jobs(total_caravan_slots + admin_assigned):
             route_to_drop = next(
                 (r for r in reversed(self.trade_routes)
-                 if (r.city_a is self and r.caravan_job_a is not None) or
-                    (r.destination_is(self) and r.caravan_job_b is not None)),
+                 if r.city_a is self and r.caravan_job_a is not None and r.export_resource == 'food'),
                 None
             )
 
@@ -344,10 +350,13 @@ class City:
                 break
             # print('Route dropped due to pending pop loss!')
             route_to_drop.detach()
-            dropped_job = route_to_drop.caravan_job_a if route_to_drop.city_a is self else route_to_drop.caravan_job_b
+            dropped_job = route_to_drop.caravan_job_a
             if dropped_job in route_caravan_jobs:
                 route_caravan_jobs.remove(dropped_job)
+            if dropped_job in food_caravan_jobs:
+                food_caravan_jobs.remove(dropped_job)
             total_caravan_slots = sum(j.slots for j in route_caravan_jobs)
+            food_pop_slots = sum(j.slots for j in food_caravan_jobs)
 
         caravan_assigned = 0
         for job in route_caravan_jobs:
