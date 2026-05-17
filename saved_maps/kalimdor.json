@@ -1,0 +1,1815 @@
+{
+  "tiles": [
+    [
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [
+          "floodplain"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "taiga",
+        "terrain_features": [
+          "forest"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "tundra",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "tundra",
+        "terrain_features": [
+          "river"
+        ],
+        "river_edges": [
+          "NW",
+          "SW"
+        ]
+      },
+      {
+        "biome": "tundra",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "tundra",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [
+          "floodplain"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "taiga",
+        "terrain_features": [
+          "river"
+        ],
+        "river_edges": [
+          "E",
+          "W"
+        ]
+      },
+      {
+        "biome": "taiga",
+        "terrain_features": [
+          "hills",
+          "mountain"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "taiga",
+        "terrain_features": [
+          "hills"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "taiga",
+        "terrain_features": [
+          "hills",
+          "forest"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "taiga",
+        "terrain_features": [
+          "hills",
+          "forest"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "taiga",
+        "terrain_features": [
+          "hills"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "taiga",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "taiga",
+        "terrain_features": [
+          "forest"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [
+          "forest",
+          "hills"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "mountain"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "taiga",
+        "terrain_features": [
+          "hills",
+          "forest"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "mountain"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "mountain"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "mountain"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "mountain"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [
+          "hills",
+          "forest"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [
+          "hills"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [
+          "mountain"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "mountain"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "badlands",
+        "terrain_features": [
+          "hills",
+          "river"
+        ],
+        "river_edges": [
+          "NE",
+          "SE"
+        ]
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "mountain"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "badlands",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "mountain"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "mountain"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "arid",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "arid",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "arid",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "badlands",
+        "terrain_features": [
+          "hills",
+          "river"
+        ],
+        "river_edges": [
+          "NW",
+          "SW"
+        ]
+      },
+      {
+        "biome": "badlands",
+        "terrain_features": [
+          "hills"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "desert",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "desert",
+        "terrain_features": [
+          "hills"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "mountain"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "arid",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "arid",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "arid",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "badlands",
+        "terrain_features": [
+          "river"
+        ],
+        "river_edges": [
+          "NE",
+          "SE"
+        ]
+      },
+      {
+        "biome": "badlands",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "desert",
+        "terrain_features": [
+          "hills"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "desert",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "mountain"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "mountain"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "arid",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "arid",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "arid",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "arid",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "arid",
+        "terrain_features": [],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      }
+    ],
+    [
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "coastal",
+        "terrain_features": [
+          "water"
+        ],
+        "river_edges": []
+      }
+    ]
+  ],
+  "unit_groups": [],
+  "cities": []
+}

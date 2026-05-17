@@ -50,8 +50,10 @@ DEPOSIT_STARTING_IRON = 20
 
 BIOMES = ['temperate',
         'arid',
+        'badlands',
         'tropical',
         'taiga',
+        'tundra',
         'desert',
         'ice',
         'wetlands',
@@ -61,14 +63,18 @@ BIOMES = ['temperate',
 TERRAIN_FEATURES = ['hills',
                     'forest',
                     'river',
+                    'floodplain',
+                    'mountain',
                     'water',
                     'city',
                     'water_access']
 
 BIOME_FARM_SLOTS = {'temperate': 4,
         'arid': 3,
+        'badlands': 3,
         'tropical': 3,
         'taiga': 2,
+        'tundra': 1,
         'desert': 0,
         'ice': 0,
         'wetlands': 1,
@@ -90,12 +96,14 @@ BIOME_FEATURE_FARM_INTERACTIONS = {
 BIOME_COLORS = {
     'temperate': (105, 168,  88),
     'arid':      (165, 135,  80),
+    'badlands':  (155,  70,  40),
     'tropical':  ( 75, 160,  80),
     'taiga':     ( 80, 120,  95),
+    'tundra':    (148, 152, 130),
     'desert':    (200, 175, 115),
     'ice':       (195, 215, 230),
     'wetlands':  (110, 140, 100),
-    'coastal':   (140, 180, 150),
+    'coastal':   (100, 150, 175),
     'ocean':     ( 55,  95, 155),
 }
 
@@ -125,7 +133,7 @@ class Tile:
         self.water = 'water' in self.terrain_features
         self.water_access = 'water_access' in self.terrain_features
         self.jobs = []
-        self._init_jobs()
+        self.update_terrain_properties()
         self.food_allocated_from_routes = 0.0
         self.resource_stockpiles = {}
         self.resource_deposits = {}
@@ -175,7 +183,7 @@ class Tile:
         elif 'hills' in features:
             self.resource_deposits.setdefault('iron', DEPOSIT_STARTING_IRON)
 
-    _ART_PRIORITY = ['river', 'mountain', 'forest', 'hills', 'water', 'floodplain']
+    _ART_PRIORITY = ['river', 'mountain', 'forest', 'hills', 'water']
 
     def get_terrain_color(self):
         if 'mountain' in self.terrain_features:
@@ -183,13 +191,13 @@ class Tile:
         return BIOME_COLORS.get(self.biome, (150, 150, 150))
 
     def get_terrain_art(self):
-        if self.biome == 'desert':
-            return 'desert'
         if self.biome == 'wetlands':
             return 'marsh'
         for feature in self._ART_PRIORITY:
             if feature in self.terrain_features:
                 return feature
+        if self.biome == 'desert':
+            return 'desert'
         return 'grass'
 
     def update_terrain_properties(self):

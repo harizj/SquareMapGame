@@ -340,7 +340,7 @@ def main():
                                 if feature in selected_tile.terrain_features:
                                     selected_tile.terrain_features = [f for f in selected_tile.terrain_features if f != feature]
                                 else:
-                                    selected_tile.terrain_features = selected_tile.terrain_features + [feature]
+                                    selected_tile.terrain_features = [f for f in selected_tile.terrain_features if f != 'water'] + [feature]
                                 if 'river' not in selected_tile.terrain_features:
                                     selected_tile.river_edges.clear()
                                 changed = True

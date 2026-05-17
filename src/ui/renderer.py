@@ -12,6 +12,8 @@ _ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.pa
 HEX_SIZE = 32
 MARGIN = 40
 PANEL_WIDTH = 220
+DISPLAY_ROWS = 14
+DISPLAY_COLS = 14
 
 COLOR_PARCHMENT = (240, 220, 185)
 
@@ -114,10 +116,10 @@ class Renderer:
     def __init__(self, game_map):
         self.map = game_map
         w = math.sqrt(3) * HEX_SIZE
-        map_area_w = int(game_map.cols * w + w / 2 + 2 * MARGIN)
+        map_area_w = int(DISPLAY_COLS * w + w / 2 + 2 * MARGIN)
         self.map_w = CITY_PANEL_WIDTH + map_area_w
         self.map_start_x = CITY_PANEL_WIDTH
-        screen_h = int((game_map.rows - 1) * HEX_SIZE * 1.5 + 2 * HEX_SIZE + 2 * MARGIN)
+        screen_h = int((DISPLAY_ROWS - 1) * HEX_SIZE * 1.5 + 2 * HEX_SIZE + 2 * MARGIN)
         self.offset_x = CITY_PANEL_WIDTH + MARGIN + w / 2
         self.offset_y = MARGIN + HEX_SIZE
         self.screen = pygame.display.set_mode((self.map_w + PANEL_WIDTH, screen_h))
@@ -668,6 +670,20 @@ class Renderer:
                     img = variants[(r * 7 + c * 13) % len(variants)]
                     cx, cy = all_centers[(r, c)]
                     self.screen.blit(img, (int(cx) - img.get_width() // 2, int(cy) - img.get_height() // 2))
+
+        # Pass 1c: coastline borders between water and land tiles
+        for r in range(self.map.rows):
+            for c in range(self.map.cols):
+                tile = self.map.tiles[r][c]
+                corners = all_corners[(r, c)]
+                for i, (dr, dc) in enumerate(_RENDER_NEIGHBORS[r % 2]):
+                    nr, nc = r + dr, c + dc
+                    if not (0 <= nr < self.map.rows and 0 <= nc < self.map.cols):
+                        continue
+                    neighbor = self.map.tiles[nr][nc]
+                    if tile.water != neighbor.water:
+                        ci, cj = _NEIGHBOR_EDGE_CORNERS[i]
+                        pygame.draw.line(self.screen, (0, 0, 0), corners[ci], corners[cj], 2)
 
         # Pass 2: river images (straight) / lines (bends) on top of fills
         for r in range(self.map.rows):

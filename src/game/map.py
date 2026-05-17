@@ -7,12 +7,12 @@ from src.game.unit_group import UnitGroup
 from src.game.unit import Unit
 from src.game.pop import Pop
 
-GRID_COLS = 14
-GRID_ROWS = 14
+GRID_COLS = 16
+GRID_ROWS = 16
 
 MAP_CONFIG = {
-    'rows': 14,
-    'cols': 14,
+    'rows': 16,
+    'cols': 16,
 }
 
 #MOVE_COSTS = {'desert': 1.0, 'hills': 1.5, 'forest': 1.5, 'with_river': 1.0, 'cross_river': 2.0}
@@ -221,7 +221,7 @@ class Map:
     def to_dict(self):
         return {
             'tiles': [
-                [{'terrain': t.terrain, 'river_edges': list(t.river_edges)} for t in row]
+                [{'biome': t.biome, 'terrain_features': list(t.terrain_features), 'river_edges': list(t.river_edges)} for t in row]
                 for row in self.tiles
             ],
             'unit_groups': [
@@ -249,16 +249,13 @@ class Map:
             for c in range(m.cols):
                 cell = rows_data[r][c]
                 if isinstance(cell, str):
-                    terrain = _TERRAIN_MIGRATION.get(cell, cell)
-                    t = Tile(r, c, terrain)
-                else:
-                    terrain = _TERRAIN_MIGRATION.get(cell['terrain'], cell['terrain'])
-                    biome = cell.get('biome', '')
-                    terrain_features = cell.get('terrain_features', [])
-                    t = Tile(r, c, terrain, biome=biome, terrain_features=terrain_features)
-                    for edge in cell.get('river_edges', []):
-                        t.river_edges.add(edge)
-                    t.update_terrain_properties()
+                    cell = {'terrain': cell}
+                biome = cell.get('biome', 'coastal')
+                terrain_features = cell.get('terrain_features', ['water'])
+                t = Tile(r, c, '', biome=biome, terrain_features=terrain_features)
+                for edge in cell.get('river_edges', []):
+                    t.river_edges.add(edge)
+                t.update_terrain_properties()
                 row.append(t)
             m.tiles.append(row)
         m._city_name_idx = 0
