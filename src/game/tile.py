@@ -38,13 +38,51 @@ TILE_FARM_SLOTS = {
     'forest':   2,
     'mountain': 0,
 }
+BIOMES = ['temperate',
+        'arid',
+        'tropical',
+        'taiga',
+        'desert',
+        'ice',
+        'wetlands',
+        'coastal',
+        'ocean']
+
+TERRAIN_FEATURES = ['hills',
+                    'forest',
+                    'river',
+                    'water',
+                    'city',
+                    'water_access']
+
+BIOME_FARM_SLOTS = {'temperate': 4,
+        'arid': 3,
+        'tropical': 3,
+        'taiga': 2,
+        'desert': 0,
+        'ice': 0,
+        'wetlands': 1,
+        'coastal': 2,
+        'ocean': 0}
+
+FEATURE_FARM_DEDUCTIONS = {
+    'hills': 1,
+    'forest': 2,
+}
+
+BIOME_FEATURE_FARM_INTERACTIONS = {
+    ('tropical', 'forest'): 1,
+    ('arid', 'hills'): 1,
+}
 
 
 class Tile:
-    def __init__(self, row, col, terrain):
+    def __init__(self, row, col, terrain, biome='Coastal', terrain_features=['Water']):
         self.row = row
         self.col = col
         self.terrain = terrain  # 'desert', 'hills', 'river'
+        self.biome = biome
+        self.terrain_features = terrain_features
         self.river_edges = set()  # subset of {'NW','NE','E','SE','SW','W'}
         self.unit_groups = []
         self.city = None
@@ -88,6 +126,16 @@ class Tile:
             self.jobs = []
             return
         slots = TILE_FARM_SLOTS.get(self.terrain, 0)
+        self.jobs = [FarmJob(slots)] if slots > 0 else []
+
+    def update_terrain_properties(self):
+        if self.raided or self.restricted:
+            self.jobs = []
+            return
+        base_slots = BIOME_FARM_SLOTS.get(self.biome, 0)
+        deductions = sum(FEATURE_FARM_DEDUCTIONS.get(f, 0) for f in self.terrain_features)
+        bonuses = sum(BIOME_FEATURE_FARM_INTERACTIONS.get((self.biome, f), 0) for f in self.terrain_features)
+        slots = max(0, base_slots - deductions + bonuses)
         self.jobs = [FarmJob(slots)] if slots > 0 else []
 
     def raid(self, num_units):
