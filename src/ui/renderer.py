@@ -255,8 +255,11 @@ class Renderer:
         self._recruit_food_slider_dragging = False
 
     def _make_icon_pair(self, scaled, light_rgb, dark_rgb, outline_radius, pad=0):
-        """Returns (tinted, dark_surf): tinted=light fill+dark outline, dark=dark fill+light outline.
-        pad expands the output surface so the outline doesn't clip at edges."""
+        """Returns (tinted, dark, selected):
+        tinted   = dark fill + light outline
+        dark     = light fill + dark outline
+        selected = white fill + dark outer outline
+        pad expands the output surface so outlines don't clip at edges."""
         mask = scaled.copy()
         mask.fill((255, 255, 255), special_flags=pygame.BLEND_RGB_MAX)
         lb = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
@@ -265,20 +268,42 @@ class Renderer:
         db = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
         db.fill((*dark_rgb, 255))
         db.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+        wb = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+        wb.fill((255, 255, 255, 255))
+        wb.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+        near_black = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
+        near_black.fill((20, 20, 20, 255))
+        near_black.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
         w, h = scaled.get_width() + 2 * pad, scaled.get_height() + 2 * pad
         result = pygame.Surface((w, h), pygame.SRCALPHA)
         for dx in range(-outline_radius, outline_radius + 1):
             for dy in range(-outline_radius, outline_radius + 1):
                 if dx * dx + dy * dy <= outline_radius * 2:
-                    result.blit(db, (pad + dx, pad + dy))
-        result.blit(lb, (pad, pad))
+                    result.blit(lb, (pad + dx, pad + dy))
+        result.blit(db, (pad, pad))
         dark_result = pygame.Surface((w, h), pygame.SRCALPHA)
         for dx in range(-outline_radius, outline_radius + 1):
             for dy in range(-outline_radius, outline_radius + 1):
                 if dx * dx + dy * dy <= outline_radius * 2:
-                    dark_result.blit(lb, (pad + dx, pad + dy))
-        dark_result.blit(db, (pad, pad))
-        return result, dark_result
+                    dark_result.blit(db, (pad + dx, pad + dy))
+        dark_result.blit(lb, (pad, pad))
+        selected_result = pygame.Surface((w, h), pygame.SRCALPHA)
+        for dx in range(-outline_radius, outline_radius + 1):
+            for dy in range(-outline_radius, outline_radius + 1):
+                if dx * dx + dy * dy <= outline_radius * 2:
+                    selected_result.blit(db, (pad + dx, pad + dy))
+        selected_result.blit(lb, (pad, pad))
+        # outer_r = outline_radius + 2
+        # inner_r = outline_radius // 2 - 1
+        # for dx in range(-outer_r, outer_r + 1):
+        #     for dy in range(-outer_r, outer_r + 1):
+        #         if dx * dx + dy * dy <= outer_r * 2:
+        #             selected_result.blit(lb, (pad + dx, pad + dy))
+        # for dx in range(-inner_r, inner_r + 1):
+        #     for dy in range(-inner_r, inner_r + 1):
+        #         if dx * dx + dy * dy <= inner_r * 2:
+        #             selected_result.blit(db, (pad + dx, pad + dy))
+        return result, dark_result, selected_result
 
     def _apply_zoom(self):
         sz = HEX_SIZE * self.zoom
@@ -339,22 +364,23 @@ class Renderer:
             scaled = pygame.transform.scale(self._icons_raw['castle'], (castle_size, castle_size))
             self.icons['castle'] = scaled
             castle_outline_radius = 8
-            tinted, dark_surf = self._make_icon_pair(scaled, (180, 210, 255), (35, 65, 150), castle_outline_radius)
+            tinted, dark_surf, sel_surf = self._make_icon_pair(scaled, (180, 210, 255), (35, 65, 150), castle_outline_radius)
             self.icons_tinted['castle'] = tinted
             self.icons_dark['castle'] = dark_surf
+            self.icons_selected['castle'] = sel_surf
             self._faction_castle_icons = {}
             for city in self.map.cities.values():
                 if city.faction and city.faction.name not in self._faction_castle_icons:
-                    t, d = self._make_icon_pair(scaled, city.get_city_color('light'), city.get_city_color('dark'), castle_outline_radius)
-                    self._faction_castle_icons[city.faction.name] = {'tinted': t, 'dark': d}
+                    t, d, s = self._make_icon_pair(scaled, city.get_city_color('light'), city.get_city_color('dark'), castle_outline_radius)
+                    self._faction_castle_icons[city.faction.name] = {'tinted': t, 'dark': d, 'selected': s}
         if 'sword' in self._icons_raw:
             scaled = pygame.transform.scale(self._icons_raw['sword'], (sword_size, sword_size))
             self.icons['sword'] = scaled
             sword_outline_radius = 5
-            tinted, dark_surf = self._make_icon_pair(scaled, (180, 210, 255), (35, 65, 150), sword_outline_radius, pad=sword_outline_radius)
+            tinted, dark_surf, sel_surf = self._make_icon_pair(scaled, (180, 210, 255), (35, 65, 150), sword_outline_radius, pad=sword_outline_radius)
             self.icons_tinted['sword'] = tinted
             self.icons_dark['sword'] = dark_surf
-            self.icons_selected['sword'] = dark_surf
+            self.icons_selected['sword'] = sel_surf
             mask = scaled.copy()
             mask.fill((255, 255, 255), special_flags=pygame.BLEND_RGB_MAX)
             lb = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
@@ -364,35 +390,17 @@ class Renderer:
             self._faction_sword_icons = {}
             for city in self.map.cities.values():
                 if city.faction and city.faction.name not in self._faction_sword_icons:
-                    t, d = self._make_icon_pair(scaled, city.get_city_color('light'), city.get_city_color('dark'), sword_outline_radius, pad=sword_outline_radius)
-                    self._faction_sword_icons[city.faction.name] = {'tinted': t, 'dark': d}
+                    t, d, s = self._make_icon_pair(scaled, city.get_city_color('light'), city.get_city_color('dark'), sword_outline_radius, pad=sword_outline_radius)
+                    self._faction_sword_icons[city.faction.name] = {'tinted': t, 'dark': d, 'selected': s}
         if 'flag' in self._icons_raw:
             flag_size = int(ICON_SIZE * 0.4 * self.zoom)
             flag_outline_radius = 6
             scaled = pygame.transform.scale(self._icons_raw['flag'], (flag_size, flag_size))
             self.icons['flag'] = scaled
-            mask = scaled.copy()
-            mask.fill((255, 255, 255), special_flags=pygame.BLEND_RGB_MAX)
-            lb = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
-            lb.fill((180, 210, 255, 255))
-            lb.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-            db = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
-            db.fill((35, 65, 150, 255))
-            db.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-            result = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
-            for dx in range(-flag_outline_radius, flag_outline_radius + 1):
-                for dy in range(-flag_outline_radius, flag_outline_radius + 1):
-                    if dx * dx + dy * dy <= flag_outline_radius * 2:
-                        result.blit(db, (dx, dy))
-            result.blit(lb, (0, 0))
-            self.icons_tinted['flag'] = result
-            dark_result = pygame.Surface(scaled.get_size(), pygame.SRCALPHA)
-            for dx in range(-flag_outline_radius, flag_outline_radius + 1):
-                for dy in range(-flag_outline_radius, flag_outline_radius + 1):
-                    if dx * dx + dy * dy <= flag_outline_radius * 2:
-                        dark_result.blit(lb, (dx, dy))
-            dark_result.blit(db, (0, 0))
+            tinted, dark_result, sel = self._make_icon_pair(scaled, (180, 210, 255), (35, 65, 150), flag_outline_radius)
+            self.icons_tinted['flag'] = tinted
             self.icons_dark['flag'] = dark_result
+            self.icons_selected['flag'] = sel
             self._faction_flag_icons = {}
         if 'torch' in self._icons_raw:
             torch_size = int(HEX_SIZE * self.zoom * 0.45)
@@ -413,11 +421,11 @@ class Renderer:
             self._faction_torch_icons = {}
             for city in self.map.cities.values():
                 if city.faction and city.faction.name not in self._faction_torch_icons:
-                    t, d = self._make_icon_pair(scaled_torch, city.get_city_color('light'), city.get_city_color('dark'), outline_r, pad=outline_r)
+                    t, d, _ = self._make_icon_pair(scaled_torch, city.get_city_color('light'), city.get_city_color('dark'), outline_r, pad=outline_r)
                     self._faction_torch_icons[city.faction.name] = {'tinted': t, 'dark': d}
             for city in self.map.cities.values():
                 if city.faction and city.faction.name not in self._faction_flag_icons:
-                    t, d = self._make_icon_pair(scaled, city.get_city_color('light'), city.get_city_color('dark'), flag_outline_radius)
+                    t, d, _ = self._make_icon_pair(scaled, city.get_city_color('light'), city.get_city_color('dark'), flag_outline_radius)
                     self._faction_flag_icons[city.faction.name] = {'tinted': t, 'dark': d}
 
     def zoom_map(self, factor, mx, my):
@@ -830,7 +838,7 @@ class Renderer:
                 dy = int(cy) - dot_start_y_offset
                 if tile.is_disrupted and torch_icon:
                     faction = tile.owning_city.faction if tile.owning_city else None
-                    faction_torch = self._faction_torch_icons.get(faction.name, {}).get('tinted') if faction else None
+                    faction_torch = self._faction_torch_icons.get(faction.name, {}).get('dark') if faction else None
                     self.screen.blit(faction_torch or torch_icon, (dx - int(apothem * 0.4), dy - int(apothem * 0.3)))
                     continue
                 if tile.worked_farms <= 0:
@@ -855,9 +863,9 @@ class Renderer:
             fname = city.faction.name if city.faction else None
             faction_icons = self._faction_castle_icons.get(fname)
             if faction_icons:
-                icon = faction_icons['tinted'] if (r, c) == selected_city_pos else faction_icons['dark']
+                icon = faction_icons['selected'] if (r, c) == selected_city_pos else faction_icons['tinted']
             else:
-                icon = self.icons_tinted.get('castle') if (r, c) == selected_city_pos else self.icons_dark.get('castle')
+                icon = self.icons_selected.get('castle') if (r, c) == selected_city_pos else self.icons_tinted.get('castle')
             if icon:
                 ix = int(cx) - icon.get_width() // 2 + 2
                 iy = int(cy) - HEX_SIZE - 3.5
@@ -884,9 +892,9 @@ class Renderer:
                             faction_name = route.faction.name if route.faction else None
                             faction_flag = self._faction_flag_icons.get(faction_name) if faction_name else None
                             if faction_flag:
-                                flag_icon = faction_flag['tinted'] if is_selected else faction_flag['dark']
+                                flag_icon = faction_flag['tinted']
                             else:
-                                flag_icon = self.icons_tinted.get('flag') if is_selected else self.icons_dark.get('flag')
+                                flag_icon = self.icons_tinted.get('flag')
                             if flag_icon:
                                 cx, cy = all_centers[key]
                                 ix = int(cx) - flag_icon.get_width() // 2 - 2
@@ -902,9 +910,9 @@ class Renderer:
             fname = first_faction.name if first_faction else None
             faction_sword = self._faction_sword_icons.get(fname)
             if faction_sword:
-                icon = faction_sword['tinted'] if any_selected else faction_sword['dark']
+                icon = faction_sword['selected'] if any_selected else faction_sword['tinted']
             else:
-                icon = self.icons_tinted.get('sword') if any_selected else self.icons_dark.get('sword')
+                icon = self.icons_selected.get('sword') if any_selected else self.icons_tinted.get('sword')
             if icon:
                 total_units = sum(len(g.units) for g in unit_groups_here)
                 count = max(1, min(3, total_units))
@@ -1764,12 +1772,12 @@ class Renderer:
         if icon_raw:
             scaled = pygame.transform.scale(icon_raw, (icon_h, icon_h))
             outline_r = 2
-            small_icon_tinted, _ = self._make_icon_pair(scaled, (180, 210, 255), (35, 65, 150), outline_r, pad=outline_r)
+            small_icon_tinted, _, _ = self._make_icon_pair(scaled, (180, 210, 255), (35, 65, 150), outline_r, pad=outline_r)
             for group in unit_groups:
                 if group.faction:
                     fname = group.faction.name
                     if fname not in small_icon_tinted_by_faction:
-                        t, _ = self._make_icon_pair(scaled, group.faction.colors['light'], group.faction.colors['dark'], outline_r, pad=outline_r)
+                        t, _, _ = self._make_icon_pair(scaled, group.faction.colors['light'], group.faction.colors['dark'], outline_r, pad=outline_r)
                         small_icon_tinted_by_faction[fname] = t
         bar_w = PANEL_WIDTH - pad * 2
         bar_h = 6
