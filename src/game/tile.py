@@ -94,7 +94,7 @@ _MOUNTAIN_COLOR = (140, 140, 140)
 
 
 class Tile:
-    def __init__(self, row, col, terrain, biome='Coastal', terrain_features=['Water']):
+    def __init__(self, row, col, terrain, biome='coastal', terrain_features=['water']):
         self.row = row
         self.col = col
         self.terrain = terrain  # 'desert', 'hills', 'river'

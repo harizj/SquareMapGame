@@ -110,6 +110,7 @@ def main():
     save_popup_active = False
     save_popup_text = ""
     terrain_popup_active = False
+    terrain_popup_snapshot = None
     river_popup_active = False
     battle_popup_active = False
     pending_combat_preview = None
@@ -169,6 +170,9 @@ def main():
                         save_popup_text += event.unicode
                 elif terrain_popup_active or river_popup_active:
                     if event.key == pygame.K_ESCAPE:
+                        if terrain_popup_active and terrain_popup_snapshot:
+                            selected_tile.biome, selected_tile.terrain_features, selected_tile.river_edges = terrain_popup_snapshot[0], list(terrain_popup_snapshot[1]), set(terrain_popup_snapshot[2])
+                            selected_tile.update_terrain_properties()
                         terrain_popup_active = False
                         river_popup_active = False
                 elif event.key == pygame.K_SPACE:
@@ -319,23 +323,43 @@ def main():
                         pending_combat_tile = None
 
                 elif terrain_popup_active:
-                    for terrain, rect in renderer.terrain_option_rects.items():
-                        if rect.collidepoint(pos):
-                            selected_tile.terrain = terrain
-                            if terrain in ('hills', 'desert'):
-                                selected_tile.river_edges.clear()
+                    if renderer.terrain_confirm_rect and renderer.terrain_confirm_rect.collidepoint(pos):
+                        terrain_popup_active = False
+                    elif renderer.terrain_cancel_rect and renderer.terrain_cancel_rect.collidepoint(pos):
+                        selected_tile.biome, selected_tile.terrain_features, selected_tile.river_edges = terrain_popup_snapshot[0], list(terrain_popup_snapshot[1]), set(terrain_popup_snapshot[2])
+                        selected_tile.update_terrain_properties()
+                        terrain_popup_active = False
+                    else:
+                        changed = False
+                        for biome, rect in renderer.biome_option_rects.items():
+                            if rect.collidepoint(pos):
+                                selected_tile.biome = biome
+                                changed = True
+                                break
+                        for feature, rect in renderer.feature_option_rects.items():
+                            if rect.collidepoint(pos):
+                                if feature in selected_tile.terrain_features:
+                                    selected_tile.terrain_features = [f for f in selected_tile.terrain_features if f != feature]
+                                else:
+                                    selected_tile.terrain_features = selected_tile.terrain_features + [feature]
+                                if 'river' not in selected_tile.terrain_features:
+                                    selected_tile.river_edges.clear()
+                                changed = True
+                                break
+                        if changed:
+                            selected_tile.update_terrain_properties()
                             if move_mode:
                                 group = game_map.get_unit_group(selected_tile.row, selected_tile.col)
                                 if group:
                                     reachable = game_map.get_reachable(group)
-                            break
-                    terrain_popup_active = False
 
                 elif river_popup_active:
                     for direction, rect in renderer.river_option_rects.items():
                         if rect.collidepoint(pos):
                             selected_tile.river_edges.add(direction)
-                            selected_tile.terrain = 'river'
+                            if 'river' not in selected_tile.terrain_features:
+                                selected_tile.terrain_features = selected_tile.terrain_features + ['river']
+                            selected_tile.update_terrain_properties()
                             if move_mode:
                                 group = game_map.get_unit_group(selected_tile.row, selected_tile.col)
                                 if group:
@@ -568,6 +592,7 @@ def main():
 
                 elif renderer.change_terrain_button_rect and renderer.change_terrain_button_rect.collidepoint(pos):
                     terrain_popup_active = True
+                    terrain_popup_snapshot = (selected_tile.biome, list(selected_tile.terrain_features), set(selected_tile.river_edges))
 
                 elif renderer.rebalance_pops_button_rect and renderer.rebalance_pops_button_rect.collidepoint(pos):
                     city = selected_tile.owning_city if selected_tile else None

@@ -5,6 +5,7 @@ import pygame
 from src.game.city import STOCKPILE_MAX
 from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, MILITARY_CARRY_CAPACITY, WATER_CARRY_CAPACITY, MOVE_CARRY_OVER
 from src.game.map import TERRAIN_TYPES
+from src.game.tile import BIOMES, TERRAIN_FEATURES, BIOME_COLORS
 
 _ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'assets')
 
@@ -92,6 +93,9 @@ _TERRAIN_ART_NAMES = ['river', 'mountain', 'forest', 'hills', 'water', 'floodpla
 _TERRAIN_ART_SCALE = {
     'grass': 0.7,
 }
+
+# Features excluded from the terrain editor — preserved on tiles but not user-togglable
+_NON_SELECTABLE_FEATURES = {'water_access', 'city'}
 
 # Maps art name → image filename stem when they differ
 _TERRAIN_IMG_FILES = {
@@ -221,6 +225,10 @@ class Renderer:
         self.trade_route_max_export = 0.0
         self.trade_route_max_import = 0.0
         self.terrain_option_rects = {}
+        self.biome_option_rects = {}
+        self.feature_option_rects = {}
+        self.terrain_confirm_rect = None
+        self.terrain_cancel_rect = None
         self.river_option_rects = {}
         self.selected_unit_groups = set()
         self.group_icon_rects = []
@@ -1032,6 +1040,10 @@ class Renderer:
         self._draw_one_way_route_popup()
 
         self.terrain_option_rects = {}
+        self.biome_option_rects = {}
+        self.feature_option_rects = {}
+        self.terrain_confirm_rect = None
+        self.terrain_cancel_rect = None
         self.river_option_rects = {}
         if river_popup_active:
             self._draw_river_popup(selected_tile)
@@ -2044,33 +2056,68 @@ class Renderer:
         overlay.fill((0, 0, 0, 160))
         self.screen.blit(overlay, (0, 0))
 
-        row_h = 34
-        W = 240
-        H = 30 + len(TERRAIN_TYPES) * row_h + 24
+        row_h = 28
+        swatch = 12
+        W = 260
+        pad = 16
+        btn_w = W - pad * 2
+
+        n_biome_rows = len(BIOMES)
+        n_feat_rows = len([f for f in TERRAIN_FEATURES if f not in _NON_SELECTABLE_FEATURES])
+        confirm_h = 28
+        H = (pad + 18 + 6                        # title
+             + 16 + 4                            # biome subheader
+             + n_biome_rows * row_h              # biome buttons
+             + 12 + 16 + 4                       # features subheader gap
+             + n_feat_rows * row_h               # feature buttons
+             + 12 + confirm_h + pad)             # confirm/cancel + bottom padding
         sx = (self.screen.get_width() - W) // 2
-        sy = (self.screen.get_height() - H) // 2
+        sy = max(8, (self.screen.get_height() - H) // 2)
         pygame.draw.rect(self.screen, (40, 40, 55), (sx, sy, W, H), border_radius=6)
         pygame.draw.rect(self.screen, PANEL_DIVIDER, (sx, sy, W, H), 1, border_radius=6)
 
+        y = sy + pad
         surf = self.font_header.render("CHANGE TERRAIN", True, HEADER_TEXT_COLOR)
-        self.screen.blit(surf, (sx + 16, sy + 10))
+        self.screen.blit(surf, (sx + pad, y))
+        y += surf.get_height() + 6
 
-        swatch = 14
-        btn_w = W - 32
-        for i, terrain in enumerate(TERRAIN_TYPES):
-            by = sy + 30 + i * row_h
-            is_current = selected_tile and selected_tile.terrain == terrain
-            rect = self._draw_button(sx + 16, by, btn_w, row_h - 4, "", active=is_current)
-            color = TERRAIN_COLORS.get(terrain, BUTTON_NORMAL)
+        # Biome section
+        sub = self.font_header.render("BIOME", True, (130, 150, 180))
+        self.screen.blit(sub, (sx + pad, y))
+        y += sub.get_height() + 4
+
+        for biome in BIOMES:
+            is_current = selected_tile and selected_tile.biome == biome
+            rect = self._draw_button(sx + pad, y, btn_w, row_h - 2, "", active=is_current)
+            color = BIOME_COLORS.get(biome, BUTTON_NORMAL)
             pygame.draw.rect(self.screen, color,
                              (rect.x + 8, rect.y + (rect.height - swatch) // 2, swatch, swatch),
                              border_radius=2)
-            label = self.font_body.render(terrain.capitalize(), True, BUTTON_TEXT)
+            label = self.font_body.render(biome.capitalize(), True, BUTTON_TEXT)
             self.screen.blit(label, (rect.x + 8 + swatch + 8, rect.y + (rect.height - label.get_height()) // 2))
-            self.terrain_option_rects[terrain] = rect
+            self.biome_option_rects[biome] = rect
+            y += row_h
 
-        hint = self.font_body.render("Esc to cancel", True, (110, 110, 130))
-        self.screen.blit(hint, (sx + 16, sy + H - 20))
+        # Features section
+        y += 12
+        sub = self.font_header.render("FEATURES", True, (130, 150, 180))
+        self.screen.blit(sub, (sx + pad, y))
+        y += sub.get_height() + 4
+
+        current_features = selected_tile.terrain_features if selected_tile else []
+        selectable_features = [f for f in TERRAIN_FEATURES if f not in _NON_SELECTABLE_FEATURES]
+        for feature in selectable_features:
+            is_active = feature in current_features
+            rect = self._draw_button(sx + pad, y, btn_w, row_h - 2, "", active=is_active)
+            label = self.font_body.render(feature.capitalize(), True, BUTTON_TEXT)
+            self.screen.blit(label, (rect.x + 8, rect.y + (rect.height - label.get_height()) // 2))
+            self.feature_option_rects[feature] = rect
+            y += row_h
+
+        y += 12
+        half_w = (btn_w - 6) // 2
+        self.terrain_confirm_rect = self._draw_button(sx + pad, y, half_w, confirm_h, "Confirm", active=True)
+        self.terrain_cancel_rect  = self._draw_button(sx + pad + half_w + 6, y, half_w, confirm_h, "Cancel")
 
     def _draw_river_popup(self, selected_tile):
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)

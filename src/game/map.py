@@ -10,6 +10,11 @@ from src.game.pop import Pop
 GRID_COLS = 14
 GRID_ROWS = 14
 
+MAP_CONFIG = {
+    'rows': 14,
+    'cols': 14,
+}
+
 #MOVE_COSTS = {'desert': 1.0, 'hills': 1.5, 'forest': 1.5, 'with_river': 1.0, 'cross_river': 2.0}
 MOVE_COSTS = {'desert': BASE_TERRAIN_COST, 'hills': DIFFICULT_TERRAIN_COST, 'forest': DIFFICULT_TERRAIN_COST, 'with_river': BASE_TERRAIN_COST, 'cross_river': DIFFICULT_TERRAIN_COST}
 
@@ -33,20 +38,23 @@ CITY_NAMES = [
 
 class Map:
     def __init__(self):
-        self.cols = GRID_COLS
-        self.rows = GRID_ROWS
-        half_r = self.rows // 2
+        self.rows = MAP_CONFIG['rows']
+        self.cols = MAP_CONFIG['cols']
         self.tiles = [
             [
-                Tile(r, c, 'hills' if r >= half_r and random.random() < 0.25 else 'desert')
-                for c in range(GRID_COLS)
+                self._make_empty_tile(r, c)
+                for c in range(self.cols)
             ]
-            for r in range(GRID_ROWS)
+            for r in range(self.rows)
         ]
         self._city_name_idx = 0
-        self.cities = {(4, 4): City(4, 4, self._take_city_name())}
-        for city in self.cities.values():
-            self.setup_city(city)
+        self.cities = {}
+
+    @staticmethod
+    def _make_empty_tile(r, c):
+        t = Tile(r, c, '', biome='coastal', terrain_features=['water'])
+        t.update_terrain_properties()
+        return t
 
     @property
     def unit_groups(self):
