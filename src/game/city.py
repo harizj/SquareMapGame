@@ -13,10 +13,12 @@ GROWTH_SLOWDOWN = 0.1
 POPS_PER_GROWTH_SLOWDOWN = 5
 GROWTH_SLOWDOWN_POP_THRESHOLD = 20
 TURNS_WITH_STOCKPILE_LOSS_THRESHOLD = 5
+BASE_WOOD_EXTRACTION_MODIFIER = .50
+BASE_IRON_EXTRACTION_MODIFIER = .25
 
 
 from src.game.production import ProductionTarget
-from src.game.tile import DEPOSIT_STARTING_WOOD, DEPOSIT_STARTING_IRON
+from src.game.tile import DEPOSIT_STARTING_WOOD, DEPOSIT_STARTING_IRON, BASE_WOOD_EXTRACTION_MODIFIER, BASE_IRON_EXTRACTION_MODIFIER
 
 _DEPOSIT_STARTING = {'wood': DEPOSIT_STARTING_WOOD, 'iron': DEPOSIT_STARTING_IRON}
 
@@ -395,7 +397,9 @@ class City:
                 if deposit_tiles:
                     self.extraction_tile = deposit_tiles[0]
                     self.extraction_tile.set_extraction_job(pt.target)
-                    self.production_yield = prod_job.assigned * self.extraction_tile.extraction_yield
+                    _modifiers = {'wood': BASE_WOOD_EXTRACTION_MODIFIER, 'iron': BASE_IRON_EXTRACTION_MODIFIER}
+                    _modifier = _modifiers.get(pt.target, 1.0)
+                    self.production_yield = prod_job.assigned * self.extraction_tile.extraction_yield * _modifier
                     # print(f"[extraction] {self.name}: extraction_tile=({self.extraction_tile.row},{self.extraction_tile.col}) production_yield={self.production_yield:.2f}")
                 else:
                     print(f"[extraction] {self.name}: no deposit tiles found for {pt.target}")

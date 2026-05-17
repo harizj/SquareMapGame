@@ -46,7 +46,7 @@ TILE_FARM_SLOTS = {
     'mountain': 0,
 }
 DEPOSIT_STARTING_WOOD = 20
-DEPOSIT_STARTING_IRON = 20
+DEPOSIT_STARTING_IRON = 10
 
 BIOMES = ['temperate',
         'arid',
@@ -236,6 +236,13 @@ class Tile:
         remaining = available - extracted_amount
         if remaining <= 0:
             self.resource_deposits.pop(resource, None)
+            if resource == 'wood' and 'forest' in self.terrain_features:
+                self.terrain_features = [f for f in self.terrain_features if f != 'forest']
+                self.update_terrain_properties()
+                if self.owning_city:
+                    self.owning_city._build_cumulative_farm_yield()
+                    self.owning_city.update_cumulative_farm_yield_net()
+                    self.owning_city.rebalance_pops()
             if self.owning_city:
                 self.owning_city.check_additional_resources(resource)
         else:
