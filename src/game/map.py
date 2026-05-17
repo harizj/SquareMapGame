@@ -90,34 +90,18 @@ class Map:
             return from_tile.movement_cost / 2 + MOVE_COSTS['cross_river'] / 2
         return from_tile.movement_cost / 2 + to_tile.movement_cost / 2
 
-    def get_reachable(self, group):
-        """Dijkstra from group position. Returns {(row, col): cost} for all reachable tiles."""
-        start = (group.row, group.col)
-        best = {start: 0}
-        queue = [(0, start)]
-        while queue:
-            cost, (r, c) = heapq.heappop(queue)
-            if cost > best[(r, c)]:
-                continue
-            for dr, dc in _NEIGHBORS[r % 2]:
-                nr, nc = r + dr, c + dc
-                if not (0 <= nr < self.rows and 0 <= nc < self.cols):
-                    continue
-                if not self.tiles[nr][nc].passable:
-                    continue
-                new_cost = cost + self._step_cost(r, c, nr, nc)
-                if new_cost <= group.moves_remaining and new_cost < best.get((nr, nc), float('inf')):
-                    best[(nr, nc)] = new_cost
-                    heapq.heappush(queue, (new_cost, (nr, nc)))
-        del best[start]
-        return best
+    def _tile_passable(self, r, c, mode):
+        tile = self.tiles[r][c]
+        if mode == 'land':  return tile.passable and not tile.water
+        if mode == 'water': return tile.water
+        return tile.passable  # 'any': blocks mountains, crosses water freely
 
-    def get_reachable_budget(self, row, col, budget, blocked=None):
-        """Dijkstra from (row, col) with a fixed move budget. Returns {(row, col): cost}.
-        blocked is a set of (row, col) tiles that can be reached as destinations but not
-        pathed through (e.g. enemy-occupied tiles)."""
+    def get_reachable_from(self, start_r, start_c, budget, mode='land', blocked=None, include_start=False):
+        """Bounded Dijkstra. Returns {(row, col): cost} for all tiles reachable within budget.
+        blocked tiles count as destinations but are not pathed through.
+        include_start controls whether the origin tile is in the result."""
         blocked = blocked or set()
-        start = (row, col)
+        start = (start_r, start_c)
         best = {start: 0}
         queue = [(0, start)]
         while queue:
@@ -128,70 +112,21 @@ class Map:
                 nr, nc = r + dr, c + dc
                 if not (0 <= nr < self.rows and 0 <= nc < self.cols):
                     continue
-                if not self.tiles[nr][nc].passable:
+                if not self._tile_passable(nr, nc, mode):
                     continue
                 new_cost = cost + self._step_cost(r, c, nr, nc)
                 if new_cost <= budget and new_cost < best.get((nr, nc), float('inf')):
                     best[(nr, nc)] = new_cost
                     if (nr, nc) not in blocked:
                         heapq.heappush(queue, (new_cost, (nr, nc)))
-        del best[start]
+        if not include_start:
+            del best[start]
         return best
 
-    def get_city_range(self, city):
-        """Dijkstra from city position. Returns {(row, col): cost} for all tiles within range, including city tile."""
-        start = (city.row, city.col)
-        best = {start: 0}
-        queue = [(0, start)]
-        while queue:
-            cost, (r, c) = heapq.heappop(queue)
-            if cost > best[(r, c)]:
-                continue
-            for dr, dc in _NEIGHBORS[r % 2]:
-                nr, nc = r + dr, c + dc
-                if not (0 <= nr < self.rows and 0 <= nc < self.cols):
-                    continue
-                if not self.tiles[nr][nc].passable:
-                    continue
-                new_cost = cost + self._step_cost(r, c, nr, nc)
-                if new_cost <= DEFAULT_MOVE_DISTANCE and new_cost < best.get((nr, nc), float('inf')):
-                    best[(nr, nc)] = new_cost
-                    heapq.heappush(queue, (new_cost, (nr, nc)))
-        return best
-
-    def _is_passable(self, r, c, water=False):
-        tile = self.tiles[r][c]
-        if water:
-            return 'river' in tile.terrain_features
-        return tile.passable
-
-    def get_travel_cost(self, from_r, from_c, to_r, to_c, water=False):
-        """Uncapped Dijkstra between two tiles. Returns movement cost or None if unreachable."""
-        goal = (to_r, to_c)
-        start = (from_r, from_c)
-        best = {start: 0}
-        queue = [(0, start)]
-        while queue:
-            cost, (r, c) = heapq.heappop(queue)
-            if (r, c) == goal:
-                return cost
-            if cost > best[(r, c)]:
-                continue
-            for dr, dc in _NEIGHBORS[r % 2]:
-                nr, nc = r + dr, c + dc
-                if not (0 <= nr < self.rows and 0 <= nc < self.cols):
-                    continue
-                if not self._is_passable(nr, nc, water):
-                    continue
-                new_cost = cost + self._step_cost(r, c, nr, nc)
-                if new_cost < best.get((nr, nc), float('inf')):
-                    best[(nr, nc)] = new_cost
-                    heapq.heappush(queue, (new_cost, (nr, nc)))
-        return None
-
-    def get_path(self, from_r, from_c, to_r, to_c, water=False):
-        """Dijkstra from start to goal. Returns (path, path_distances) where path is a list of
-        (r, c) tiles inclusive and path_distances[i] is the cumulative cost to path[i], or ([], [])."""
+    def get_path_to(self, from_r, from_c, to_r, to_c, mode='land'):
+        """Unbounded Dijkstra from start to goal. Returns (path, distances) where path is a list of
+        (r, c) tiles inclusive and distances[i] is the cumulative cost to path[i], or ([], []).
+        Travel cost between two points is distances[-1] if path else None."""
         goal = (to_r, to_c)
         start = (from_r, from_c)
         best = {start: 0}
@@ -200,21 +135,19 @@ class Map:
         while queue:
             cost, (r, c) = heapq.heappop(queue)
             if (r, c) == goal:
-                path = []
-                node = goal
+                path, node = [], goal
                 while node is not None:
                     path.append(node)
                     node = prev[node]
                 path.reverse()
-                path_distances = [best[node] for node in path]
-                return path, path_distances
+                return path, [best[n] for n in path]
             if cost > best[(r, c)]:
                 continue
             for dr, dc in _NEIGHBORS[r % 2]:
                 nr, nc = r + dr, c + dc
                 if not (0 <= nr < self.rows and 0 <= nc < self.cols):
                     continue
-                if not self._is_passable(nr, nc, water):
+                if not self._tile_passable(nr, nc, mode):
                     continue
                 new_cost = cost + self._step_cost(r, c, nr, nc)
                 if new_cost < best.get((nr, nc), float('inf')):
@@ -232,7 +165,7 @@ class Map:
                 if city in tile.cities_in_range:
                     tile.cities_in_range.remove(city)
         city.owned_tiles = []
-        city_range = self.get_city_range(city)
+        city_range = self.get_reachable_from(city.row, city.col, DEFAULT_MOVE_DISTANCE, mode='any', include_start=True)
         for (r, c), cost in city_range.items():
             tile = self.tiles[r][c]
             tile.cities_in_range.append(city)
@@ -256,7 +189,7 @@ class Map:
         del self.cities[(city.row, city.col)]
 
     def setup_city(self, city):
-        city_range = self.get_city_range(city)
+        city_range = self.get_reachable_from(city.row, city.col, DEFAULT_MOVE_DISTANCE, mode='any', include_start=True)
         city.owned_tiles = []
         for (r, c), cost in city_range.items():
             tile = self.tiles[r][c]

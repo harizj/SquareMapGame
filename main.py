@@ -79,7 +79,7 @@ def _compute_move_state(selected_unit_groups, selected_tile, game_map):
             controlling_faction = candidates[0].faction
             start = (selected_tile.row, selected_tile.col)
             blocked = _build_blocked(controlling_faction, start, game_map)
-            return True, candidates, game_map.get_reachable_budget(selected_tile.row, selected_tile.col, budget, blocked=blocked)
+            return True, candidates, game_map.get_reachable_from(selected_tile.row, selected_tile.col, budget, blocked=blocked)
     return False, [], {}
 
 
@@ -249,7 +249,7 @@ def main():
                         enemy_groups = game_map.get_unit_groups(tile.row, tile.col)
                         is_enemy = bool(enemy_groups and enemy_groups[0].faction is not controlling_faction)
                         if is_enemy:
-                            path, _ = game_map.get_path(selected_tile.row, selected_tile.col, tile.row, tile.col)
+                            path, _ = game_map.get_path_to(selected_tile.row, selected_tile.col, tile.row, tile.col)
                             if len(path) >= 2:
                                 stop_pos = path[-2]
                                 if stop_pos != (selected_tile.row, selected_tile.col):
@@ -351,7 +351,7 @@ def main():
                             if move_mode:
                                 group = game_map.get_unit_group(selected_tile.row, selected_tile.col)
                                 if group:
-                                    reachable = game_map.get_reachable(group)
+                                    reachable = game_map.get_reachable_from(group.row, group.col, group.moves_remaining)
 
                 elif river_popup_active:
                     for direction, rect in renderer.river_option_rects.items():
@@ -363,7 +363,7 @@ def main():
                             if move_mode:
                                 group = game_map.get_unit_group(selected_tile.row, selected_tile.col)
                                 if group:
-                                    reachable = game_map.get_reachable(group)
+                                    reachable = game_map.get_reachable_from(group.row, group.col, group.moves_remaining)
                             break
                     river_popup_active = False
 
@@ -468,7 +468,7 @@ def main():
                 elif renderer.one_way_confirm_rect and renderer.one_way_confirm_rect.collidepoint(pos) and renderer.one_way_route_pending:
                     city_a, dest_tile = renderer.one_way_route_pending
                     water = renderer.one_way_route_type == 'water'
-                    path, path_distances = game_map.get_path(city_a.row, city_a.col, dest_tile.row, dest_tile.col, water=water)
+                    path, path_distances = game_map.get_path_to(city_a.row, city_a.col, dest_tile.row, dest_tile.col, mode='water' if water else 'land')
                     TradeRoute(
                         city_a=city_a,
                         dest_tile=dest_tile,
@@ -677,7 +677,8 @@ def main():
                             detached_unit.pop.assigned_job = None
                             friendly_city.pops.append(detached_unit.pop)
                             selected_tile.owning_city = friendly_city
-                            selected_tile.city_distance = game_map.get_travel_cost(friendly_city.row, friendly_city.col, selected_tile.row, selected_tile.col)
+                            _, dists = game_map.get_path_to(friendly_city.row, friendly_city.col, selected_tile.row, selected_tile.col, mode='any')
+                            selected_tile.city_distance = dists[-1] if dists else None
                             friendly_city.owned_tiles.append(selected_tile)
                             friendly_city._build_cumulative_farm_yield()
                             friendly_city.update_cumulative_farm_yield_net()

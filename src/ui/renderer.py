@@ -1110,21 +1110,24 @@ class Renderer:
         if not self.trade_route_pending or not self.trade_route_amount_slider_rect:
             return
         city_a, city_b = self.trade_route_pending
-        dist = self.map.get_travel_cost(city_a.row, city_a.col, city_b.row, city_b.col)
+        _, dists = self.map.get_path_to(city_a.row, city_a.col, city_b.row, city_b.col)
+        dist = dists[-1] if dists else None
         self._snap_route_amount(pos_x, self.trade_route_amount_slider_rect, 'trade_route_export_amount', dist, 2)
 
     def snap_import_amount(self, pos_x):
         if not self.trade_route_pending or not self.trade_route_import_slider_rect:
             return
         city_a, city_b = self.trade_route_pending
-        dist = self.map.get_travel_cost(city_a.row, city_a.col, city_b.row, city_b.col)
+        _, dists = self.map.get_path_to(city_a.row, city_a.col, city_b.row, city_b.col)
+        dist = dists[-1] if dists else None
         self._snap_route_amount(pos_x, self.trade_route_import_slider_rect, 'trade_route_import_amount', dist, 1)
 
     def _draw_trade_route_popup(self):
         if not self.trade_route_pending:
             return
         city_a, city_b = self.trade_route_pending
-        dist = self.map.get_travel_cost(city_a.row, city_a.col, city_b.row, city_b.col)
+        _, dists = self.map.get_path_to(city_a.row, city_a.col, city_b.row, city_b.col)
+        dist = dists[-1] if dists else None
 
         pad = 16
         popup_w = 300
@@ -1230,11 +1233,13 @@ class Renderer:
         if not self.one_way_route_pending:
             return
         city_a, dest_tile = self.one_way_route_pending
-        water_reachable = self.map.get_travel_cost(city_a.row, city_a.col, dest_tile.row, dest_tile.col, water=True) is not None
+        _, water_dists = self.map.get_path_to(city_a.row, city_a.col, dest_tile.row, dest_tile.col, mode='water')
+        water_reachable = bool(water_dists)
         if not water_reachable and self.one_way_route_type == 'water':
             self.one_way_route_type = 'land'
         water = self.one_way_route_type == 'water'
-        dist = self.map.get_travel_cost(city_a.row, city_a.col, dest_tile.row, dest_tile.col, water=water)
+        _, route_dists = self.map.get_path_to(city_a.row, city_a.col, dest_tile.row, dest_tile.col, mode='water' if water else 'land')
+        dist = route_dists[-1] if route_dists else None
 
         pad = 16
         popup_w = 280
