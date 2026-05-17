@@ -70,15 +70,17 @@ class Map:
         return unit_groups[0] if unit_groups else None
 
     def _step_cost(self, from_r, from_c, to_r, to_c):
-        from_terrain = self.tiles[from_r][from_c].terrain
-        to_terrain = self.tiles[to_r][to_c].terrain
-        if from_terrain == 'river' and to_terrain == 'river':
+        from_tile = self.tiles[from_r][from_c]
+        to_tile = self.tiles[to_r][to_c]
+        from_river = 'river' in from_tile.terrain_features
+        to_river = 'river' in to_tile.terrain_features
+        if from_river and to_river:
             return MOVE_COSTS['with_river']
-        elif from_terrain == 'river':
-            return MOVE_COSTS['cross_river'] / 2 + MOVE_COSTS[to_terrain] / 2
-        elif to_terrain == 'river':
-            return MOVE_COSTS[from_terrain] / 2 + MOVE_COSTS['cross_river'] / 2
-        return MOVE_COSTS[from_terrain] / 2 + MOVE_COSTS[to_terrain] / 2
+        elif from_river:
+            return MOVE_COSTS['cross_river'] / 2 + to_tile.movement_cost / 2
+        elif to_river:
+            return from_tile.movement_cost / 2 + MOVE_COSTS['cross_river'] / 2
+        return from_tile.movement_cost / 2 + to_tile.movement_cost / 2
 
     def get_reachable(self, group):
         """Dijkstra from group position. Returns {(row, col): cost} for all reachable tiles."""
@@ -93,7 +95,7 @@ class Map:
                 nr, nc = r + dr, c + dc
                 if not (0 <= nr < self.rows and 0 <= nc < self.cols):
                     continue
-                if self.tiles[nr][nc].terrain in IMPASSABLE_TERRAINS:
+                if not self.tiles[nr][nc].passable:
                     continue
                 new_cost = cost + self._step_cost(r, c, nr, nc)
                 if new_cost <= group.moves_remaining and new_cost < best.get((nr, nc), float('inf')):
@@ -118,7 +120,7 @@ class Map:
                 nr, nc = r + dr, c + dc
                 if not (0 <= nr < self.rows and 0 <= nc < self.cols):
                     continue
-                if self.tiles[nr][nc].terrain in IMPASSABLE_TERRAINS:
+                if not self.tiles[nr][nc].passable:
                     continue
                 new_cost = cost + self._step_cost(r, c, nr, nc)
                 if new_cost <= budget and new_cost < best.get((nr, nc), float('inf')):
@@ -141,7 +143,7 @@ class Map:
                 nr, nc = r + dr, c + dc
                 if not (0 <= nr < self.rows and 0 <= nc < self.cols):
                     continue
-                if self.tiles[nr][nc].terrain in IMPASSABLE_TERRAINS:
+                if not self.tiles[nr][nc].passable:
                     continue
                 new_cost = cost + self._step_cost(r, c, nr, nc)
                 if new_cost <= DEFAULT_MOVE_DISTANCE and new_cost < best.get((nr, nc), float('inf')):
@@ -150,10 +152,10 @@ class Map:
         return best
 
     def _is_passable(self, r, c, water=False):
-        terrain = self.tiles[r][c].terrain
+        tile = self.tiles[r][c]
         if water:
-            return terrain == 'river'
-        return terrain not in IMPASSABLE_TERRAINS
+            return 'river' in tile.terrain_features
+        return tile.passable
 
     def get_travel_cost(self, from_r, from_c, to_r, to_c, water=False):
         """Uncapped Dijkstra between two tiles. Returns movement cost or None if unreachable."""

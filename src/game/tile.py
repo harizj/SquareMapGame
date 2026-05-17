@@ -1,4 +1,5 @@
 import random
+from src.game.constants import BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST
 from src.game.jobs import FarmJob
 
 # Yield per assigned pop at each distance increment (fill in from LP results later)
@@ -65,9 +66,11 @@ BIOME_FARM_SLOTS = {'temperate': 4,
         'coastal': 2,
         'ocean': 0}
 
-FEATURE_FARM_DEDUCTIONS = {
-    'hills': 1,
-    'forest': 2,
+TERRAIN_FEATURE_FARM_SLOTS = {
+    'hills': -1,
+    'forest': -2,
+    'floodplain': 1,
+    'river': -1
 }
 
 BIOME_FEATURE_FARM_INTERACTIONS = {
@@ -94,6 +97,10 @@ class Tile:
         self._raided_ticker = 0
         self.restricted = False
         self._restricted_ticker = 0
+        self.movement_cost = BASE_TERRAIN_COST
+        self.passable = True
+        self.water = 'water' in self.terrain_features
+        self.water_access = 'water_access' in self.terrain_features
         self.jobs = []
         self._init_jobs()
         self.food_allocated_from_routes = 0.0
@@ -128,14 +135,27 @@ class Tile:
         slots = TILE_FARM_SLOTS.get(self.terrain, 0)
         self.jobs = [FarmJob(slots)] if slots > 0 else []
 
+    _ART_PRIORITY = ['mountain', 'forest', 'hills', 'river', 'water', 'floodplain']
+
+    def get_terrain_art(self):
+        for feature in self._ART_PRIORITY:
+            if feature in self.terrain_features:
+                return feature
+        return 'grass'
+
     def update_terrain_properties(self):
+        difficult = {'hills', 'forest'}
+        self.movement_cost = DIFFICULT_TERRAIN_COST if any(f in difficult for f in self.terrain_features) else BASE_TERRAIN_COST
+        self.passable = 'mountain' not in self.terrain_features
+        self.water = 'water' in self.terrain_features
+        self.water_access = 'water_access' in self.terrain_features
         if self.raided or self.restricted:
             self.jobs = []
             return
         base_slots = BIOME_FARM_SLOTS.get(self.biome, 0)
-        deductions = sum(FEATURE_FARM_DEDUCTIONS.get(f, 0) for f in self.terrain_features)
+        feature_slots = sum(TERRAIN_FEATURE_FARM_SLOTS.get(f, 0) for f in self.terrain_features)
         bonuses = sum(BIOME_FEATURE_FARM_INTERACTIONS.get((self.biome, f), 0) for f in self.terrain_features)
-        slots = max(0, base_slots - deductions + bonuses)
+        slots = max(0, base_slots + feature_slots + bonuses)
         self.jobs = [FarmJob(slots)] if slots > 0 else []
 
     def raid(self, num_units):

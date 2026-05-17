@@ -1,0 +1,1527 @@
+{
+  "tiles": [
+    [
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      }
+    ],
+    [
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      }
+    ],
+    [
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      }
+    ],
+    [
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "E",
+          "SW"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "E"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "E"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "SE"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      }
+    ],
+    [
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "E",
+          "SW"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "E"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "NE"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NW",
+          "SW"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      }
+    ],
+    [
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NE",
+          "SW"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "E",
+          "SW"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "NE"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      }
+    ],
+    [
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NE",
+          "SW"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NE",
+          "SE"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      }
+    ],
+    [
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "E",
+          "SW"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "NE"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NW",
+          "SE"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      }
+    ],
+    [
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "E"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "NE"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NW",
+          "SE"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      }
+    ],
+    [
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NW",
+          "SW"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      }
+    ],
+    [
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NE",
+          "SW"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      }
+    ],
+    [
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NE",
+          "SE"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      }
+    ],
+    [
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NW",
+          "E"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "W",
+          "SE"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      }
+    ],
+    [
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "hills",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "hills"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "mountain",
+        "river_edges": [],
+        "biome": "arid",
+        "terrain_features": [
+          "mountain"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "forest",
+        "river_edges": [],
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ]
+      },
+      {
+        "terrain": "river",
+        "river_edges": [
+          "NW",
+          "SE"
+        ],
+        "biome": "temperate",
+        "terrain_features": [
+          "river"
+        ]
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      },
+      {
+        "terrain": "desert",
+        "river_edges": [],
+        "biome": "desert",
+        "terrain_features": []
+      }
+    ]
+  ],
+  "units": [
+    {
+      "row": 5,
+      "col": 5,
+      "unit_type": "warrior",
+      "max_moves": 3.0,
+      "moves_remaining": 3.0
+    }
+  ],
+  "cities": [
+    {
+      "row": 4,
+      "col": 4,
+      "name": "Babylon"
+    }
+  ]
+}
