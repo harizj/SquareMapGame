@@ -201,8 +201,12 @@ class Renderer:
         self.adding_one_way_route = False
         self.add_one_way_route_button_rect = None
         self.one_way_route_pending = None
+        self.one_way_route_style = 'one_way'
+        self.one_way_route_style_rects = {}
         self.one_way_route_type = 'land'
         self.one_way_route_type_rects = {}
+        self.one_way_export_material = 'food'
+        self.one_way_export_rects = {}
         self.one_way_amount = 1
         self.one_way_pops_required_whole = 0
         self.one_way_partial_pops = None
@@ -225,8 +229,7 @@ class Renderer:
         self.trade_route_import_amount = 0
         self.trade_route_import_slider_rect = None
         self._import_slider_dragging = False
-        self.trade_route_max_export = 0.0
-        self.trade_route_max_import = 0.0
+        self.trade_route_max_amount = 0.0
         self.terrain_option_rects = {}
         self.biome_option_rects = {}
         self.feature_option_rects = {}
@@ -1272,7 +1275,7 @@ class Renderer:
 
         # Export amount slider
         ex_steps, ex_max = self._amount_steps(dist, self.trade_route_pops, 2)
-        self.trade_route_max_export = ex_max
+        self.trade_route_max_amount = ex_max
         ex_val = min(self.trade_route_export_amount, ex_max)
         ex_str = str(int(ex_val)) if ex_val == int(ex_val) else f"{ex_val:.1f}"
         surf = self.font_small.render(f"Export amount: {ex_str}", True, TEXT_COLOR)
@@ -1297,7 +1300,7 @@ class Renderer:
 
         # Import amount slider
         im_steps, im_max = self._amount_steps(dist, self.trade_route_pops, 1)
-        self.trade_route_max_import = im_max
+        self.trade_route_max_amount = im_max
         im_val = min(self.trade_route_import_amount, im_max)
         im_str = str(int(im_val)) if im_val == int(im_val) else f"{im_val:.1f}"
         surf = self.font_small.render(f"Import amount: {im_str}", True, TEXT_COLOR)
@@ -1323,7 +1326,7 @@ class Renderer:
 
         pad = 16
         popup_w = 280
-        popup_h = 290
+        popup_h = 370
         sw, sh = self.screen.get_size()
         px = (sw - popup_w) // 2
         py = (sh - popup_h) // 2
@@ -1343,7 +1346,21 @@ class Renderer:
         self.screen.blit(title, (x, y))
         y += title.get_height() + 8
 
+        # Route style: One Way / Two Way
         btn_w = (inner_w - 4) // 2
+        self.one_way_route_style_rects = {}
+        for label in ('One Way', 'Two Way'):
+            is_two_way = label == 'Two Way'
+            rect = self._draw_button(x, y, btn_w, 22, label,
+                                     active=(self.one_way_route_style == label.lower().replace(' ', '_')),
+                                     disabled=is_two_way)
+            if not is_two_way:
+                self.one_way_route_style_rects[label] = rect
+            x += btn_w + 4
+        x = px + pad
+        y += 30
+
+        # Transport type: Land / Water
         self.one_way_route_type_rects = {}
         for label in ('Land', 'Water'):
             is_water = label == 'Water'
@@ -1360,11 +1377,21 @@ class Renderer:
         dist_text = f"Distance: {dist:.1f}" if dist is not None else "Distance: unreachable"
         surf = self.font_body.render(dist_text, True, TEXT_COLOR)
         self.screen.blit(surf, (x, y))
-        y += surf.get_height() + 12
-
-        surf = self.font_body.render("Export Food", True, TEXT_COLOR)
-        self.screen.blit(surf, (x, y))
         y += surf.get_height() + 10
+
+        # Export resource
+        surf = self.font_body.render("Export Resource", True, TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        y += surf.get_height() + 6
+        self.one_way_export_rects = {}
+        res_btn_w = (inner_w - 8) // 3
+        for label in ('Wood', 'Iron', 'Food'):
+            rect = self._draw_button(x, y, res_btn_w, 22, label,
+                                     active=(self.one_way_export_material == label.lower()))
+            self.one_way_export_rects[label] = rect
+            x += res_btn_w + 4
+        x = px + pad
+        y += 30
 
         # Amount slider 1–8
         surf = self.font_body.render(f"Amount: {self.one_way_amount}", True, TEXT_COLOR)
@@ -1459,7 +1486,7 @@ class Renderer:
                 red_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s * 2 - 3, y, btn_s, btn_s, "-")
                 self.trade_route_reduce_rects.append((red_rect, route))
                 y += name_surf.get_height() + 2
-                net_food = route.export_amount if route.export_material == 'food' else 0
+                net_food = route.max_amount if route.export_resource == 'food' else 0
                 food_str = f"+{_fmt_amt(net_food)}" if net_food >= 0 else _fmt_amt(net_food)
                 detail_surf = self.font_small.render(f"{food_str} food", True, TEXT_COLOR)
                 self.screen.blit(detail_surf, (x + 4, y))
@@ -1632,11 +1659,11 @@ class Renderer:
             is_origin = route.city_a is city
             other_name = route.destination_name if is_origin else route.city_a.name
             if is_origin:
-                net_food = (route.import_amount if route.import_material == 'food' else 0) \
-                         - (route.export_amount if route.export_material == 'food' else 0)
+                net_food = (route.import_amount if route.import_resource == 'food' else 0) \
+                         - (route.max_amount if route.export_resource == 'food' else 0)
             else:
-                net_food = (route.export_amount if route.export_material == 'food' else 0) \
-                         - (route.import_amount if route.import_material == 'food' else 0)
+                net_food = (route.max_amount if route.export_resource == 'food' else 0) \
+                         - (route.import_amount if route.import_resource == 'food' else 0)
 
             if route.established:
                 name_line = other_name

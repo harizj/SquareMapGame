@@ -323,8 +323,8 @@ class Tile:
 
     def _food_from_routes(self):
         return sum(
-            r.export_amount for r in self.trade_routes
-            if r.established and not r.missing_caravans and r.export_material == 'food'
+            r.max_amount for r in self.trade_routes
+            if r.established and not r.missing_caravans and r.export_resource == 'food'
         )
 
     def update_unit_allocations(self):

@@ -7,8 +7,8 @@ class TradeRoute:
     def __init__(self, city_a, dest_tile,
                  pops_a, pops_b,
                  partial_pops_a, partial_pops_b,
-                 export_material, export_amount, max_export,
-                 import_material, import_amount, max_import,
+                 export_resource, export_amount, max_amount,
+                 import_resource, import_amount,
                  path=None, path_distances=None,
                  water=False):
         self.city_a = city_a          # origin — allocates pops
@@ -18,12 +18,11 @@ class TradeRoute:
         self.pops_b = pops_b
         self.partial_pops_a = partial_pops_a
         self.partial_pops_b = partial_pops_b
-        self.export_material = export_material  # city_a sends this
+        self.export_resource = export_resource  # city_a sends this
         self.export_amount = export_amount
-        self.max_export = max_export
-        self.import_material = import_material  # city_a receives this
+        self.max_amount = max_amount
+        self.import_resource = import_resource  # city_a receives this
         self.import_amount = import_amount
-        self.max_import = max_import
         self.caravan_job_a = CaravanJob(slots=pops_a, trade_route=self) if pops_a > 0 else None
         self.caravan_job_b = CaravanJob(slots=pops_b, trade_route=self) if pops_b > 0 else None
         self.path = path or []
@@ -52,8 +51,8 @@ class TradeRoute:
         # print(f"  city_a={self.city_a.name}  dest={self.destination_name}")
         # print(f"  pops_a={self.pops_a}  pops_b={self.pops_b}")
         # print(f"  partial_pops_a={self.partial_pops_a}  partial_pops_b={self.partial_pops_b}")
-        # print(f"  export_material={self.export_material}  export_amount={self.export_amount}  max_export={self.max_export}")
-        # print(f"  import_material={self.import_material}  import_amount={self.import_amount}  max_import={self.max_import}")
+        # print(f"  export_resource={self.export_resource}  max_amount={self.max_amount}")
+        # print(f"  import_resource={self.import_resource}  import_amount={self.import_amount}")
         # print(f"  caravan_job_a={self.caravan_job_a}  caravan_job_b={self.caravan_job_b}")
         # print(f"  path_distances={self.path_distances}")
 
@@ -122,15 +121,15 @@ class TradeRoute:
         return result
 
     def reduce_export_amount(self):
-        if self.export_amount <= 1:
+        if self.max_amount <= 1:
             self.detach(rebalance=True)
             return
 
-        self.export_amount -= 1
+        self.max_amount -= 1
         carry_capacity = WATER_CARRY_CAPACITY if self.water else LAND_CARRY_CAPACITY
         denom = carry_capacity + 1 - 2 * self.travel_time
         if denom > 0 and self.travel_time > 0:
-            raw = (self.export_amount * 2 * self.travel_time) / denom
+            raw = (self.max_amount * 2 * self.travel_time) / denom
             self.pops_a = max(1, round(raw))
             if self.caravan_job_a is not None:
                 self.caravan_job_a.slots = self.pops_a

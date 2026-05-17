@@ -208,6 +208,7 @@ def main():
                         if tile is not origin_tile:
                             renderer.one_way_route_pending = (current_city, tile)
                             renderer.one_way_amount = 1
+                            renderer.one_way_export_material = 'food'
                     renderer.adding_one_way_route = False
                     move_hover_tile = None
                 city_drag_active = False
@@ -464,12 +465,11 @@ def main():
                 #         pops_b=renderer.trade_route_pops,
                 #         partial_pops_a=None,
                 #         partial_pops_b=None,
-                #         export_material=renderer.trade_route_export,
+                #         export_resource=renderer.trade_route_export,
                 #         export_amount=renderer.trade_route_export_amount,
-                #         max_export=renderer.trade_route_max_export,
-                #         import_material=renderer.trade_route_import,
+                #         max_amount=renderer.trade_route_max_amount,
+                #         import_resource=renderer.trade_route_import,
                 #         import_amount=renderer.trade_route_import_amount,
-                #         max_import=renderer.trade_route_max_import,
                 #     )
                 #     renderer.trade_route_pending = None
                 #     renderer.adding_trade_route = False
@@ -478,6 +478,12 @@ def main():
                     for label, rect in renderer.one_way_route_type_rects.items():
                         if rect.collidepoint(pos):
                             renderer.one_way_route_type = label.lower()
+                            break
+
+                elif any(r.collidepoint(pos) for r in renderer.one_way_export_rects.values()):
+                    for label, rect in renderer.one_way_export_rects.items():
+                        if rect.collidepoint(pos):
+                            renderer.one_way_export_material = label.lower()
                             break
 
                 elif renderer.one_way_confirm_rect and renderer.one_way_confirm_rect.collidepoint(pos) and renderer.one_way_route_pending:
@@ -491,12 +497,11 @@ def main():
                         pops_b=0,
                         partial_pops_a=renderer.one_way_partial_pops,
                         partial_pops_b=None,
-                        export_material='food',
+                        export_resource=renderer.one_way_export_material,
                         export_amount=renderer.one_way_amount,
-                        max_export=renderer.one_way_amount,
-                        import_material=None,
+                        max_amount=renderer.one_way_amount,
+                        import_resource=None,
                         import_amount=0,
-                        max_import=0,
                         path=path,
                         path_distances=path_distances,
                         water=water,

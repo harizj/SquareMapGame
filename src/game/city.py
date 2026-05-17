@@ -18,7 +18,7 @@ BASE_IRON_EXTRACTION_MODIFIER = .25
 
 
 from src.game.production import ProductionTarget
-from src.game.tile import DEPOSIT_STARTING_WOOD, DEPOSIT_STARTING_IRON, BASE_WOOD_EXTRACTION_MODIFIER, BASE_IRON_EXTRACTION_MODIFIER
+from src.game.tile import DEPOSIT_STARTING_WOOD, DEPOSIT_STARTING_IRON
 
 _DEPOSIT_STARTING = {'wood': DEPOSIT_STARTING_WOOD, 'iron': DEPOSIT_STARTING_IRON}
 
@@ -79,14 +79,14 @@ class City:
             if route.missing_caravans or not route.established:
                 continue
             if route.city_a is self:
-                if route.export_material == 'food':
-                    net -= route.export_amount
-                if route.import_material == 'food':
+                if route.export_resource == 'food':
+                    net -= route.max_amount
+                if route.import_resource == 'food':
                     net += route.import_amount
             else:
-                if route.export_material == 'food':
-                    net += route.export_amount
-                if route.import_material == 'food':
+                if route.export_resource == 'food':
+                    net += route.max_amount
+                if route.import_resource == 'food':
                     net -= route.import_amount
         return net
 
