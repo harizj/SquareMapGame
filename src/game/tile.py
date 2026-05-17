@@ -39,6 +39,9 @@ TILE_FARM_SLOTS = {
     'forest':   2,
     'mountain': 0,
 }
+DEPOSIT_STARTING_WOOD = 20
+DEPOSIT_STARTING_IRON = 20
+
 BIOMES = ['temperate',
         'arid',
         'tropical',
@@ -118,6 +121,9 @@ class Tile:
         self.jobs = []
         self._init_jobs()
         self.food_allocated_from_routes = 0.0
+        self.resource_stockpiles = {}
+        self.resource_deposits = {}
+        self.build_deposits()
 
     @property
     def worked_farms(self):
@@ -148,6 +154,13 @@ class Tile:
             return
         slots = TILE_FARM_SLOTS.get(self.terrain, 0)
         self.jobs = [FarmJob(slots)] if slots > 0 else []
+
+    def build_deposits(self):
+        features = self.terrain_features
+        if 'forest' in features:
+            self.resource_deposits.setdefault('wood', DEPOSIT_STARTING_WOOD)
+        elif 'hills' in features:
+            self.resource_deposits.setdefault('iron', DEPOSIT_STARTING_IRON)
 
     _ART_PRIORITY = ['river', 'mountain', 'forest', 'hills', 'water', 'floodplain']
 

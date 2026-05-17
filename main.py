@@ -34,6 +34,13 @@ def _apply_game_config(game_map, game_config):
         )
         factions[f_data['name']] = faction
 
+    for ug_data in game_config.get('unit_groups', []):
+        r, c = ug_data['row'], ug_data['col']
+        faction = factions.get(ug_data.get('faction'))
+        group = UnitGroup(r, c, units=[Unit(Pop()) for _ in range(ug_data['num_units'])], faction=faction)
+        group.add_food(ug_data['food'])
+        game_map.tiles[r][c].unit_groups.append(group)
+
     for city_data in game_config.get('cities', []):
         r, c = city_data['row'], city_data['col']
         faction = factions.get(city_data.get('faction'))
@@ -42,14 +49,6 @@ def _apply_game_config(game_map, game_config):
         city = City(r, c, name, faction=faction, population=population)
         game_map.cities[(r, c)] = city
         game_map.setup_city(city)
-
-    for ug_data in game_config.get('unit_groups', []):
-        r, c = ug_data['row'], ug_data['col']
-        faction = factions.get(ug_data.get('faction'))
-        group = UnitGroup(r, c, units=[Unit(Pop()) for _ in range(ug_data['num_units'])], faction=faction)
-        group.add_food(ug_data['food'])
-        group.allocate_food()
-        game_map.tiles[r][c].unit_groups.append(group)
 
     return factions
 
@@ -348,6 +347,7 @@ def main():
                                 break
                         if changed:
                             selected_tile.update_terrain_properties()
+                            selected_tile.build_deposits()
                             if move_mode:
                                 group = game_map.get_unit_group(selected_tile.row, selected_tile.col)
                                 if group:
@@ -360,6 +360,7 @@ def main():
                             if 'river' not in selected_tile.terrain_features:
                                 selected_tile.terrain_features = selected_tile.terrain_features + ['river']
                             selected_tile.update_terrain_properties()
+                            selected_tile.build_deposits()
                             if move_mode:
                                 group = game_map.get_unit_group(selected_tile.row, selected_tile.col)
                                 if group:

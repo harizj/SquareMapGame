@@ -198,7 +198,9 @@ class Map:
                 tile.owning_city = city
                 tile.city_distance = cost
                 city.owned_tiles.append(tile)
-        self.tiles[city.row][city.col].city = city
+        city_tile = self.tiles[city.row][city.col]
+        city_tile.city = city
+        city.unit_groups = list(city_tile.unit_groups)
         city.setup_jobs()
 
     def move_group(self, group, row, col, cost):

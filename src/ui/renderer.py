@@ -1651,7 +1651,14 @@ class Renderer:
             features_text = ", ".join(f.capitalize() for f in tile.terrain_features) if tile.terrain_features else "None"
             features_surf = self.font_body.render(f"Features: {features_text}", True, TEXT_COLOR)
             self.screen.blit(features_surf, (x + 4, y))
-            y += features_surf.get_height() + 8
+            y += features_surf.get_height() + 4
+            if tile.resource_deposits:
+                deposits_text = ", ".join(f"{v:g} {k}" for k, v in tile.resource_deposits.items())
+            else:
+                deposits_text = "None"
+            deposits_surf = self.font_body.render(f"Resource Deposits: {deposits_text}", True, TEXT_COLOR)
+            self.screen.blit(deposits_surf, (x + 4, y))
+            y += deposits_surf.get_height() + 8
 
         # Change Terrain + Save Map buttons
         btn_w = PANEL_WIDTH - pad * 2
@@ -1866,6 +1873,17 @@ class Renderer:
             self.restock_button_rect = self._draw_button(x, y, half_w, btn_h, "Restock", disabled=True)
             self.drop_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Drop", disabled=True)
             y += btn_h + 6
+
+        # Resources section
+        if tile and tile.resource_stockpiles:
+            surf = self.font_header.render("RESOURCES", True, HEADER_TEXT_COLOR)
+            self.screen.blit(surf, (x, y))
+            y += surf.get_height() + 6
+            for resource, amount in tile.resource_stockpiles.items():
+                line = self.font_body.render(f"{amount:g} {resource}", True, TEXT_COLOR)
+                self.screen.blit(line, (x + 4, y))
+                y += line.get_height() + 4
+            y += 4
 
         # End Turn button anchored to bottom
         btn_w = PANEL_WIDTH - pad * 2
