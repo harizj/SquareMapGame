@@ -85,7 +85,15 @@ _NEIGHBOR_EDGE_ANGLES = {
     1: {(-1,  0): 240, (-1,  1): -60, (0, -1): 180, (0, 1): 0, (1,  0): 120, (1, 1): 60},
 }
 
-# Maps terrain name → image filename stem when they differ
+# Art names that get_terrain_art() can return — images loaded for each
+_TERRAIN_ART_NAMES = ['river', 'mountain', 'forest', 'hills', 'water', 'floodplain', 'grass', 'desert', 'marsh']
+
+# Per-art scale multipliers applied on top of the hex size (1.0 = fill hex)
+_TERRAIN_ART_SCALE = {
+    'grass': 0.7,
+}
+
+# Maps art name → image filename stem when they differ
 _TERRAIN_IMG_FILES = {
     'mountain': 'mountains',
 }
@@ -123,7 +131,7 @@ class Renderer:
         hex_h = 2 * HEX_SIZE
         self._terrain_images_raw = {}
         terrain_dir = os.path.join(_ASSETS_DIR, 'terrain')
-        for name in TERRAIN_TYPES:
+        for name in _TERRAIN_ART_NAMES:
             img_file = _TERRAIN_IMG_FILES.get(name, name)
             raw_variants = []
             for i in range(1, 5):
@@ -269,7 +277,13 @@ class Renderer:
         hex_w = int(math.sqrt(3) * sz)
         hex_h = int(2 * sz * ISO_SCALE)
         self.terrain_images = {
-            name: [pygame.transform.scale(v, (hex_w, hex_h)) for v in variants]
+            name: [
+                pygame.transform.scale(v, (
+                    int(hex_w * _TERRAIN_ART_SCALE.get(name, 1.0)),
+                    int(hex_h * _TERRAIN_ART_SCALE.get(name, 1.0)),
+                ))
+                for v in variants
+            ]
             for name, variants in self._terrain_images_raw.items()
         }
         self.river_imgs = {}
@@ -600,15 +614,16 @@ class Renderer:
                 corners = self._hex_corners(cx, cy)
                 all_corners[(r, c)] = corners
                 all_centers[(r, c)] = (cx, cy)
-                dark_color = TERRAIN_COLORS_DARK.get(tile.terrain, BG_COLOR)
+                color = tile.get_terrain_color()
+                dark_color = tuple(int(v * 0.68) for v in color)
                 pygame.draw.polygon(self.screen, dark_color, corners)
                 inner = [(cx + 1.0 * (px - cx), cy + 1.0 * (py - cy)) for px, py in corners]
-                pygame.draw.polygon(self.screen, TERRAIN_COLORS.get(tile.terrain, BG_COLOR), inner)
+                pygame.draw.polygon(self.screen, color, inner)
 
         # Pass 1b: terrain images over fills
         for r in range(self.map.rows):
             for c in range(self.map.cols):
-                variants = self.terrain_images.get(self.map.tiles[r][c].terrain)
+                variants = self.terrain_images.get(self.map.tiles[r][c].get_terrain_art())
                 if variants:
                     img = variants[(r * 7 + c * 13) % len(variants)]
                     cx, cy = all_centers[(r, c)]
@@ -1603,6 +1618,15 @@ class Renderer:
             if no_river:
                 self.draw_river_button_rect = None
         y += row_h + 8
+
+        if tile:
+            biome_surf = self.font_body.render(f"Biome: {tile.biome.capitalize()}", True, TEXT_COLOR)
+            self.screen.blit(biome_surf, (x + 4, y))
+            y += biome_surf.get_height() + 4
+            features_text = ", ".join(f.capitalize() for f in tile.terrain_features) if tile.terrain_features else "None"
+            features_surf = self.font_body.render(f"Features: {features_text}", True, TEXT_COLOR)
+            self.screen.blit(features_surf, (x + 4, y))
+            y += features_surf.get_height() + 8
 
         # Change Terrain + Save Map buttons
         btn_w = PANEL_WIDTH - pad * 2

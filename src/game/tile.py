@@ -78,6 +78,20 @@ BIOME_FEATURE_FARM_INTERACTIONS = {
     ('arid', 'hills'): 1,
 }
 
+BIOME_COLORS = {
+    'temperate': (105, 168,  88),
+    'arid':      (165, 135,  80),
+    'tropical':  ( 75, 160,  80),
+    'taiga':     ( 80, 120,  95),
+    'desert':    (200, 175, 115),
+    'ice':       (195, 215, 230),
+    'wetlands':  (110, 140, 100),
+    'coastal':   (140, 180, 150),
+    'ocean':     ( 55,  95, 155),
+}
+
+_MOUNTAIN_COLOR = (140, 140, 140)
+
 
 class Tile:
     def __init__(self, row, col, terrain, biome='Coastal', terrain_features=['Water']):
@@ -135,9 +149,18 @@ class Tile:
         slots = TILE_FARM_SLOTS.get(self.terrain, 0)
         self.jobs = [FarmJob(slots)] if slots > 0 else []
 
-    _ART_PRIORITY = ['mountain', 'forest', 'hills', 'river', 'water', 'floodplain']
+    _ART_PRIORITY = ['river', 'mountain', 'forest', 'hills', 'water', 'floodplain']
+
+    def get_terrain_color(self):
+        if 'mountain' in self.terrain_features:
+            return _MOUNTAIN_COLOR
+        return BIOME_COLORS.get(self.biome, (150, 150, 150))
 
     def get_terrain_art(self):
+        if self.biome == 'desert':
+            return 'desert'
+        if self.biome == 'wetlands':
+            return 'marsh'
         for feature in self._ART_PRIORITY:
             if feature in self.terrain_features:
                 return feature

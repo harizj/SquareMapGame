@@ -310,9 +310,12 @@ class Map:
                     t = Tile(r, c, terrain)
                 else:
                     terrain = _TERRAIN_MIGRATION.get(cell['terrain'], cell['terrain'])
-                    t = Tile(r, c, terrain)
+                    biome = cell.get('biome', '')
+                    terrain_features = cell.get('terrain_features', [])
+                    t = Tile(r, c, terrain, biome=biome, terrain_features=terrain_features)
                     for edge in cell.get('river_edges', []):
                         t.river_edges.add(edge)
+                    t.update_terrain_properties()
                 row.append(t)
             m.tiles.append(row)
         m._city_name_idx = 0

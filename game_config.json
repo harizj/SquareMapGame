@@ -1,5 +1,5 @@
 {
-  "map": "mesopotamia_2",
+  "map": "mesopotamia_migration",
   "factions": [
     {"name": "Babylonians", "colors": "blue", "city_names": "babylon"},
     {"name": "Assyrians",   "colors": "red",  "city_names": "assyria"}
