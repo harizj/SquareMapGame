@@ -133,6 +133,7 @@ class Tile:
         self.water = 'water' in self.terrain_features
         self.water_access = 'water_access' in self.terrain_features
         self.jobs = []
+        self.current_extraction_job = None
         self.update_terrain_properties()
         self.food_allocated_from_routes = 0.0
         self.resource_stockpiles = {}
@@ -168,6 +169,12 @@ class Tile:
             self.city._build_cumulative_farm_yield()
             self.city.update_cumulative_farm_yield_net()
             self.city.rebalance_pops()
+
+    def set_extraction_job(self, resource):
+        self.current_extraction_job = resource
+
+    def clear_extraction_job(self):
+        self.current_extraction_job = None
 
     def _init_jobs(self):
         if self.raided or self.restricted:

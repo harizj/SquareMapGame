@@ -342,20 +342,7 @@ class Renderer:
                 black = pygame.Surface(rotated.get_size(), pygame.SRCALPHA)
                 black.fill((0, 0, 0, 220))
                 black.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-                size = rotated.get_size()
-                outline = pygame.Surface(size, pygame.SRCALPHA)
-                for dx in range(-5, 6):
-                    for dy in range(-5, 6):
-                        if (dx, dy) != (0, 0) and dx*dx + dy*dy <= 25:
-                            outline.blit(black, (dx, dy))
-                for dx in range(-3, 4):
-                    for dy in range(-3, 4):
-                        if (dx, dy) != (0, 0) and dx*dx + dy*dy <= 9:
-                            outline.blit(dark_blue, (dx, dy))
-                outlined = pygame.Surface(size, pygame.SRCALPHA)
-                outlined.blit(outline, (0, 0))
-                outlined.blit(tinted, (0, 0))
-                self.river_imgs[key] = (outlined, offset)
+                self.river_imgs[key] = (black, offset)
         self._hex_clip_offsets = [
             (sz * math.cos(math.radians(60 * i - 30)),
              sz * math.sin(math.radians(60 * i - 30)) * ISO_SCALE)
@@ -577,6 +564,13 @@ class Renderer:
         self.screen.blit(surf, (x + (w - surf.get_width()) // 2, y + (h - surf.get_height()) // 2))
         return rect
 
+    def _get_tile_job_icon(self, resource, tile):
+        """Return the icon surface to display for a tile's active extraction job.
+        Extend this to return resource-specific icons keyed by resource name."""
+        faction = tile.owning_city.faction if tile.owning_city else None
+        faction_torch = self._faction_torch_icons.get(faction.name, {}).get('dark') if faction else None
+        return faction_torch or self.icons.get('torch')
+
     def _draw_city_bar_fill(self, city, bx, by, bar_w, bar_h, bar_type, tick_w=1, border_radius=0):
         if bar_type == 'food':
             food_max = city._stockpile_max()
@@ -712,7 +706,7 @@ class Renderer:
                         angle = RIVER_DIR_ANGLES[direction]
                         ex = cx + apothem * math.cos(angle)
                         ey = cy + apothem * math.sin(angle)
-                        pygame.draw.line(self.screen, COLOR_RIVER_LINE,
+                        pygame.draw.line(self.screen, (0, 0, 0),
                                          (int(cx), int(cy)), (int(ex), int(ey)), 3)
 
 
@@ -876,10 +870,17 @@ class Renderer:
                 cx, cy = all_centers[(r, c)]
                 dx = int(cx) - dot_offset_x
                 dy = int(cy) - dot_start_y_offset
+                icon_y = dy - int(apothem * 0.3)
                 if tile.is_disrupted and torch_icon:
                     faction = tile.owning_city.faction if tile.owning_city else None
                     faction_torch = self._faction_torch_icons.get(faction.name, {}).get('dark') if faction else None
-                    self.screen.blit(faction_torch or torch_icon, (dx - int(apothem * 0.4), dy - int(apothem * 0.3)))
+                    icon = faction_torch or torch_icon
+                    self.screen.blit(icon, (dx - int(apothem * 0.4), icon_y))
+                if tile.current_extraction_job is not None:
+                    icon = self._get_tile_job_icon(tile.current_extraction_job, tile)
+                    if icon:
+                        self.screen.blit(icon, (int(cx) + dot_offset_x - icon.get_width() + int(apothem * 0.4), icon_y))
+                if tile.is_disrupted:
                     continue
                 if tile.worked_farms <= 0:
                     continue
@@ -1675,6 +1676,9 @@ class Renderer:
         y += row_h + 8
 
         if tile:
+            coords_surf = self.font_body.render(f"Row {tile.row}, Col {tile.col}", True, TEXT_COLOR)
+            self.screen.blit(coords_surf, (x + 4, y))
+            y += coords_surf.get_height() + 4
             biome_surf = self.font_body.render(f"Biome: {tile.biome.capitalize()}", True, TEXT_COLOR)
             self.screen.blit(biome_surf, (x + 4, y))
             y += biome_surf.get_height() + 4

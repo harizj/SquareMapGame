@@ -53,6 +53,7 @@ class City:
         self.production_yield = 0.0
         self.production_progress = 0.0
         self.production_complete = None
+        self.extraction_tile = None
 
     @property
     def unassigned_pops(self):
@@ -374,6 +375,9 @@ class City:
 
         # Production yield
         self.production_yield = 0.0
+        if self.extraction_tile:
+            self.extraction_tile.clear_extraction_job()
+        self.extraction_tile = None
         if prod_job and prod_job.assigned > 0:
             self.production_yield = prod_job.assigned
             pt = self.production_target
@@ -384,7 +388,9 @@ class City:
                     reverse=True,
                 )
                 if deposit_tiles:
-                    self.production_yield = prod_job.assigned * deposit_tiles[0].extraction_yield
+                    self.extraction_tile = deposit_tiles[0]
+                    self.extraction_tile.set_extraction_job(pt.target)
+                    self.production_yield = prod_job.assigned * self.extraction_tile.extraction_yield
 
         self.update_production_bar()
         self._update_food_allocations()
@@ -460,19 +466,12 @@ class City:
         if prod_job:
             self.construction_progress = min(self.construction_progress + prod_job.production_yield(), 1000)
         pt = self.production_target
-        if pt.type == 'extraction' and pt.target and self.production_yield > 0:
-            deposit_tiles = sorted(
-                [t for t in self.owned_tiles if pt.target in t.resource_deposits],
-                key=lambda t: t.extraction_yield,
-                reverse=True,
-            )
-            if deposit_tiles:
-                best_tile = deposit_tiles[0]
-                resource = pt.target
-                extracted = best_tile.extraction(self.production_yield, resource)
-                city_tile = next((t for t in self.owned_tiles if t.row == self.row and t.col == self.col), None)
-                if city_tile:
-                    city_tile.add_resources_to_stockpile(extracted, resource)
+        if pt.type == 'extraction' and pt.target and self.production_yield > 0 and self.extraction_tile:
+            resource = pt.target
+            extracted = self.extraction_tile.extraction(self.production_yield, resource)
+            city_tile = next((t for t in self.owned_tiles if t.row == self.row and t.col == self.col), None)
+            if city_tile:
+                city_tile.add_resources_to_stockpile(extracted, resource)
 
         # Step 5: spawn new pops
         spawned = 0

@@ -244,18 +244,16 @@
         "river_edges": []
       },
       {
-        "biome": "coastal",
+        "biome": "temperate",
         "terrain_features": [
-          "floodplain",
-          "water"
+          "floodplain"
         ],
         "river_edges": []
       },
       {
-        "biome": "temperate",
+        "biome": "coastal",
         "terrain_features": [
-          "floodplain",
-          "hills"
+          "water"
         ],
         "river_edges": []
       },
@@ -291,8 +289,8 @@
           "river"
         ],
         "river_edges": [
-          "SW",
-          "NW"
+          "NW",
+          "SW"
         ]
       },
       {
@@ -350,16 +348,16 @@
         "river_edges": []
       },
       {
-        "biome": "coastal",
+        "biome": "temperate",
         "terrain_features": [
-          "water"
+          "floodplain"
         ],
         "river_edges": []
       },
       {
-        "biome": "temperate",
+        "biome": "coastal",
         "terrain_features": [
-          "floodplain"
+          "water"
         ],
         "river_edges": []
       },
@@ -886,8 +884,8 @@
           "river"
         ],
         "river_edges": [
-          "SW",
-          "NW"
+          "NW",
+          "SW"
         ]
       },
       {
@@ -1408,10 +1406,8 @@
         "river_edges": []
       },
       {
-        "biome": "arid",
-        "terrain_features": [
-          "hills"
-        ],
+        "biome": "wetlands",
+        "terrain_features": [],
         "river_edges": []
       },
       {
@@ -1726,8 +1722,8 @@
           "river"
         ],
         "river_edges": [
-          "NE",
-          "W"
+          "W",
+          "NE"
         ]
       },
       {
@@ -1758,8 +1754,8 @@
           "river"
         ],
         "river_edges": [
-          "E",
-          "NW"
+          "NW",
+          "E"
         ]
       },
       {
@@ -1806,5 +1802,41 @@
     ]
   ],
   "unit_groups": [],
-  "cities": []
+  "cities": [
+    {
+      "row": 7,
+      "col": 11,
+      "name": "Orgrimmar"
+    },
+    {
+      "row": 11,
+      "col": 6,
+      "name": "Thunder Bluff"
+    },
+    {
+      "row": 3,
+      "col": 1,
+      "name": "Darnassus"
+    },
+    {
+      "row": 11,
+      "col": 11,
+      "name": "Theramore"
+    },
+    {
+      "row": 4,
+      "col": 5,
+      "name": "Auberdine"
+    },
+    {
+      "row": 5,
+      "col": 7,
+      "name": "Astranaar"
+    },
+    {
+      "row": 8,
+      "col": 8,
+      "name": "The Crossroads"
+    }
+  ]
 }
