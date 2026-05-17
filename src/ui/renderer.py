@@ -244,6 +244,9 @@ class Renderer:
         self.disband_button_rect = None
         self.recruit_popup_active = False
         self.recruit_popup_amount = 1
+        self.production_popup_active = False
+        self.production_target_button_rect = None
+        self.production_popup_rects = {}
         self.recruit_popup_food = 0
         self.recruit_popup_slider_rect = None
         self.recruit_popup_food_slider_rect = None
@@ -1063,6 +1066,9 @@ class Renderer:
         if self.recruit_popup_active and selected_tile and selected_tile.city:
             self._draw_recruit_popup(selected_tile.city)
 
+        if self.production_popup_active and selected_tile and selected_tile.city:
+            self._draw_production_popup(selected_tile.city)
+
         if battle_popup_active and battle_popup_preview:
             self._draw_battle_popup(battle_popup_preview)
 
@@ -1546,6 +1552,11 @@ class Renderer:
         y += net_surf.get_height() + 2
 
         y += 6
+        pt = city.production_target
+        pt_label = f"Production: {pt.label}"
+        self.production_target_button_rect = self._draw_button(x, y, CITY_PANEL_WIDTH - pad * 2, 22, pt_label)
+        y += 22 + 6
+
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
         y += 10
         surf = self.font_header.render("TRADE ROUTES", True, HEADER_TEXT_COLOR)
@@ -1915,6 +1926,50 @@ class Renderer:
         )
         self.screen.blit(hint, (sw - hint.get_width() - pad,
                                 bar_y + (bar_h - hint.get_height()) // 2))
+
+    def _draw_production_popup(self, city):
+        from src.game.production import PRODUCTION_CATEGORIES, PRODUCTION_SUBTYPES
+        overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        self.screen.blit(overlay, (0, 0))
+
+        pad = 14
+        btn_h = 22
+        row_h = btn_h + 4
+        category_gap = 10
+
+        n_rows = sum(max(1, len(PRODUCTION_SUBTYPES[c])) for c in PRODUCTION_CATEGORIES)
+        H = pad + 20 + 6 + len(PRODUCTION_CATEGORIES) * (18 + 4 + category_gap) + n_rows * row_h + pad
+        W = 260
+        sx = (self.screen.get_width() - W) // 2
+        sy = (self.screen.get_height() - H) // 2
+        btn_w = W - pad * 2
+
+        pygame.draw.rect(self.screen, (40, 40, 55), (sx, sy, W, H), border_radius=6)
+        pygame.draw.rect(self.screen, PANEL_DIVIDER, (sx, sy, W, H), 1, border_radius=6)
+
+        surf = self.font_header.render("PRODUCTION TARGET", True, HEADER_TEXT_COLOR)
+        self.screen.blit(surf, (sx + pad, sy + pad))
+        y = sy + pad + surf.get_height() + 6
+
+        self.production_popup_rects = {}
+        for category in PRODUCTION_CATEGORIES:
+            cat_surf = self.font_body.render(category.capitalize(), True, HEADER_TEXT_COLOR)
+            self.screen.blit(cat_surf, (sx + pad, y))
+            y += cat_surf.get_height() + 4
+            subtypes = PRODUCTION_SUBTYPES[category]
+            if subtypes:
+                for subtype in subtypes:
+                    active = (city.production_target.type == category and
+                              city.production_target.target == subtype)
+                    rect = self._draw_button(sx + pad, y, btn_w, btn_h, subtype.capitalize(), active=active)
+                    self.production_popup_rects[(category, subtype)] = rect
+                    y += row_h
+            else:
+                placeholder = self.font_small.render("(none available)", True, PANEL_DIVIDER)
+                self.screen.blit(placeholder, (sx + pad + 4, y + 4))
+                y += row_h
+            y += category_gap
 
     def _draw_recruit_popup(self, city):
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)

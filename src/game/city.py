@@ -15,6 +15,9 @@ GROWTH_SLOWDOWN_POP_THRESHOLD = 20
 TURNS_WITH_STOCKPILE_LOSS_THRESHOLD = 5
 
 
+from src.game.production import ProductionTarget
+
+
 class City:
     def __init__(self, row, col, name='City', faction=None, population=20):
         self.row = row
@@ -43,6 +46,7 @@ class City:
         self.growth_allocated = 0.0
         self.pending_pop_loss = 0
         self.turns_with_stockpile_loss = 0.0
+        self.production_target = ProductionTarget()
 
     @property
     def unassigned_pops(self):

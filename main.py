@@ -371,6 +371,18 @@ def main():
                 elif save_popup_active:
                     pass
 
+                elif renderer.production_popup_active:
+                    hit = False
+                    for (category, subtype), rect in renderer.production_popup_rects.items():
+                        if rect.collidepoint(pos):
+                            if selected_tile and selected_tile.city:
+                                selected_tile.city.production_target.set(category, subtype)
+                            renderer.production_popup_active = False
+                            hit = True
+                            break
+                    if not hit:
+                        renderer.production_popup_active = False
+
                 elif renderer.recruit_popup_active:
                     if renderer.recruit_popup_confirm_rect and renderer.recruit_popup_confirm_rect.collidepoint(pos):
                         if selected_tile and selected_tile.city:
@@ -520,6 +532,9 @@ def main():
                     move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                     if not move_mode:
                         move_hover_tile = None
+
+                elif renderer.production_target_button_rect and renderer.production_target_button_rect.collidepoint(pos):
+                    renderer.production_popup_active = True
 
                 elif renderer.recruit_unit_button_rect and renderer.recruit_unit_button_rect.collidepoint(pos):
                     if selected_tile and selected_tile.city and len(selected_tile.city.pops) > 1:
