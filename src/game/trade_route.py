@@ -30,6 +30,7 @@ class TradeRoute:
         self.distance = path_distances[-1] if path_distances else 0.0
         self.water = water
         self.travel_time = self.distance / DEFAULT_MOVE_DISTANCE if self.distance > 0 else 0.0
+        self.one_way = True
         self.missing_caravans = False
         self.establish_progress = DEFAULT_MOVE_DISTANCE
         self.established = self.establish_progress >= self.distance
@@ -46,6 +47,7 @@ class TradeRoute:
             dest_tile.update_unit_allocations()
         self.city_a.update_cumulative_farm_yield_net()
         self.city_a.rebalance_pops()
+        self.update_resource_amounts()
 
         # print(f"\n=== New TradeRoute ===")
         # print(f"  city_a={self.city_a.name}  dest={self.destination_name}")
@@ -104,6 +106,7 @@ class TradeRoute:
                     dest_city.rebalance_pops()
                 
         self.dest_tile.update_unit_allocations()
+        self.update_resource_amounts()
 
     def get_pops_from_city(self, city):
         return self.pops_a if self.city_a is city else self.pops_b
@@ -119,6 +122,19 @@ class TradeRoute:
             return self.path
         result = [node for node, d in zip(self.path, self.path_distances) if d <= self.establish_progress]
         return result
+
+    def update_resource_amounts(self):
+        if self.export_resource and self.export_resource != 'food':
+            city_tile = next(
+                (t for t in self.city_a.owned_tiles if t.row == self.city_a.row and t.col == self.city_a.col),
+                None
+            )
+            available = city_tile.resource_stockpiles.get(self.export_resource, 0) if city_tile else 0
+            self.export_amount = min(available, self.max_amount)
+
+        if self.import_resource and self.import_resource != 'food':
+            available = self.dest_tile.resource_stockpiles.get(self.import_resource, 0)
+            self.import_amount = min(available, self.max_amount)
 
     def reduce_export_amount(self):
         if self.max_amount <= 1:
@@ -140,3 +156,4 @@ class TradeRoute:
         if dest_city is not None:
             dest_city.update_cumulative_farm_yield_net()
             dest_city.rebalance_pops()
+        self.update_resource_amounts()

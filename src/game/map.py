@@ -191,6 +191,7 @@ class Map:
         city_tile.terrain_features = [f for f in city_tile.terrain_features if f not in ('city', 'water_access')]
         city_tile.update_terrain_properties()
         city_tile.city = None
+        city.tile = None
         del self.cities[(city.row, city.col)]
 
     def _apply_city_tile_features(self, city):
@@ -212,6 +213,7 @@ class Map:
     def setup_city(self, city):
         city_tile = self.tiles[city.row][city.col]
         city_tile.city = city
+        city.tile = city_tile
         self._apply_city_tile_features(city)
         city_range = self.get_reachable_from(city.row, city.col, DEFAULT_MOVE_DISTANCE, mode='any', include_start=True)
         city.owned_tiles = []

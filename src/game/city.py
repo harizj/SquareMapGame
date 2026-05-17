@@ -51,6 +51,7 @@ class City:
         self.growth_allocated = 0.0
         self.pending_pop_loss = 0
         self.turns_with_stockpile_loss = 0.0
+        self.tile = None
         self.production_target = ProductionTarget()
         self.production_yield = 0.0
         self.production_progress = 0.0
@@ -146,6 +147,26 @@ class City:
     def check_additional_resources(self, resource):
         if not self.has_deposit(resource):
             self.production_target.clear()
+
+    def _move_resource(self, tile, resource, amount):
+        current = tile.resource_stockpiles.get(resource, 0)
+        tile.resource_stockpiles[resource] = max(0, current + amount)
+        if tile.resource_stockpiles[resource] == 0:
+            tile.resource_stockpiles.pop(resource, None)
+
+    def _process_resource_routes(self):
+        if not self.tile:
+            return
+        for route in self.trade_routes:
+            if not route.established or route.missing_caravans:
+                continue
+            if route.city_a is self:
+                if route.export_resource and route.export_resource != 'food':
+                    self._move_resource(self.tile, route.export_resource, -route.export_amount)
+                    self._move_resource(route.dest_tile, route.export_resource, route.export_amount)
+                if route.import_resource and route.import_resource != 'food':
+                    self._move_resource(route.dest_tile, route.import_resource, -route.import_amount)
+                    self._move_resource(self.tile, route.import_resource, route.import_amount)
 
     def _sorted_tile_farm_jobs(self):
         """Tile farm jobs sorted nearest-first (matches cumulative_farm_yield order)."""
@@ -482,10 +503,9 @@ class City:
             resource = pt.target
             # print(f"[extraction] {self.name} end_turn: extracting {self.production_yield:.2f} {resource} from ({self.extraction_tile.row},{self.extraction_tile.col}) deposit={self.extraction_tile.resource_deposits.get(resource, 0):.1f}")
             extracted = self.extraction_tile.extraction(self.production_yield, resource)
-            city_tile = next((t for t in self.owned_tiles if t.row == self.row and t.col == self.col), None)
-            if city_tile:
-                city_tile.add_resources_to_stockpile(extracted, resource)
-                # print(f"[extraction] {self.name} end_turn: extracted={extracted:.2f}, city_tile stockpile={city_tile.resource_stockpiles}")
+            if self.tile:
+                self.tile.add_resources_to_stockpile(extracted, resource)
+                # print(f"[extraction] {self.name} end_turn: extracted={extracted:.2f}, city_tile stockpile={self.tile.resource_stockpiles}")
 
         # Step 5: spawn new pops
         spawned = 0
@@ -499,6 +519,7 @@ class City:
             log.append(f"{self.name}: {spawned} new pop(s)! ({len(self.pops)} total)")
             # print(f"  [spawn] +{spawned} pop(s), total={len(self.pops)}")
 
+        self._process_resource_routes()
         self.rebalance_pops()
         # print(f"  === end: stockpile={self.food_stockpile:.1f}  growth={self.growth_progress:.1f}  pops={len(self.pops)} ===")
         return log
