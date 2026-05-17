@@ -427,15 +427,15 @@ def main():
                         t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
                         renderer.recruit_popup_food = max(0, min(max_food_per_pop, round(t * max_food_per_pop)))
 
-                elif renderer.trade_route_import_slider_rect and renderer.trade_route_import_slider_rect.collidepoint(pos):
+                elif renderer.trade_route_pending and renderer.trade_route_import_slider_rect and renderer.trade_route_import_slider_rect.collidepoint(pos):
                     renderer.snap_import_amount(pos[0])
                     renderer._import_slider_dragging = True
 
-                elif renderer.trade_route_amount_slider_rect and renderer.trade_route_amount_slider_rect.collidepoint(pos):
+                elif renderer.trade_route_pending and renderer.trade_route_amount_slider_rect and renderer.trade_route_amount_slider_rect.collidepoint(pos):
                     renderer.snap_export_amount(pos[0])
                     renderer._amount_slider_dragging = True
 
-                elif renderer.trade_route_slider_rect and renderer.trade_route_slider_rect.collidepoint(pos):
+                elif renderer.trade_route_pending and renderer.trade_route_slider_rect and renderer.trade_route_slider_rect.collidepoint(pos):
                     sr = renderer.trade_route_slider_rect
                     t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
                     renderer.trade_route_pops = max(1, min(8, round(1 + t * 7)))
@@ -474,31 +474,31 @@ def main():
                 #     renderer.trade_route_pending = None
                 #     renderer.adding_trade_route = False
 
-                elif any(r.collidepoint(pos) for r in renderer.one_way_route_style_rects.values()):
+                elif renderer.one_way_route_pending and any(r.collidepoint(pos) for r in renderer.one_way_route_style_rects.values()):
                     for label, rect in renderer.one_way_route_style_rects.items():
                         if rect.collidepoint(pos):
                             renderer.one_way_route_style = label.lower().replace(' ', '_')
                             break
 
-                elif any(r.collidepoint(pos) for r in renderer.one_way_route_type_rects.values()):
+                elif renderer.one_way_route_pending and any(r.collidepoint(pos) for r in renderer.one_way_route_type_rects.values()):
                     for label, rect in renderer.one_way_route_type_rects.items():
                         if rect.collidepoint(pos):
                             renderer.one_way_route_type = label.lower()
                             break
 
-                elif any(r.collidepoint(pos) for r in renderer.one_way_export_rects.values()):
+                elif renderer.one_way_route_pending and any(r.collidepoint(pos) for r in renderer.one_way_export_rects.values()):
                     for label, rect in renderer.one_way_export_rects.items():
                         if rect.collidepoint(pos):
                             renderer.one_way_export_material = label.lower()
                             break
 
-                elif any(r.collidepoint(pos) for r in renderer.one_way_import_rects.values()):
+                elif renderer.one_way_route_pending and any(r.collidepoint(pos) for r in renderer.one_way_import_rects.values()):
                     for label, rect in renderer.one_way_import_rects.items():
                         if rect.collidepoint(pos):
                             renderer.one_way_import_material = label.lower()
                             break
 
-                elif renderer.one_way_confirm_rect and renderer.one_way_confirm_rect.collidepoint(pos) and renderer.one_way_route_pending:
+                elif renderer.one_way_route_pending and renderer.one_way_confirm_rect and renderer.one_way_confirm_rect.collidepoint(pos):
                     city_a, dest_tile = renderer.one_way_route_pending
                     water = renderer.one_way_route_type == 'water'
                     two_way = renderer.one_way_route_style == 'two_way'
@@ -530,7 +530,7 @@ def main():
                     renderer.one_way_route_pending = None
                     renderer.one_way_route_type = 'land'
 
-                elif renderer.one_way_cancel_rect and renderer.one_way_cancel_rect.collidepoint(pos):
+                elif renderer.one_way_route_pending and renderer.one_way_cancel_rect and renderer.one_way_cancel_rect.collidepoint(pos):
                     renderer.one_way_route_pending = None
                     renderer.one_way_route_type = 'land'
 
@@ -634,7 +634,7 @@ def main():
                             route.reduce_export_amount()
                             break
 
-                elif renderer.one_way_slider_rect and renderer.one_way_slider_rect.collidepoint(pos):
+                elif renderer.one_way_route_pending and renderer.one_way_slider_rect and renderer.one_way_slider_rect.collidepoint(pos):
                     sr = renderer.one_way_slider_rect
                     t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
                     renderer.one_way_amount = max(1, min(8, round(1 + t * 7)))

@@ -1462,7 +1462,10 @@ class Renderer:
         y += 6
 
         btn_w = (inner_w - 8) // 2
-        self.one_way_confirm_rect = self._draw_button(x, y, btn_w, 24, "Confirm")
+        confirm_disabled = not dist or self.one_way_pops_required_whole == 0
+        self.one_way_confirm_rect = self._draw_button(x, y, btn_w, 24, "Confirm", disabled=confirm_disabled)
+        if confirm_disabled:
+            self.one_way_confirm_rect = None
         self.one_way_cancel_rect = self._draw_button(x + btn_w + 8, y, btn_w, 24, "Cancel")
 
     def _draw_city_panel(self, tile):
