@@ -474,6 +474,12 @@ def main():
                 #     renderer.trade_route_pending = None
                 #     renderer.adding_trade_route = False
 
+                elif any(r.collidepoint(pos) for r in renderer.one_way_route_style_rects.values()):
+                    for label, rect in renderer.one_way_route_style_rects.items():
+                        if rect.collidepoint(pos):
+                            renderer.one_way_route_style = label.lower().replace(' ', '_')
+                            break
+
                 elif any(r.collidepoint(pos) for r in renderer.one_way_route_type_rects.values()):
                     for label, rect in renderer.one_way_route_type_rects.items():
                         if rect.collidepoint(pos):
@@ -486,25 +492,40 @@ def main():
                             renderer.one_way_export_material = label.lower()
                             break
 
+                elif any(r.collidepoint(pos) for r in renderer.one_way_import_rects.values()):
+                    for label, rect in renderer.one_way_import_rects.items():
+                        if rect.collidepoint(pos):
+                            renderer.one_way_import_material = label.lower()
+                            break
+
                 elif renderer.one_way_confirm_rect and renderer.one_way_confirm_rect.collidepoint(pos) and renderer.one_way_route_pending:
                     city_a, dest_tile = renderer.one_way_route_pending
                     water = renderer.one_way_route_type == 'water'
+                    two_way = renderer.one_way_route_style == 'two_way'
                     path, path_distances = game_map.get_path_to(city_a.row, city_a.col, dest_tile.row, dest_tile.col, mode='water' if water else 'land')
+                    total_pops = renderer.one_way_pops_required_whole
+                    if two_way:
+                        pops_a = (total_pops + 1) // 2
+                        pops_b = total_pops // 2
+                    else:
+                        pops_a = total_pops
+                        pops_b = 0
                     TradeRoute(
                         city_a=city_a,
                         dest_tile=dest_tile,
-                        pops_a=renderer.one_way_pops_required_whole,
-                        pops_b=0,
+                        pops_a=pops_a,
+                        pops_b=pops_b,
                         partial_pops_a=renderer.one_way_partial_pops,
                         partial_pops_b=None,
                         export_resource=renderer.one_way_export_material,
                         export_amount=renderer.one_way_amount,
                         max_amount=renderer.one_way_amount,
-                        import_resource=None,
+                        import_resource=renderer.one_way_import_material if two_way else None,
                         import_amount=0,
                         path=path,
                         path_distances=path_distances,
                         water=water,
+                        one_way=not two_way,
                     )
                     renderer.one_way_route_pending = None
                     renderer.one_way_route_type = 'land'

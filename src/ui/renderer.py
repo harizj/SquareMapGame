@@ -207,6 +207,8 @@ class Renderer:
         self.one_way_route_type_rects = {}
         self.one_way_export_material = 'food'
         self.one_way_export_rects = {}
+        self.one_way_import_material = 'wood'
+        self.one_way_import_rects = {}
         self.one_way_amount = 1
         self.one_way_pops_required_whole = 0
         self.one_way_partial_pops = None
@@ -1326,7 +1328,8 @@ class Renderer:
 
         pad = 16
         popup_w = 280
-        popup_h = 370
+        two_way = self.one_way_route_style == 'two_way'
+        popup_h = 420 if two_way else 370
         sw, sh = self.screen.get_size()
         px = (sw - popup_w) // 2
         py = (sh - popup_h) // 2
@@ -1349,12 +1352,15 @@ class Renderer:
         # Route style: One Way / Two Way
         btn_w = (inner_w - 4) // 2
         self.one_way_route_style_rects = {}
+        has_dest_city = dest_tile.city is not None
         for label in ('One Way', 'Two Way'):
-            is_two_way = label == 'Two Way'
+            disabled = label == 'Two Way' and not has_dest_city
+            if disabled and self.one_way_route_style == 'two_way':
+                self.one_way_route_style = 'one_way'
             rect = self._draw_button(x, y, btn_w, 22, label,
                                      active=(self.one_way_route_style == label.lower().replace(' ', '_')),
-                                     disabled=is_two_way)
-            if not is_two_way:
+                                     disabled=disabled)
+            if not disabled:
                 self.one_way_route_style_rects[label] = rect
             x += btn_w + 4
         x = px + pad
@@ -1393,6 +1399,20 @@ class Renderer:
         x = px + pad
         y += 30
 
+        # Import resource (two-way only)
+        self.one_way_import_rects = {}
+        if two_way:
+            surf = self.font_body.render("Import Resource", True, TEXT_COLOR)
+            self.screen.blit(surf, (x, y))
+            y += surf.get_height() + 6
+            for label in ('Wood', 'Iron'):
+                rect = self._draw_button(x, y, res_btn_w, 22, label,
+                                         active=(self.one_way_import_material == label.lower()))
+                self.one_way_import_rects[label] = rect
+                x += res_btn_w + 4
+            x = px + pad
+            y += 30
+
         # Amount slider 1–8
         surf = self.font_body.render(f"Amount: {self.one_way_amount}", True, TEXT_COLOR)
         self.screen.blit(surf, (x, y))
@@ -1421,7 +1441,7 @@ class Renderer:
         if dist:
             travel_time = dist / DEFAULT_MOVE_DISTANCE
             carry_capacity = WATER_CARRY_CAPACITY if water else LAND_CARRY_CAPACITY
-            denom = carry_capacity + 1 - 2 * travel_time
+            denom = carry_capacity + 1 - travel_time if two_way else carry_capacity + 1 - 2 * travel_time
             if denom > 0 and travel_time > 0:
                 raw = (self.one_way_amount * 2 * travel_time) / denom
                 pops_required = max(1, round(raw))
@@ -1655,12 +1675,6 @@ class Renderer:
         for route in city.trade_routes:
             is_origin = route.city_a is city
             other_name = route.destination_name if is_origin else route.city_a.name
-            if is_origin:
-                net_food = (route.import_amount if route.import_resource == 'food' else 0) \
-                         - (route.max_amount if route.export_resource == 'food' else 0)
-            else:
-                net_food = (route.max_amount if route.export_resource == 'food' else 0) \
-                         - (route.import_amount if route.import_resource == 'food' else 0)
 
             if route.established:
                 name_line = other_name
@@ -1675,18 +1689,35 @@ class Renderer:
             self.trade_route_reduce_rects.append((red_rect, route))
             y += surf.get_height() + 2
             pops = route.get_pops_from_city(city)
-            res = route.export_resource if route.export_resource and route.export_resource != 'food' else None
-            if res:
-                sign = "-" if is_origin else "+"
-                resource_str = f"{sign}{route.export_amount:.1f}/{route.max_amount:.1f} {res.title()}"
+
+            if is_origin:
+                out_res, out_amt = route.export_resource, route.max_amount if route.export_resource == 'food' else route.export_amount
+                in_res,  in_amt  = route.import_resource, route.max_amount if route.import_resource == 'food' else route.import_amount
             else:
-                resource_str = f"{net_food:+.1f} Food"
-            detail = f"{pops} Pops, {resource_str}"
+                out_res, out_amt = route.import_resource, route.max_amount if route.import_resource == 'food' else route.import_amount
+                in_res,  in_amt  = route.export_resource, route.max_amount if route.export_resource == 'food' else route.export_amount
+
+            def _rstr(res, amt, sign):
+                if not res:
+                    return None
+                if res == 'food':
+                    return f"{sign}{amt:.1f} Food"
+                return f"{sign}{amt:.1f}/{route.max_amount:.1f} {res.title()}"
+
+            out_str = _rstr(out_res, out_amt, '-') or ''
+            detail = f"{pops} Pops, {out_str}" if out_str else f"{pops} Pops"
             if route.missing_caravans:
                 detail += " (ending)"
-            surf = self.font_small.render(detail, True, TEXT_COLOR)
+            surf = self.font_body.render(detail, True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 6
+            y += surf.get_height() + 2
+
+            in_str = _rstr(in_res, in_amt, '+')
+            if in_str:
+                surf = self.font_body.render(in_str, True, TEXT_COLOR)
+                self.screen.blit(surf, (x + 4, y))
+                y += surf.get_height() + 2
+            y += 4
 
         self.trade_route_slider_rect = None
         self.trade_route_amount_slider_rect = None
@@ -1698,7 +1729,7 @@ class Renderer:
         #     active=self.adding_trade_route)
         # y += 28
         self.add_one_way_route_button_rect = self._draw_button(
-            pad, y, CITY_PANEL_WIDTH - pad * 2, 22, "Add One Way Route",
+            pad, y, CITY_PANEL_WIDTH - pad * 2, 22, "Add Trade Route",
             active=self.adding_one_way_route)
         y += 28
 

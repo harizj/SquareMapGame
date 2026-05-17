@@ -10,7 +10,7 @@ class TradeRoute:
                  export_resource, export_amount, max_amount,
                  import_resource, import_amount,
                  path=None, path_distances=None,
-                 water=False):
+                 water=False, one_way=True):
         self.city_a = city_a          # origin — allocates pops
         self.dest_tile = dest_tile    # destination tile (may or may not have a city)
         self.faction = city_a.faction
@@ -30,7 +30,7 @@ class TradeRoute:
         self.distance = path_distances[-1] if path_distances else 0.0
         self.water = water
         self.travel_time = self.distance / DEFAULT_MOVE_DISTANCE if self.distance > 0 else 0.0
-        self.one_way = True
+        self.one_way = one_way
         self.missing_caravans = False
         self.establish_progress = DEFAULT_MOVE_DISTANCE
         self.established = self.establish_progress >= self.distance
@@ -143,12 +143,18 @@ class TradeRoute:
 
         self.max_amount -= 1
         carry_capacity = WATER_CARRY_CAPACITY if self.water else LAND_CARRY_CAPACITY
-        denom = carry_capacity + 1 - 2 * self.travel_time
+        denom = carry_capacity + 1 - self.travel_time if not self.one_way else carry_capacity + 1 - 2 * self.travel_time
         if denom > 0 and self.travel_time > 0:
-            raw = (self.max_amount * 2 * self.travel_time) / denom
-            self.pops_a = max(1, round(raw))
+            total_pops = max(1, round((self.max_amount * 2 * self.travel_time) / denom))
+            if not self.one_way:
+                self.pops_a = (total_pops + 1) // 2
+                self.pops_b = total_pops // 2
+            else:
+                self.pops_a = total_pops
             if self.caravan_job_a is not None:
                 self.caravan_job_a.slots = self.pops_a
+            if self.caravan_job_b is not None:
+                self.caravan_job_b.slots = self.pops_b
 
         self.city_a.update_cumulative_farm_yield_net()
         self.city_a.rebalance_pops()

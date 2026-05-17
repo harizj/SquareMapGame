@@ -245,7 +245,9 @@
       },
       {
         "biome": "temperate",
-        "terrain_features": [],
+        "terrain_features": [
+          "hills"
+        ],
         "river_edges": []
       },
       {
@@ -349,7 +351,8 @@
         "biome": "temperate",
         "terrain_features": [
           "city",
-          "water_access"
+          "water_access",
+          "floodplain"
         ],
         "river_edges": []
       },
@@ -380,8 +383,8 @@
           "river"
         ],
         "river_edges": [
-          "E",
-          "W"
+          "W",
+          "E"
         ]
       },
       {
@@ -776,8 +779,8 @@
           "floodplain"
         ],
         "river_edges": [
-          "NE",
-          "SE"
+          "SE",
+          "NE"
         ]
       },
       {
@@ -1004,8 +1007,8 @@
           "floodplain"
         ],
         "river_edges": [
-          "NE",
-          "SE"
+          "SE",
+          "NE"
         ]
       },
       {
@@ -1727,8 +1730,8 @@
           "river"
         ],
         "river_edges": [
-          "E",
-          "W"
+          "W",
+          "E"
         ]
       },
       {
@@ -1737,8 +1740,8 @@
           "river"
         ],
         "river_edges": [
-          "NE",
-          "W"
+          "W",
+          "NE"
         ]
       },
       {
@@ -1769,7 +1772,17 @@
           "river"
         ],
         "river_edges": [
-          "NW",
+          "E",
+          "NW"
+        ]
+      },
+      {
+        "biome": "arid",
+        "terrain_features": [
+          "river"
+        ],
+        "river_edges": [
+          "W",
           "E"
         ]
       },
@@ -1779,18 +1792,8 @@
           "river"
         ],
         "river_edges": [
-          "E",
-          "W"
-        ]
-      },
-      {
-        "biome": "arid",
-        "terrain_features": [
-          "river"
-        ],
-        "river_edges": [
-          "E",
-          "W"
+          "W",
+          "E"
         ]
       },
       {
