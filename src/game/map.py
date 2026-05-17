@@ -94,7 +94,7 @@ class Map:
     def _tile_passable(self, r, c, mode):
         tile = self.tiles[r][c]
         if mode == 'land':  return tile.passable and not tile.water
-        if mode == 'water': return tile.water
+        if mode == 'water': return tile.water or tile.water_access or 'river' in tile.terrain_features
         return tile.passable  # 'any': blocks mountains, crosses water freely
 
     def get_reachable_from(self, start_r, start_c, budget, mode='land', blocked=None, include_start=False):
