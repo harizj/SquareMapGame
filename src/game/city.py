@@ -47,6 +47,8 @@ class City:
         self.pending_pop_loss = 0
         self.turns_with_stockpile_loss = 0.0
         self.production_target = ProductionTarget()
+        self.production_yield = 0.0
+        self.production_progress = 0.0
 
     @property
     def unassigned_pops(self):
@@ -109,6 +111,13 @@ class City:
         admin_job = next((j for j in self.jobs if j.job_type == 'administrator'), None)
         admin_count = admin_job.assigned if admin_job else 0
         return admin_count * STOCKPILE_PER_ADMIN
+
+    def has_deposit(self, resource):
+        return any(resource in t.resource_deposits for t in self.owned_tiles)
+
+    def check_additional_resources(self, resource):
+        if not self.has_deposit(resource):
+            self.production_target.clear()
 
     def _sorted_tile_farm_jobs(self):
         """Tile farm jobs sorted nearest-first (matches cumulative_farm_yield order)."""
@@ -338,6 +347,20 @@ class City:
                     pop.assigned_job = prod_job
                     prod_job.assigned += 1
 
+        # Production yield
+        self.production_yield = 0.0
+        if prod_job and prod_job.assigned > 0:
+            self.production_yield = prod_job.assigned
+            pt = self.production_target
+            if pt.type == 'extraction' and pt.target:
+                deposit_tiles = sorted(
+                    [t for t in self.owned_tiles if pt.target in t.resource_deposits],
+                    key=lambda t: t.extraction_yield,
+                    reverse=True,
+                )
+                if deposit_tiles:
+                    self.production_yield = prod_job.assigned * deposit_tiles[0].extraction_yield
+
         self._update_food_allocations()
 
     def setup_jobs(self):
@@ -406,10 +429,24 @@ class City:
             #self._food_shortfall()
             # print(f"  [shortfall] after -> stockpile={self.food_stockpile:.1f}, pops={len(self.pops)}")
 
-        # Step 4: construction from laborers
+        # Step 4: production
         prod_job = next((j for j in self.jobs if j.job_type == 'production'), None)
         if prod_job:
             self.construction_progress = min(self.construction_progress + prod_job.production_yield(), 1000)
+        pt = self.production_target
+        if pt.type == 'extraction' and pt.target and self.production_yield > 0:
+            deposit_tiles = sorted(
+                [t for t in self.owned_tiles if pt.target in t.resource_deposits],
+                key=lambda t: t.extraction_yield,
+                reverse=True,
+            )
+            if deposit_tiles:
+                best_tile = deposit_tiles[0]
+                resource = pt.target
+                extracted = best_tile.extraction(self.production_yield, resource)
+                city_tile = next((t for t in self.owned_tiles if t.row == self.row and t.col == self.col), None)
+                if city_tile:
+                    city_tile.add_resources_to_stockpile(extracted, resource)
 
         # Step 5: spawn new pops
         spawned = 0

@@ -1664,7 +1664,7 @@ class Renderer:
             self.screen.blit(features_surf, (x + 4, y))
             y += features_surf.get_height() + 4
             if tile.resource_deposits:
-                deposits_text = ", ".join(f"{v:g} {k}" for k, v in tile.resource_deposits.items())
+                deposits_text = ", ".join(f"{v:.1f} {k}" for k, v in tile.resource_deposits.items())
             else:
                 deposits_text = "None"
             deposits_surf = self.font_body.render(f"Resource Deposits: {deposits_text}", True, TEXT_COLOR)
@@ -1680,20 +1680,23 @@ class Renderer:
         self.save_map_button_rect = self._draw_button(panel_x + pad, y, btn_w, btn_h, "Save Map")
         y += btn_h + 6
         if tile and tile.owning_city:
-            owned_surf = self.font_body.render(f"Owned by {tile.owning_city.name}", True, TEXT_COLOR)
+            owned_surf = self.font_body.render(f"Owned By {tile.owning_city.name}", True, TEXT_COLOR)
             self.screen.blit(owned_surf, (x + 4, y))
             y += owned_surf.get_height() + 2
             dist_surf = self.font_body.render(f"Distance {tile.city_distance:.2f}", True, TEXT_COLOR)
             self.screen.blit(dist_surf, (x + 4, y))
             y += dist_surf.get_height() + 2
-            yield_surf = self.font_body.render(f"Effective yield {tile.farm_yield:.2f}", True, TEXT_COLOR)
+            yield_surf = self.font_body.render(f"Food Yield: {tile.farm_yield:.2f}", True, TEXT_COLOR)
             self.screen.blit(yield_surf, (x + 4, y))
             y += yield_surf.get_height() + 2
-            farms_surf = self.font_body.render(f"{tile.worked_farms} farms", True, TEXT_COLOR)
+            extraction_surf = self.font_body.render(f"Extraction Rate: {tile.extraction_yield:.2f}", True, TEXT_COLOR)
+            self.screen.blit(extraction_surf, (x + 4, y))
+            y += extraction_surf.get_height() + 2
+            farms_surf = self.font_body.render(f"{tile.worked_farms} Farms", True, TEXT_COLOR)
             self.screen.blit(farms_surf, (x + 4, y))
             y += farms_surf.get_height() + 4
         if tile and tile.cities_in_range:
-            surf = self.font_body.render("Cities in range:", True, TEXT_COLOR)
+            surf = self.font_body.render("Cities In Range:", True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
             y += surf.get_height() + 2
             for city in tile.cities_in_range:
@@ -1891,7 +1894,7 @@ class Renderer:
             self.screen.blit(surf, (x, y))
             y += surf.get_height() + 6
             for resource, amount in tile.resource_stockpiles.items():
-                line = self.font_body.render(f"{amount:g} {resource}", True, TEXT_COLOR)
+                line = self.font_body.render(f"{amount:.1f} {resource}", True, TEXT_COLOR)
                 self.screen.blit(line, (x + 4, y))
                 y += line.get_height() + 4
             y += 4
@@ -1962,8 +1965,10 @@ class Renderer:
                 for subtype in subtypes:
                     active = (city.production_target.type == category and
                               city.production_target.target == subtype)
-                    rect = self._draw_button(sx + pad, y, btn_w, btn_h, subtype.capitalize(), active=active)
-                    self.production_popup_rects[(category, subtype)] = rect
+                    unavailable = (category == 'extraction' and not city.has_deposit(subtype))
+                    rect = self._draw_button(sx + pad, y, btn_w, btn_h, subtype.capitalize(), active=active, disabled=unavailable)
+                    if not unavailable:
+                        self.production_popup_rects[(category, subtype)] = rect
                     y += row_h
             else:
                 placeholder = self.font_small.render("(none available)", True, PANEL_DIVIDER)

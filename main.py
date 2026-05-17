@@ -376,7 +376,9 @@ def main():
                     for (category, subtype), rect in renderer.production_popup_rects.items():
                         if rect.collidepoint(pos):
                             if selected_tile and selected_tile.city:
-                                selected_tile.city.production_target.set(category, subtype)
+                                city = selected_tile.city
+                                city.production_target.set(category, subtype)
+                                city.rebalance_pops()
                             renderer.production_popup_active = False
                             hit = True
                             break

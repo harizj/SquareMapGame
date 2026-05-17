@@ -1,5 +1,5 @@
 import random
-from src.game.constants import BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST
+from src.game.constants import BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST, DEFAULT_MOVE_DISTANCE
 from src.game.jobs import FarmJob
 
 # Yield per assigned pop at each distance increment (fill in from LP results later)
@@ -18,19 +18,25 @@ from src.game.jobs import FarmJob
 #     2.75: 1.29,
 #     3.00: 1.28,
 # }
-FARM_YIELD_BY_DISTANCE = {
-    0.00: 1.40,
-    0.50: 1.39,
-    1.00: 1.37,
-    1.50: 1.36,
-    2.00: 1.34,
-    2.50: 1.33,
-    3.00: 1.33,
-    3.50: 1.32,
-    4.00: 1.30,
-    4.50: 1.29,
-    5.00: 1.28,
-}
+# FARM_YIELD_BY_DISTANCE = {
+#     0.00: 1.40,
+#     0.50: 1.39,
+#     1.00: 1.37,
+#     1.50: 1.36,
+#     2.00: 1.34,
+#     2.50: 1.33,
+#     3.00: 1.33,
+#     3.50: 1.32,
+#     4.00: 1.30,
+#     4.50: 1.29,
+#     5.00: 1.28,
+# }
+
+FARM_YIELD_AT_MAX_DISTANCE = 1.2
+# Derived: (YIELD_PER_POP - FARM_YIELD_AT_MAX_DISTANCE) / DEFAULT_MOVE_DISTANCE
+
+EXTRACTION_YIELD_BASE = 1.0
+EXTRACTION_YIELD_AT_MAX_DISTANCE = 0.80
 
 TILE_FARM_SLOTS = {
     'river':    6,
@@ -134,8 +140,15 @@ class Tile:
     def farm_yield(self):
         if self.city_distance is None:
             return FarmJob.YIELD_PER_POP
-        key = round(round(self.city_distance / 0.25) * 0.25, 2)
-        return FARM_YIELD_BY_DISTANCE.get(key, FarmJob.YIELD_PER_POP)
+        decay_rate = (FarmJob.YIELD_PER_POP - FARM_YIELD_AT_MAX_DISTANCE) / DEFAULT_MOVE_DISTANCE
+        return max(FARM_YIELD_AT_MAX_DISTANCE, FarmJob.YIELD_PER_POP - decay_rate * self.city_distance)
+
+    @property
+    def extraction_yield(self):
+        if self.city_distance is None:
+            return EXTRACTION_YIELD_BASE
+        decay_rate = (EXTRACTION_YIELD_BASE - EXTRACTION_YIELD_AT_MAX_DISTANCE) / DEFAULT_MOVE_DISTANCE
+        return max(EXTRACTION_YIELD_AT_MAX_DISTANCE, EXTRACTION_YIELD_BASE - decay_rate * self.city_distance)
 
     def _update_city_with_movement(self):
         if self.city is not None:
@@ -193,6 +206,21 @@ class Tile:
         bonuses = sum(BIOME_FEATURE_FARM_INTERACTIONS.get((self.biome, f), 0) for f in self.terrain_features)
         slots = max(0, base_slots + feature_slots + bonuses)
         self.jobs = [FarmJob(slots)] if slots > 0 else []
+
+    def extraction(self, production_yield, resource):
+        available = self.resource_deposits.get(resource, 0)
+        extracted_amount = min(production_yield, available)
+        remaining = available - extracted_amount
+        if remaining <= 0:
+            self.resource_deposits.pop(resource, None)
+            if self.owning_city:
+                self.owning_city.check_additional_resources(resource)
+        else:
+            self.resource_deposits[resource] = remaining
+        return extracted_amount
+
+    def add_resources_to_stockpile(self, extracted_amount, resource):
+        self.resource_stockpiles[resource] = self.resource_stockpiles.get(resource, 0) + extracted_amount
 
     def raid(self, num_units):
         """Raid worked farms on this tile.
