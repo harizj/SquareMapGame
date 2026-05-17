@@ -243,6 +243,7 @@ class Renderer:
         self.drop_all_button_rect = None
         self.restock_button_rect = None
         self.drop_button_rect = None
+        self.settle_button_rect = None
         self.recruit_unit_button_rect = None
         self.disband_button_rect = None
         self.recruit_popup_active = False
@@ -1682,6 +1683,7 @@ class Renderer:
         self.draw_river_button_rect = None
         self.recruit_unit_button_rect = None
         self.disband_button_rect = None
+        self.settle_button_rect = None
         panel_x = self.map_w
         pad = 16
         pygame.draw.rect(self.screen, PANEL_BG, (panel_x, 0, PANEL_WIDTH, self.screen.get_height()))
@@ -1719,7 +1721,10 @@ class Renderer:
             biome_surf = self.font_body.render(f"Biome: {tile.biome.capitalize()}", True, TEXT_COLOR)
             self.screen.blit(biome_surf, (x + 4, y))
             y += biome_surf.get_height() + 4
-            features_text = ", ".join(f.capitalize() for f in tile.terrain_features) if tile.terrain_features else "None"
+            features_text = ", ".join(
+                "Water Access" if f == "water_access" else f.capitalize()
+                for f in tile.terrain_features
+            ) if tile.terrain_features else "None"
             features_surf = self.font_body.render(f"Features: {features_text}", True, TEXT_COLOR)
             self.screen.blit(features_surf, (x + 4, y))
             y += features_surf.get_height() + 4
@@ -1948,6 +1953,19 @@ class Renderer:
             y += btn_h + 4
             self.restock_button_rect = self._draw_button(x, y, half_w, btn_h, "Restock", disabled=True)
             self.drop_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Drop", disabled=True)
+            y += btn_h + 4
+            settle_group = selected_on_tile[0] if selected_on_tile else (unit_groups[0] if unit_groups else None)
+            settle_faction = settle_group.faction if settle_group else None
+            tile_owned_by_other = (
+                tile and tile.owning_city is not None and
+                tile.owning_city.faction is not settle_faction
+            )
+            groups_for_settle = selected_on_tile if selected_on_tile else unit_groups
+            has_full_moves = all(g.moves_remaining >= g.max_moves for g in groups_for_settle)
+            settle_disabled = tile_owned_by_other or (tile and tile.city is not None) or not has_full_moves
+            self.settle_button_rect = self._draw_button(x, y, half_w, btn_h, "Settle", disabled=settle_disabled)
+            if settle_disabled:
+                self.settle_button_rect = None
             y += btn_h + 6
 
         # Resources section

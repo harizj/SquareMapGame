@@ -542,9 +542,9 @@
         "river_edges": []
       },
       {
-        "biome": "coastal",
+        "biome": "temperate",
         "terrain_features": [
-          "mountain"
+          "hills"
         ],
         "river_edges": []
       },
@@ -723,7 +723,9 @@
       {
         "biome": "arid",
         "terrain_features": [
-          "hills"
+          "hills",
+          "city",
+          "water_access"
         ],
         "river_edges": []
       },
@@ -777,8 +779,8 @@
           "floodplain"
         ],
         "river_edges": [
-          "NE",
-          "SE"
+          "SE",
+          "NE"
         ]
       },
       {
@@ -1005,8 +1007,8 @@
           "floodplain"
         ],
         "river_edges": [
-          "NE",
-          "SE"
+          "SE",
+          "NE"
         ]
       },
       {
@@ -1738,8 +1740,8 @@
           "river"
         ],
         "river_edges": [
-          "NE",
-          "W"
+          "W",
+          "NE"
         ]
       },
       {
@@ -1853,6 +1855,11 @@
       "row": 8,
       "col": 8,
       "name": "The Crossroads"
+    },
+    {
+      "row": 6,
+      "col": 4,
+      "name": "Babylon"
     }
   ]
 }

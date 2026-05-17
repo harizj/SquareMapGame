@@ -559,6 +559,28 @@ def main():
                     if not move_mode:
                         move_hover_tile = None
 
+                elif renderer.settle_button_rect and renderer.settle_button_rect.collidepoint(pos):
+                    if selected_tile and not selected_tile.city:
+                        selected_on_tile = [g for g in game_map.get_unit_groups(selected_tile.row, selected_tile.col) if g in renderer.selected_unit_groups]
+                        if not selected_on_tile:
+                            selected_on_tile = game_map.get_unit_groups(selected_tile.row, selected_tile.col)
+                        if selected_on_tile:
+                            settle_faction = selected_on_tile[0].faction
+                            all_pops = [unit.pop for g in selected_on_tile for unit in g.units]
+                            city_name = settle_faction.take_city_name() if settle_faction else game_map._take_city_name()
+                            new_city = City(selected_tile.row, selected_tile.col, city_name, faction=settle_faction, population=0)
+                            new_city.pops = all_pops
+                            game_map.cities[(selected_tile.row, selected_tile.col)] = new_city
+                            for group in selected_on_tile:
+                                selected_tile.unit_groups.remove(group)
+                                renderer.selected_unit_groups.discard(group)
+                            game_map.setup_city(new_city)
+                            new_city.rebalance_pops()
+                            selected_tile.update_after_movement()
+                    move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
+                    if not move_mode:
+                        move_hover_tile = None
+
                 elif renderer.merge_button_rect and renderer.merge_button_rect.collidepoint(pos):
                     if selected_tile:
                         all_unit_groups = game_map.get_unit_groups(selected_tile.row, selected_tile.col)
