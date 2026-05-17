@@ -278,15 +278,11 @@ class City:
 
     def _collect_caravan_jobs(self):
         for route in self.trade_routes:
-            if not route.established:
-                continue
             job = route.caravan_job_a if route.city_a is self else route.caravan_job_b
             if job is not None:
                 route.missing_caravans = False
         jobs = []
         for route in self.trade_routes:
-            if not route.established:
-                continue
             job = route.caravan_job_a if route.city_a is self else route.caravan_job_b
             if job is not None:
                 job.assigned = 0
@@ -334,7 +330,7 @@ class City:
 
         food_caravan_jobs = [
             r.caravan_job_a for r in self.trade_routes
-            if r.established and r.city_a is self and
+            if r.city_a is self and
                r.caravan_job_a is not None and r.export_resource == 'food'
         ]
         food_pop_slots = sum(j.slots for j in food_caravan_jobs)
