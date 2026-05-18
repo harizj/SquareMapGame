@@ -6,6 +6,7 @@ class Unit:
     combat_strength = 0
     icon = ''
     icon_scale = 1.0
+    icon_x_offset = 0
 
     def __init__(self, pop):
         self.pop = pop
@@ -25,7 +26,7 @@ class Militia(Unit):
     unit_type = 'Militia'
     combat_strength = 1
     icon = 'pitchfork'
-    icon_scale = 1.6
+    icon_scale = 1.5
 
 
 class Swordsmen(Unit):
@@ -39,14 +40,15 @@ class Archers(Unit):
     unit_type = 'Archers'
     combat_strength = 2
     icon = 'bow'
-    icon_scale = 1.2
+    icon_scale = 1.3
 
 
 class Spearmen(Unit):
     unit_type = 'Spearmen'
     combat_strength = 2
     icon = 'spear'
-    icon_scale = 1.5
+    icon_scale = 1.4
+    icon_x_offset = 0
 
 
 UNIT_REGISTRY = {cls.unit_type: cls for cls in [Swordsmen, Archers, Spearmen, Militia]}

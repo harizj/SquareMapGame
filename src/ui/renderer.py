@@ -1965,12 +1965,15 @@ class Renderer:
         outline_r = 2
         # Build per-unit-type small icon surfaces: {icon_name: {'plain': surf, 'default': surf, fname: surf}}
         _unit_icon_names = {cls.unit_type: cls.icon for cls in UNIT_REGISTRY.values() if hasattr(cls, 'icon')}
+        _unit_icon_scale = {cls.icon: cls.icon_scale for cls in UNIT_REGISTRY.values() if hasattr(cls, 'icon')}
+        _unit_icon_x_offset = {cls.unit_type: cls.icon_x_offset for cls in UNIT_REGISTRY.values()}
         small_icons = {}
         for icon_name in set(_unit_icon_names.values()):
             icon_raw = self._icons_raw.get(icon_name)
             if not icon_raw:
                 continue
-            scaled = pygame.transform.scale(icon_raw, (icon_h, icon_h))
+            size = int(icon_h * _unit_icon_scale.get(icon_name, 1.0))
+            scaled = pygame.transform.scale(icon_raw, (size, size))
             tinted, _, _ = self._make_icon_pair(scaled, (180, 210, 255), (35, 65, 150), outline_r, pad=outline_r)
             entry = {'plain': scaled, 'default': tinted}
             for group in unit_groups:
@@ -1990,25 +1993,31 @@ class Renderer:
             type_counts = collections.Counter(u.unit_type for u in group.units)
             _order = {t: i for i, t in enumerate(UNIT_DISPLAY_ORDER)}
             sorted_types = sorted(type_counts.items(), key=lambda kv: _order.get(kv[0], 99))
-            icon_overlap = 5
-            unit_text_color = (220, 50, 50) if group.pending_pop_loss > 0 else TEXT_COLOR
+            icon_overlap = 8       # overlap between icons of the same type
+            icon_type_gap = 20     # center-to-center distance between last icon of one type and first of the next
             row_top_y = y
+            row_h = int(icon_h * 2)
             cur_x = x + 4
-            flat_icons = []
-            for unit_type, count in sorted_types:
+            for i, (unit_type, count) in enumerate(sorted_types):
                 icon_name = _unit_icon_names.get(unit_type)
                 icon_data = small_icons.get(icon_name, {})
                 icon_surf = (icon_data.get(fname) or icon_data.get('default')) if selected else icon_data.get('plain')
-                flat_icons.extend([icon_surf] * count)
-            for j, icon_surf in enumerate(reversed(flat_icons)):
-                if icon_surf:
-                    self.screen.blit(icon_surf, (cur_x + j * icon_overlap, y))
-            if flat_icons:
-                cur_x += icon_h + (len(flat_icons) - 1) * icon_overlap + 4
-            label = ', '.join(f"{count} {unit_type.capitalize()}" for unit_type, count in sorted_types)
-            surf = self.font_body.render(label, True, unit_text_color)
-            self.screen.blit(surf, (cur_x, y))
-            y += icon_h + 4
+                icon_w = icon_surf.get_width() if icon_surf else icon_h
+                icon_actual_h = icon_surf.get_height() if icon_surf else icon_h
+                y_off = (row_h - icon_actual_h) // 2
+                x_off = _unit_icon_x_offset.get(unit_type, 0)
+                for j in range(count):
+                    if icon_surf:
+                        self.screen.blit(icon_surf, (cur_x + j * icon_overlap - x_off, y + y_off))
+                if i < len(sorted_types) - 1:
+                    last_center_x = cur_x + (count - 1) * icon_overlap + icon_w // 2
+                    next_type, _ = sorted_types[i + 1]
+                    next_icon_name = _unit_icon_names.get(next_type)
+                    next_icon_data = small_icons.get(next_icon_name, {})
+                    next_icon_surf = (next_icon_data.get(fname) or next_icon_data.get('default')) if selected else next_icon_data.get('plain')
+                    next_icon_w = next_icon_surf.get_width() if next_icon_surf else icon_h
+                    cur_x = last_center_x + icon_type_gap - next_icon_w // 2
+            y += row_h + 4
             icon_rect = pygame.Rect(x + 4, row_top_y, bar_w - 4, y - row_top_y)
             self.group_icon_rects.append((icon_rect, group))
             y += 2
