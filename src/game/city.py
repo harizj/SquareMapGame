@@ -57,7 +57,6 @@ class City:
         self.production_progress = 0.0
         self.production_complete = None
         self.extraction_tile = None
-        self.item_stockpiles = {}
         self.resources_allocated_to_production = {}
         self.production_limited_by = None
         self.production_workers = 0
@@ -550,7 +549,8 @@ class City:
                     self.tile.resource_stockpiles[resource] = max(0.0, current - amount)
             pt.progress += self.production_yield
             if pt.progress >= pt.target_item.production_needed:
-                self.item_stockpiles[pt.target_item.name] = self.item_stockpiles.get(pt.target_item.name, 0) + 1
+                if self.tile:
+                    self.tile.item_stockpiles[pt.target_item.name] = self.tile.item_stockpiles.get(pt.target_item.name, 0) + 1
                 item = pt.target_item
                 if all(self.has_resource(r) for r in item.resource_cost):
                     pt.progress -= item.production_needed

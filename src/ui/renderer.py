@@ -1769,6 +1769,7 @@ class Renderer:
         self.recruit_unit_button_rect = None
         self.disband_button_rect = None
         self.settle_button_rect = None
+        self.equip_button_rect = None
         panel_x = self.map_w
         pad = 16
         pygame.draw.rect(self.screen, PANEL_BG, (panel_x, 0, PANEL_WIDTH, self.screen.get_height()))
@@ -2047,16 +2048,19 @@ class Renderer:
             )
             groups_for_settle = selected_on_tile if selected_on_tile else unit_groups
             has_full_moves = all(g.moves_remaining >= g.max_moves for g in groups_for_settle)
+            equip_disabled = not (tile and tile.item_stockpiles)
+            self.equip_button_rect = self._draw_button(x, y, half_w, btn_h, "Equip", disabled=equip_disabled)
+            if equip_disabled:
+                self.equip_button_rect = None
             settle_disabled = tile_owned_by_other or (tile and tile.city is not None) or not has_full_moves
-            self.settle_button_rect = self._draw_button(x, y, half_w, btn_h, "Settle", disabled=settle_disabled)
+            self.settle_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Settle", disabled=settle_disabled)
             if settle_disabled:
                 self.settle_button_rect = None
             y += btn_h + 6
 
         # Resources section
-        city_here = tile.city if tile else None
         has_resources = bool(tile and tile.resource_stockpiles)
-        has_items = bool(city_here and city_here.item_stockpiles)
+        has_items = bool(tile and tile.item_stockpiles)
         if has_resources or has_items:
             surf = self.font_header.render("RESOURCES", True, HEADER_TEXT_COLOR)
             self.screen.blit(surf, (x, y))
@@ -2067,7 +2071,7 @@ class Renderer:
                     self.screen.blit(line, (x + 4, y))
                     y += line.get_height() + 4
             if has_items:
-                for item_name, count in city_here.item_stockpiles.items():
+                for item_name, count in tile.item_stockpiles.items():
                     line = self.font_body.render(f"{count} {item_name.capitalize()}", True, TEXT_COLOR)
                     self.screen.blit(line, (x + 4, y))
                     y += line.get_height() + 4

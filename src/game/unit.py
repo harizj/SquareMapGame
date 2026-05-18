@@ -1,5 +1,6 @@
 from src.game.constants import DEFAULT_MOVE_DISTANCE, MILITARY_CARRY_CAPACITY, POP_FOOD_CONSUMPTION, MOVE_CARRY_OVER
 
+unit_list = ['Swordsmen', 'Archers', 'Spearmen', 'Militia']
 
 class Unit:
     def __init__(self, pop, unit_type='Militia'):

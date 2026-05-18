@@ -138,6 +138,7 @@ class Tile:
         self.update_terrain_properties()
         self.food_allocated_from_routes = 0.0
         self.resource_stockpiles = {}
+        self.item_stockpiles = {}
         self.resource_deposits = {}
         self.build_deposits()
 
