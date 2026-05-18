@@ -112,6 +112,7 @@ ISO_SCALE      = 1  # vertical compression for isometric perspective
 LOG_PANEL_WIDTH = 0
 CITY_PANEL_WIDTH = 220
 BOTTOM_PANEL_HEIGHT = 36
+FOG_FACTOR = 0.75
 
 
 class Renderer:
@@ -698,6 +699,7 @@ class Renderer:
         all_corners = {}
         all_centers = {}
         apothem = HEX_SIZE * self.zoom * math.sqrt(3) / 2
+        visible = los.get_visible() if los else None
 
         # Pass 1: hex fills
         for r in range(self.map.rows):
@@ -709,6 +711,8 @@ class Renderer:
                 all_corners[(r, c)] = corners
                 all_centers[(r, c)] = (cx, cy)
                 color = tile.get_terrain_color()
+                if visible is not None and (r, c) not in visible:
+                    color = tuple(int(v * FOG_FACTOR) for v in color)
                 dark_color = tuple(int(v * 0.68) for v in color)
                 pygame.draw.polygon(self.screen, dark_color, corners)
                 inner = [(cx + 1.0 * (px - cx), cy + 1.0 * (py - cy)) for px, py in corners]
@@ -795,13 +799,15 @@ class Renderer:
 
                 # Start city: center → edge toward path[1]
                 ep, center = _edge_pt(path[0][0], path[0][1], path[1][0], path[1][1])
-                if ep and center:
+                if ep and center and (visible is None or path[0] in visible):
                     self._draw_dashed_line(center, ep, _ROUTE_DARK,  width=_ROUTE_OUTLINE_W, dash_length=8, gap=6)
                     self._draw_dashed_line(center, ep, _ROUTE_LIGHT, width=_ROUTE_INNER_W,   dash_length=8, gap=6)
 
                 # Intermediate tiles
                 for i in range(1, len(path) - 1):
                     r, c = path[i]
+                    if visible is not None and (r, c) not in visible:
+                        continue
                     pr, pc = path[i - 1]
                     nr, nc = path[i + 1]
                     if (r, c) not in all_centers:
@@ -820,7 +826,7 @@ class Renderer:
 
                 # End city: edge toward path[-2] → center (only when destination reached)
                 ep, center = _edge_pt(path[-1][0], path[-1][1], path[-2][0], path[-2][1])
-                if ep and center:
+                if ep and center and (visible is None or path[-1] in visible):
                     self._draw_dashed_line(ep, center, _ROUTE_DARK,  width=_ROUTE_OUTLINE_W, dash_length=8, gap=6)
                     self._draw_dashed_line(ep, center, _ROUTE_LIGHT, width=_ROUTE_INNER_W,   dash_length=8, gap=6)
                     self._draw_arrowhead(center, ep, _ROUTE_LIGHT, size=8)
@@ -828,6 +834,8 @@ class Renderer:
         # Pass 3b: city territory borders
         for r in range(self.map.rows):
             for c in range(self.map.cols):
+                if visible is not None and (r, c) not in visible:
+                    continue
                 tile = self.map.tiles[r][c]
                 if tile.owning_city is None:
                     continue
@@ -924,6 +932,8 @@ class Renderer:
         torch_icon = self.icons.get('torch')
         for r in range(self.map.rows):
             for c in range(self.map.cols):
+                if visible is not None and (r, c) not in visible:
+                    continue
                 tile = self.map.tiles[r][c]
                 cx, cy = all_centers[(r, c)]
                 dx = int(cx) - dot_offset_x
@@ -962,6 +972,8 @@ class Renderer:
         selected_city_pos = (selected_tile.row, selected_tile.col) if selected_tile else None
         city_name_ys = {}
         for (r, c), city in self.map.cities.items():
+            if visible is not None and (r, c) not in visible:
+                continue
             cx, cy = all_centers[(r, c)]
             fname = city.faction.name if city.faction else None
             faction_icons = self._faction_castle_icons.get(fname)
@@ -989,7 +1001,7 @@ class Renderer:
                     if route.city_b is None:
                         dt = route.dest_tile
                         key = (dt.row, dt.col)
-                        if key not in seen_dest_tiles and key in all_centers:
+                        if key not in seen_dest_tiles and key in all_centers and (visible is None or key in visible):
                             seen_dest_tiles.add(key)
                             is_selected = selected_tile is not None and (selected_tile.row, selected_tile.col) == key
                             faction_name = route.faction.name if route.faction else None
@@ -1006,6 +1018,8 @@ class Renderer:
 
         # Pass 7: group markers (drawn over city icons)
         for (r, c) in self.map.unit_groups:
+            if visible is not None and (r, c) not in visible:
+                continue
             cx, cy = all_centers[(r, c)]
             unit_groups_here = self.map.unit_groups[(r, c)]
             any_selected = any(g in self.selected_unit_groups for g in unit_groups_here)
@@ -1090,6 +1104,8 @@ class Renderer:
 
         # Pass 7b: city bars and population (drawn over everything)
         for (r, c), city in self.map.cities.items():
+            if visible is not None and (r, c) not in visible:
+                continue
             cx, cy = all_centers[(r, c)]
             name_y = city_name_ys.get((r, c), int(cy))
             mini_bar_w = 30
