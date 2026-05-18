@@ -2142,15 +2142,22 @@ class Renderer:
                               city.production_target.target == subtype)
                     if category == 'extraction':
                         unavailable = not city.has_deposit(subtype)
+                        label = subtype.capitalize()
                     elif category == 'manufacturing':
                         item_cls = ITEM_REGISTRY.get(subtype)
                         unavailable = item_cls is None or any(
                             item_cls.requires_resource(r) and not city.has_resource(r)
                             for r in item_cls.resource_cost
                         )
+                        unfinished = city.production_target.get_unfinished_progress(item_cls) if item_cls else None
+                        if unfinished is not None:
+                            label = f"{subtype.capitalize()} ({int(unfinished)}/{item_cls.production_needed})"
+                        else:
+                            label = subtype.capitalize()
                     else:
                         unavailable = False
-                    rect = self._draw_button(sx + pad, y, btn_w, btn_h, subtype.capitalize(), active=active, disabled=unavailable)
+                        label = subtype.capitalize()
+                    rect = self._draw_button(sx + pad, y, btn_w, btn_h, label, active=active, disabled=unavailable)
                     if not unavailable:
                         self.production_popup_rects[(category, subtype)] = rect
                     y += row_h
