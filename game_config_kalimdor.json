@@ -14,7 +14,7 @@
     {"row": 8,  "col": 8,  "faction": "Horde",    "population": 20, "name": "The Crossroads"}
   ],
   "unit_groups": [
-    {"row": 5,  "col": 7,  "faction": "Alliance", "food": 10, "units": ["Archers", "Archers", "Archers", "Spearmen", "Spearmen"]},
-    {"row": 8,  "col": 8,  "faction": "Horde",    "food": 10, "units": ["Swordsmen", "Swordsmen", "Swordsmen","Militia","Militia"]}
+    {"row": 5,  "col": 7,  "faction": "Alliance", "food": 10, "units": ["Militia", "Militia", "Militia", "Militia", "Militia"]},
+    {"row": 8,  "col": 8,  "faction": "Horde",    "food": 10, "units": ["Swordsmen", "Swordsmen", "Swordsmen","Swordsmen","Swordsmen"]}
   ]
 }

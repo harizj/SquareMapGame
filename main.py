@@ -307,6 +307,9 @@ def main():
                         for g, u in atk_sorted[:result['attacker_losses']]:
                             if u in g.units:
                                 g.units.remove(u)
+                        for g in attacker_groups:
+                            g.max_food_stockpile = g._carry_capacity()
+                            g.food_stockpile = min(g.food_stockpile, g.max_food_stockpile)
                         from src.game.city import City as _City
                         if not isinstance(defender, _City):
                             def_sorted = sorted(
@@ -316,6 +319,9 @@ def main():
                             for g, u in def_sorted[:result['defender_losses']]:
                                 if u in g.units:
                                     g.units.remove(u)
+                            for g in defender:
+                                g.max_food_stockpile = g._carry_capacity()
+                                g.food_stockpile = min(g.food_stockpile, g.max_food_stockpile)
                         if result['outcome'] == 'attacker_wins':
                             if pending_combat_tile:
                                 pending_combat_tile.unit_groups = [g for g in pending_combat_tile.unit_groups if g.units]
