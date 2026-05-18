@@ -1,5 +1,7 @@
 import random
 
+LETHALITY = 0.2
+
 
 def compute_battle_preview(attacker_groups, defender, attacker_tile, defender_tile):
     """Computes combat strengths and modifiers for both sides before resolution.
@@ -62,25 +64,38 @@ def compute_battle_preview(attacker_groups, defender, attacker_tile, defender_ti
     }
 
 
+def _poisson(lam):
+    """Knuth Poisson sampler — unbiased for small lambda."""
+    import math
+    if lam <= 0:
+        return 0
+    L = math.exp(-lam)
+    k, p = 0, 1.0
+    while p > L:
+        k += 1
+        p *= random.random()
+    return k - 1
+
+
 def resolve_battle(preview):
-    """Two-round battle. Attacker rolls first each round. Hits are 5s and 6s.
-    Kills = floor(hits / enemy_unit_strength). Both sides' kills are applied
-    simultaneously at the end of each round before the next begins.
+    """Two-round battle using Poisson kill draws.
+
+    Casualties are deducted at the end of each round (lowest-strength units
+    die first). Round 2 uses the updated surviving counts and strengths.
+    Attacker strikes first each round; defender counterattacks with the count
+    from the start of that round.
 
     Returns a dict with keys:
       attacker_losses  -- total units lost by attacker
       defender_losses  -- total units lost by defender
       outcome          -- 'attacker_wins', 'defender_wins', or 'draw'
-      log              -- list of result strings, one per side per round
+      log              -- flat list of result strings
+      rounds           -- per-round list of {attacker, defender, log} dicts
     """
-    import math
     from src.game.city import City
 
-    attacker_unit_str = preview['attacker_unit_strength']
-    defender_unit_str = preview['defender_unit_strength']
-
     attacker_groups = preview['attacker_groups']
-    defender = preview['defender']
+    defender        = preview['defender']
     attacker_name = (attacker_groups[0].faction.name
                      if attacker_groups and attacker_groups[0].faction else 'Attacker')
     if isinstance(defender, City):
@@ -89,61 +104,101 @@ def resolve_battle(preview):
         defender_name = (defender[0].faction.name
                          if defender and defender[0].faction else 'Defender')
 
-    remaining_attackers = preview['attacker_units']
-    remaining_defenders = preview['defender_units']
-    total_attacker_losses = 0
-    total_defender_losses = 0
-    log = []
+    # Local sorted unit lists — lowest combat_strength first (casualties come from front)
+    atk_units = sorted(
+        [u for g in attacker_groups for u in g.units],
+        key=lambda u: u.combat_strength
+    )
+    defending_city = isinstance(defender, City)
+    if defending_city:
+        def_remaining = preview['defender_units']
+        def_base_str  = preview['defender_strength']
+    else:
+        def_units = sorted(
+            [u for g in defender for u in g.units],
+            key=lambda u: u.combat_strength
+        )
 
-    for round_num in range(1, 3):
-        if remaining_attackers <= 0 or remaining_defenders <= 0:
+    total_a_kills = 0
+    total_d_kills = 0
+    flat_log = []
+    rounds   = []
+
+    for round_num in range(1, 4):
+        num_atk = len(atk_units)
+        if defending_city:
+            num_def = def_remaining
+            def_str = def_base_str * (num_def / preview['defender_units']) if preview['defender_units'] else 0
+        else:
+            num_def = len(def_units)
+            def_str = sum(u.combat_strength for u in def_units)
+
+        if num_atk <= 0 or num_def <= 0:
             break
 
-        # Attacker rolls
-        a_dice = math.ceil(remaining_attackers * attacker_unit_str)
-        a_hits = sum(1 for _ in range(a_dice) if random.randint(1, 6) >= 5)
-        d_kills = min(math.floor(a_hits / defender_unit_str), remaining_defenders)
+        atk_str = sum(u.combat_strength for u in atk_units)
+        atk_adv = atk_str / def_str if def_str > 0 else 1.0
+        def_adv = def_str / atk_str if atk_str > 0 else 1.0
+        atk_lam = atk_adv * num_def * LETHALITY
+        def_lam = def_adv * num_atk * LETHALITY
 
-        # Defender rolls
-        d_dice = math.ceil(remaining_defenders * defender_unit_str)
-        d_hits = sum(1 for _ in range(d_dice) if random.randint(1, 6) >= 5)
-        a_kills = min(math.floor(d_hits / attacker_unit_str), remaining_attackers)
+        # Attacker strikes; defender counterattacks with count from round start
+        d_kills = min(_poisson(atk_lam), num_def)
+        a_kills = min(_poisson(def_lam), num_atk)
 
-        # Log attacker losses first, then defender losses
-        if a_kills > 0:
-            log.append(f"{a_kills} of {remaining_attackers} {attacker_name} were killed in round {round_num}.")
-        else:
-            log.append(f"No {attacker_name} were killed in round {round_num}.")
+        round_log = []
         if d_kills > 0:
-            log.append(f"{d_kills} of {remaining_defenders} {defender_name} were killed in round {round_num}.")
+            round_log.append(f"{attacker_name} killed {d_kills} of {num_def} {defender_name}.")
         else:
-            log.append(f"No {defender_name} were killed in round {round_num}.")
+            round_log.append(f"{attacker_name} failed to kill any {defender_name}.")
+        if a_kills > 0:
+            round_log.append(f"{defender_name} killed {a_kills} of {num_atk} {attacker_name}.")
+        else:
+            round_log.append(f"{defender_name} failed to kill any {attacker_name}.")
 
-        # Apply kills simultaneously before next round
-        remaining_attackers -= a_kills
-        remaining_defenders -= d_kills
-        total_attacker_losses += a_kills
-        total_defender_losses += d_kills
+        rounds.append({
+            'attacker': {'units': num_atk, 'strength': atk_str, 'advantage': atk_adv, 'lam': atk_lam},
+            'defender': {'units': num_def, 'strength': def_str, 'advantage': def_adv, 'lam': def_lam},
+            'log': round_log,
+        })
+        flat_log.extend(round_log)
 
-    for line in log:
+        # Deduct casualties — remove lowest-quality first
+        atk_units = atk_units[a_kills:]
+        if defending_city:
+            def_remaining -= d_kills
+        else:
+            def_units = def_units[d_kills:]
+
+        total_a_kills += a_kills
+        total_d_kills += d_kills
+
+        # Stop after round 2 if there were any kills; otherwise play a 3rd round
+        if round_num == 2 and (total_a_kills > 0 or total_d_kills > 0):
+            break
+
+    for line in flat_log:
         print(line)
 
-    if remaining_defenders <= 0 and remaining_attackers > 0:
-        outcome = 'attacker_wins'
-    elif remaining_attackers <= 0 and remaining_defenders > 0:
-        outcome = 'defender_wins'
-    elif remaining_defenders <= 0 and remaining_attackers <= 0:
+    final_atk = len(atk_units)
+    final_def = def_remaining if defending_city else len(def_units)
+    if final_def <= 0 and final_atk <= 0:
         outcome = 'draw'
-    elif total_defender_losses > total_attacker_losses:
+    elif final_def <= 0:
         outcome = 'attacker_wins'
-    elif total_attacker_losses > total_defender_losses:
+    elif final_atk <= 0:
+        outcome = 'defender_wins'
+    elif total_d_kills > total_a_kills:
+        outcome = 'attacker_wins'
+    elif total_a_kills > total_d_kills:
         outcome = 'defender_wins'
     else:
         outcome = 'draw'
 
     return {
-        'attacker_losses': total_attacker_losses,
-        'defender_losses': total_defender_losses,
+        'attacker_losses': total_a_kills,
+        'defender_losses': total_d_kills,
         'outcome':         outcome,
-        'log':             log,
+        'log':             flat_log,
+        'rounds':          rounds,
     }

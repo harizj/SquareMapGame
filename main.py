@@ -119,6 +119,9 @@ def main():
     battle_popup_active = False
     pending_combat_preview = None
     pending_combat_tile = None
+    battle_result_active = False
+    pending_battle_result = None
+    pending_battle_result_preview = None
     game_log = []
     turn = 0
     console_active = False
@@ -285,26 +288,38 @@ def main():
                 pos = event.pos
                 # print(f"[LMB] pos={pos} battle={battle_popup_active} terrain={terrain_popup_active} river={river_popup_active} save={save_popup_active} recruit={renderer.recruit_popup_active} one_way_pending={renderer.one_way_route_pending is not None}")
 
-                if battle_popup_active:
+                if battle_result_active:
+                    if renderer.battle_result_close_rect and renderer.battle_result_close_rect.collidepoint(pos):
+                        battle_result_active = False
+                        pending_battle_result = None
+                        pending_battle_result_preview = None
+
+                elif battle_popup_active:
                     if renderer.battle_popup_confirm_rect and renderer.battle_popup_confirm_rect.collidepoint(pos):
                         result = resolve_battle(pending_combat_preview)
                         attacker_groups = pending_combat_preview['attacker_groups']
                         defender = pending_combat_preview['defender']
-                        a_losses = result['attacker_losses']
-                        for group in reversed(attacker_groups):
-                            while a_losses > 0 and group.units:
-                                group.units.pop()
-                                a_losses -= 1
-                        d_losses = result['defender_losses']
-                        for group in reversed(defender):
-                            while d_losses > 0 and group.units:
-                                group.units.pop()
-                                d_losses -= 1
+                        # Remove lowest-combat-strength units first
+                        atk_sorted = sorted(
+                            [(g, u) for g in attacker_groups for u in g.units],
+                            key=lambda x: x[1].combat_strength
+                        )
+                        for g, u in atk_sorted[:result['attacker_losses']]:
+                            if u in g.units:
+                                g.units.remove(u)
+                        from src.game.city import City as _City
+                        if not isinstance(defender, _City):
+                            def_sorted = sorted(
+                                [(g, u) for g in defender for u in g.units],
+                                key=lambda x: x[1].combat_strength
+                            )
+                            for g, u in def_sorted[:result['defender_losses']]:
+                                if u in g.units:
+                                    g.units.remove(u)
                         if result['outcome'] == 'attacker_wins':
                             if pending_combat_tile:
                                 pending_combat_tile.unit_groups = [g for g in pending_combat_tile.unit_groups if g.units]
                                 if not pending_combat_tile.unit_groups:
-                                    step_cost = game_map._step_cost(selected_tile.row, selected_tile.col, pending_combat_tile.row, pending_combat_tile.col)
                                     survivors = [g for g in attacker_groups if g.units]
                                     for group in survivors:
                                         game_map.move_group(group, pending_combat_tile.row, pending_combat_tile.col, 0)
@@ -319,6 +334,9 @@ def main():
                             for t in row:
                                 t.unit_groups = [g for g in t.unit_groups if g.units]
                         move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
+                        battle_result_active = True
+                        pending_battle_result = result
+                        pending_battle_result_preview = pending_combat_preview
                         battle_popup_active = False
                         pending_combat_preview = None
                         pending_combat_tile = None
@@ -885,7 +903,10 @@ def main():
                       console_active=console_active,
                       console_input=console_input,
                       battle_popup_active=battle_popup_active,
-                      battle_popup_preview=pending_combat_preview)
+                      battle_popup_preview=pending_combat_preview,
+                      battle_result_active=battle_result_active,
+                      battle_result=pending_battle_result,
+                      battle_result_preview=pending_battle_result_preview)
         clock.tick(60)
 
     pygame.quit()

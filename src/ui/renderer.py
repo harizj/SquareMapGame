@@ -265,6 +265,7 @@ class Renderer:
         self.recruit_popup_cancel_rect = None
         self.battle_popup_confirm_rect = None
         self.battle_popup_cancel_rect = None
+        self.battle_result_close_rect = None
         self._recruit_slider_dragging = False
         self._recruit_food_slider_dragging = False
 
@@ -683,7 +684,8 @@ class Renderer:
              moves_remaining=None, game_log=None,
              move_hover_tile=None,
              console_active=False, console_input="",
-             battle_popup_active=False, battle_popup_preview=None):
+             battle_popup_active=False, battle_popup_preview=None,
+             battle_result_active=False, battle_result=None, battle_result_preview=None):
         if reachable is None:
             reachable = {}
         self.screen.fill(BG_COLOR)
@@ -1165,6 +1167,9 @@ class Renderer:
 
         if battle_popup_active and battle_popup_preview:
             self._draw_battle_popup(battle_popup_preview)
+
+        if battle_result_active and battle_result and battle_result_preview:
+            self._draw_battle_result_popup(battle_result, battle_result_preview)
 
         if console_active:
             self._draw_console_overlay(console_input)
@@ -2388,6 +2393,98 @@ class Renderer:
         btn_w = (W - pad * 2 - 8) // 2
         self.battle_popup_confirm_rect = self._draw_button(sx + pad, y, btn_w, 24, "Attack")
         self.battle_popup_cancel_rect  = self._draw_button(sx + pad + btn_w + 8, y, btn_w, 24, "Cancel")
+
+    def _draw_battle_result_popup(self, result, preview):
+        from src.game.city import City
+        overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        self.screen.blit(overlay, (0, 0))
+
+        rounds  = result.get('rounds', [])
+        stat_rows = 4  # units, strength, advantage, lambda per round
+        line_h = 18
+        pad = 16
+        per_round_h = line_h + stat_rows * line_h + 2 * line_h + 8 + 1 + 6  # label + stats + 2 log lines + gap + divider
+        H = (40                          # title + divider
+             + line_h                    # faction headers
+             + len(rounds) * per_round_h # one block per round
+             + 1 + 6                     # divider before losses
+             + line_h + 8               # losses
+             + 1 + 8                     # button divider
+             + 24 + pad)                 # close button + bottom pad
+        W = 380
+        sx = (self.screen.get_width()  - W) // 2
+        sy = (self.screen.get_height() - H) // 2
+        pygame.draw.rect(self.screen, (40, 40, 55), (sx, sy, W, H), border_radius=6)
+        pygame.draw.rect(self.screen, PANEL_DIVIDER,  (sx, sy, W, H), 1, border_radius=6)
+
+        title = self.font_header.render("BATTLE RESULT", True, HEADER_TEXT_COLOR)
+        self.screen.blit(title, (sx + W // 2 - title.get_width() // 2, sy + 10))
+
+        title_div_y = sy + 30
+        pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, title_div_y), (sx + W - pad, title_div_y))
+
+        y = title_div_y + 8
+
+        def faction_name(data):
+            if isinstance(data, City):
+                return data.faction.name if data.faction else data.name
+            return data[0].faction.name if data and data[0].faction else '—'
+
+        col_w   = (W - pad * 2) // 2
+        left_x  = sx + pad
+        right_x = sx + pad + col_w
+        mid_x   = sx + W // 2
+
+        # Faction headers
+        for x, data in [(left_x, preview['attacker_groups']), (right_x, preview['defender'])]:
+            self.screen.blit(self.font_header.render(faction_name(data), True, HEADER_TEXT_COLOR), (x, y))
+        y += line_h
+
+        stat_color = (200, 200, 220)
+        log_color  = (180, 180, 200)
+
+        for round_i, rnd in enumerate(rounds):
+            round_top_y = y
+
+            # Round label (left-aligned)
+            lbl = self.font_body.render(f"Round {round_i + 1}", True, HEADER_TEXT_COLOR)
+            self.screen.blit(lbl, (left_x, y))
+            y += line_h
+
+            # Stats in two columns
+            for side, col_x in [('attacker', left_x), ('defender', right_x)]:
+                s = rnd.get(side, {})
+                for row_i, (label, val) in enumerate([
+                    ('Units',     f"{s.get('units', '—')}"),
+                    ('Strength',  f"{s.get('strength', '—')}"),
+                    ('Advantage', f"{s.get('advantage', 0):.2f}"),
+                    ('λ',         f"{s.get('lam', 0):.2f}"),
+                ]):
+                    self.screen.blit(
+                        self.font_body.render(f"{label}: {val}", True, stat_color),
+                        (col_x, y + row_i * line_h)
+                    )
+            y += stat_rows * line_h
+
+            # Round log
+            for line in rnd.get('log', []):
+                self.screen.blit(self.font_body.render(line, True, log_color), (sx + pad, y))
+                y += line_h
+            y += 8
+
+            pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, y), (sx + W - pad, y))
+            y += 6
+
+        # Losses
+        self.screen.blit(self.font_body.render(f"Losses: {result['attacker_losses']}", True, TEXT_COLOR), (left_x, y))
+        self.screen.blit(self.font_body.render(f"Losses: {result['defender_losses']}", True, TEXT_COLOR), (right_x, y))
+        y += line_h + 8
+
+        pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, y), (sx + W - pad, y))
+        y += 8
+
+        self.battle_result_close_rect = self._draw_button(sx + pad, y, W - pad * 2, 24, "Close")
 
     def _draw_save_popup(self, text):
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
