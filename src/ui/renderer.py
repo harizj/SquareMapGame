@@ -399,7 +399,9 @@ class Renderer:
             raw = self._icons_raw.get(icon_name)
             if not raw:
                 continue
-            scaled = pygame.transform.scale(raw, (sword_size, sword_size))
+            cls_scale = next((cls.icon_scale for cls in UNIT_REGISTRY.values() if getattr(cls, 'icon', None) == icon_name), 1.0)
+            size = int(sword_size * cls_scale)
+            scaled = pygame.transform.scale(raw, (size, size))
             tinted, _, sel_surf = self._make_icon_pair(scaled, (180, 210, 255), (35, 65, 150), _unit_icon_r, pad=_unit_icon_r)
             entry = {'plain': scaled, 'tinted': tinted, 'selected': sel_surf}
             for city in self.map.cities.values():
@@ -1008,25 +1010,17 @@ class Renderer:
                 [u for g in unit_groups_here for u in g.units],
                 key=lambda u: _order.get(u.unit_type, 99)
             )
-            flat_icons = []
-            for unit in all_units[:3]:
-                icon_name = _utype_to_icon.get(unit.unit_type)
-                icon_data = self._unit_map_icons.get(icon_name, {})
-                faction_data = icon_data.get(fname, {})
-                surf = (faction_data.get('selected') or icon_data.get('selected')) if any_selected else (faction_data.get('tinted') or icon_data.get('tinted'))
-                if surf:
-                    flat_icons.append(surf)
-            if flat_icons:
-                icon_overlap = 7
-                icon_w = flat_icons[0].get_width()
-                icon_h = flat_icons[0].get_height()
-                combined_w = icon_w + (len(flat_icons) - 1) * icon_overlap
-                start_x = int(cx) - combined_w // 2
-                icon_y = int(cy) - icon_h // 2
-                for j, surf in enumerate(reversed(flat_icons)):
-                    self.screen.blit(surf, (start_x + j * icon_overlap, icon_y))
+            top_unit = all_units[0] if all_units else None
+            icon_name = _utype_to_icon.get(top_unit.unit_type) if top_unit else None
+            icon_data = self._unit_map_icons.get(icon_name, {})
+            faction_data = icon_data.get(fname, {})
+            icon = (faction_data.get('selected') or icon_data.get('selected')) if any_selected else (faction_data.get('tinted') or icon_data.get('tinted'))
+            if icon:
+                icon_y = int(cy) - icon.get_height() // 2
+                self.screen.blit(icon, (int(cx) - icon.get_width() // 2, icon_y))
             else:
                 self._draw_unit_marker(int(cx), int(cy))
+                icon_y = int(cy)
                 icon_x = int(cx)
                 icon_y = int(cy)
 
