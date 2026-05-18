@@ -2048,7 +2048,8 @@ class Renderer:
             )
             groups_for_settle = selected_on_tile if selected_on_tile else unit_groups
             has_full_moves = all(g.moves_remaining >= g.max_moves for g in groups_for_settle)
-            equip_disabled = not (tile and tile.item_stockpiles)
+            equip_groups = selected_on_tile if selected_on_tile else unit_groups
+            equip_disabled = not (tile and tile.item_stockpiles) or len(equip_groups) != 1
             self.equip_button_rect = self._draw_button(x, y, half_w, btn_h, "Equip", disabled=equip_disabled)
             if equip_disabled:
                 self.equip_button_rect = None

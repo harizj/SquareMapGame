@@ -596,6 +596,7 @@ def main():
                         if selected_on_tile:
                             settle_faction = selected_on_tile[0].faction
                             all_pops = [unit.pop for g in selected_on_tile for unit in g.units]
+                            starting_food = sum(g.food_stockpile for g in selected_on_tile)
                             city_name = settle_faction.take_city_name() if settle_faction else game_map._take_city_name()
                             new_city = City(selected_tile.row, selected_tile.col, city_name, faction=settle_faction, population=0)
                             new_city.pops = all_pops
@@ -605,6 +606,7 @@ def main():
                                 renderer.selected_unit_groups.discard(group)
                             game_map.setup_city(new_city)
                             new_city.rebalance_pops()
+                            new_city.food_stockpile = min(starting_food, new_city._stockpile_max())
                             selected_tile.update_after_movement()
                     move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                     if not move_mode:

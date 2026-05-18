@@ -104,6 +104,13 @@ class City:
             growth_food = 0
         else:
             growth_food = num_pops * GROWTH_FOOD_REQUIREMENT
+        # print('stockpile_max',self._stockpile_max())
+        # print('min_stockpile',min_stockpile)
+        # print('stockpile',self.food_stockpile)
+        # print('unit_consumption',unit_consumption)
+        # print('pop_consumption',pop_consumption)
+        # print('food_needed_for_min_stockpile',food_needed_for_min_stockpile)
+        # print('growth_food',growth_food)
         return unit_consumption, pop_consumption, food_needed_for_min_stockpile, growth_food
 
     def min_admin_count(self):
@@ -385,14 +392,20 @@ class City:
         # Farm: use cumulative yield list to find minimum pops needed
         remaining_pops = len(self.pops) - admin_assigned - caravan_assigned
         total_farm_slots = len(self.cumulative_farm_yield) - 1
+        # print('Farm slots',total_farm_slots)
+        # print('Remaining pops',remaining_pops)
         if total_farm_slots > 0:
             if self.city_focus == 'Stockpile':
                 pops_for_farm = min(remaining_pops, total_farm_slots)
             else:
                 unit_consumption, pop_consumption, food_needed_for_min_stockpile, growth_food = self._food_target()
                 food_target = unit_consumption + pop_consumption + food_needed_for_min_stockpile + growth_food
+                # print('food_target',food_target)
                 pops_for_farm = bisect.bisect_left(self.cumulative_farm_yield_net, food_target)
+                # print('cumulative_farm_yield_net',self.cumulative_farm_yield_net)
+                # print('pops_for_farm',pops_for_farm)
                 pops_for_farm = min(pops_for_farm, total_farm_slots, remaining_pops)
+                # print('pops_for_farm',pops_for_farm)
 
             assigned_to_farm = 0
             for tile, j in tile_farm_jobs:
