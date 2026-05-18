@@ -24,28 +24,28 @@ class Unit:
 
 class Militia(Unit):
     unit_type = 'Militia'
-    combat_strength = 1
+    combat_strength = 10
     icon = 'pitchfork'
     icon_scale = 1.5
 
 
 class Swordsmen(Unit):
     unit_type = 'Swordsmen'
-    combat_strength = 3
+    combat_strength = 20
     icon = 'gladius'
     icon_scale = 1.0
 
 
 class Archers(Unit):
     unit_type = 'Archers'
-    combat_strength = 2
+    combat_strength = 15
     icon = 'bow'
     icon_scale = 1.3
 
 
 class Spearmen(Unit):
     unit_type = 'Spearmen'
-    combat_strength = 2
+    combat_strength = 15
     icon = 'spear'
     icon_scale = 1.4
     icon_x_offset = 0

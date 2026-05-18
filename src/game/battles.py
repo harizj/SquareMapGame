@@ -20,12 +20,12 @@ def compute_battle_preview(attacker_groups, defender, attacker_tile, defender_ti
     from src.game.city import City
 
     attacker_units = sum(len(g.units) for g in attacker_groups)
-    attacker_strength = attacker_units  # placeholder: 1 strength per unit
+    attacker_strength = sum(u.combat_strength for g in attacker_groups for u in g.units)
 
     defending_city = defender if isinstance(defender, City) else None
     defender_groups = [] if defending_city else defender
     defender_units = len(defending_city.pops) if defending_city else sum(len(g.units) for g in defender_groups)
-    defender_strength = defender_units  # placeholder
+    defender_strength = defender_units if defending_city else sum(u.combat_strength for g in defender_groups for u in g.units)
 
     modifiers = []
 

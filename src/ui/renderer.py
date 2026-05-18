@@ -2280,82 +2280,114 @@ class Renderer:
         self.recruit_popup_cancel_rect = self._draw_button(sx + pad + btn_w + 8, btn_y, btn_w, 24, "Cancel")
 
     def _draw_battle_popup(self, preview):
+        import collections
         from src.game.city import City
+        from src.game.unit import unit_list as UNIT_DISPLAY_ORDER
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 160))
         self.screen.blit(overlay, (0, 0))
 
-        mod_count = len(preview['modifiers'])
-        W, H = 340, 180 + mod_count * 18
-        sx = (self.screen.get_width() - W) // 2
-        sy = (self.screen.get_height() - H) // 2
+        def unit_type_rows(side_data):
+            if isinstance(side_data, City):
+                return [('Pop', len(side_data.pops))]
+            counts = collections.Counter(u.unit_type for g in side_data for u in g.units)
+            return [(t, counts[t]) for t in UNIT_DISPLAY_ORDER if t in counts]
+
+        atk_types = unit_type_rows(preview['attacker_groups'])
+        def_types = unit_type_rows(preview['defender'])
+        atk_mods = [(lbl, val) for lbl, side, val in preview['modifiers'] if side == 'attacker']
+        def_mods = [(lbl, val) for lbl, side, val in preview['modifiers'] if side == 'defender']
+
+        line_h = 18
+        type_rows = max(len(atk_types), len(def_types), 1)
+        mod_rows  = max(len(atk_mods),  len(def_mods))
+
         pad = 16
+        H = (40                       # title + title divider
+             + line_h                 # faction name row
+             + type_rows * line_h + 8 # unit type rows
+             + 1 + 6                  # section divider
+             + (mod_rows * line_h + 8 + 1 + 6 if mod_rows else 0)  # modifier section
+             + line_h + 8            # totals
+             + 1 + 8                  # button divider
+             + 24 + pad)             # buttons + bottom pad
+        W = 340
+        sx = (self.screen.get_width()  - W) // 2
+        sy = (self.screen.get_height() - H) // 2
         pygame.draw.rect(self.screen, (40, 40, 55), (sx, sy, W, H), border_radius=6)
-        pygame.draw.rect(self.screen, PANEL_DIVIDER, (sx, sy, W, H), 1, border_radius=6)
+        pygame.draw.rect(self.screen, PANEL_DIVIDER,  (sx, sy, W, H), 1, border_radius=6)
 
         title = self.font_header.render("BATTLE", True, HEADER_TEXT_COLOR)
         self.screen.blit(title, (sx + W // 2 - title.get_width() // 2, sy + 10))
 
-        # Divider below title
-        div_y = sy + 30
-        pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, div_y), (sx + W - pad, div_y))
+        title_div_y = sy + 30
+        pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, title_div_y), (sx + W - pad, title_div_y))
 
-        # Attacker column (left) / Defender column (right)
-        col_w = (W - pad * 2) // 2
-        left_x = sx + pad
+        col_w   = (W - pad * 2) // 2
+        left_x  = sx + pad
         right_x = sx + pad + col_w
-        y = div_y + 8
+        mid_x   = sx + W // 2
+        y = title_div_y + 8
 
-        def faction_name(side):
-            groups = preview['attacker_groups'] if side == 'attacker' else preview['defender']
-            if isinstance(groups, City):
-                return groups.faction.name if groups.faction else groups.name
-            return groups[0].faction.name if groups and groups[0].faction else '—'
+        def faction_name(data):
+            if isinstance(data, City):
+                return data.faction.name if data.faction else data.name
+            return data[0].faction.name if data and data[0].faction else '—'
 
-        for side, x, unit_key, str_key, total_key in [
-            ('attacker', left_x,  'attacker_units', 'attacker_strength', 'attacker_total'),
-            ('defender', right_x, 'defender_units', 'defender_strength', 'defender_total'),
-        ]:
-            color = HEADER_TEXT_COLOR
-            name_surf = self.font_header.render(faction_name(side), True, color)
-            self.screen.blit(name_surf, (x, y))
-            units_surf = self.font_body.render(f"{preview[unit_key]} units", True, TEXT_COLOR)
-            self.screen.blit(units_surf, (x, y + 18))
-            str_surf = self.font_body.render(f"Strength: {preview[str_key]}", True, TEXT_COLOR)
-            self.screen.blit(str_surf, (x, y + 34))
+        # Faction name headers
+        for x, data in [(left_x, preview['attacker_groups']), (right_x, preview['defender'])]:
+            surf = self.font_header.render(faction_name(data), True, HEADER_TEXT_COLOR)
+            self.screen.blit(surf, (x, y))
+        y += line_h
 
-        # Vertical divider between columns
-        mid_x = sx + W // 2
-        pygame.draw.line(self.screen, PANEL_DIVIDER, (mid_x, div_y + 4), (mid_x, div_y + 56))
-
-        y += 56
-        pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, y), (sx + W - pad, y))
-        y += 6
-
-        # Modifiers
-        for label, side, value in preview['modifiers']:
-            sign = '+' if value >= 0 else ''
-            text = f"{label} ({side}): {sign}{value}"
-            surf = self.font_body.render(text, True, (180, 200, 160) if value > 0 else (200, 160, 160))
-            self.screen.blit(surf, (sx + pad, y))
-            y += 18
+        # Unit type rows
+        content_top_y = y
+        for i in range(type_rows):
+            if i < len(atk_types):
+                t, n = atk_types[i]
+                self.screen.blit(self.font_body.render(f"{n} {t}", True, TEXT_COLOR), (left_x, y))
+            if i < len(def_types):
+                t, n = def_types[i]
+                self.screen.blit(self.font_body.render(f"{n} {t}", True, TEXT_COLOR), (right_x, y))
+            y += line_h
+        y += 8
 
         pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, y), (sx + W - pad, y))
         y += 6
 
-        # Totals
-        at_surf = self.font_body.render(f"Total: {preview['attacker_total']:.2f}", True, TEXT_COLOR)
-        dt_surf = self.font_body.render(f"Total: {preview['defender_total']:.2f}", True, TEXT_COLOR)
+        # Modifier rows (per side)
+        if mod_rows:
+            mod_top_y = y
+            for i in range(mod_rows):
+                for col_x, mods in [(left_x, atk_mods), (right_x, def_mods)]:
+                    if i < len(mods):
+                        lbl, val = mods[i]
+                        sign = '+' if val >= 0 else ''
+                        color = (180, 200, 160) if val > 0 else (200, 160, 160)
+                        self.screen.blit(self.font_body.render(f"{lbl}: {sign}{val}", True, color), (col_x, y))
+                y += line_h
+            y += 8
+            pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, y), (sx + W - pad, y))
+            y += 6
+
+        content_bot_y = y
+
+        # Vertical divider spanning unit + modifier sections
+        pygame.draw.line(self.screen, PANEL_DIVIDER, (mid_x, content_top_y), (mid_x, content_bot_y))
+
+        # Summed combat strength
+        at_surf = self.font_body.render(f"Strength: {preview['attacker_total']:.0f}", True, TEXT_COLOR)
+        dt_surf = self.font_body.render(f"Strength: {preview['defender_total']:.0f}", True, TEXT_COLOR)
         self.screen.blit(at_surf, (left_x, y))
         self.screen.blit(dt_surf, (right_x, y))
-        y += 24
+        y += line_h + 8
 
         pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, y), (sx + W - pad, y))
         y += 8
 
         btn_w = (W - pad * 2 - 8) // 2
         self.battle_popup_confirm_rect = self._draw_button(sx + pad, y, btn_w, 24, "Attack")
-        self.battle_popup_cancel_rect = self._draw_button(sx + pad + btn_w + 8, y, btn_w, 24, "Cancel")
+        self.battle_popup_cancel_rect  = self._draw_button(sx + pad + btn_w + 8, y, btn_w, 24, "Cancel")
 
     def _draw_save_popup(self, text):
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
