@@ -16,12 +16,12 @@ class Sword(Item):
 
 class Spear(Item):
     name = 'spear'
-    production_needed = 4
+    production_needed = 6
     resource_cost = {'wood': 5}
 
 class Bow(Item):
     name = 'bow'
-    production_needed = 6
+    production_needed = 10
     resource_cost = {'wood': 5}
 
 

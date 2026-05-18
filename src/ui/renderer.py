@@ -148,7 +148,7 @@ class Renderer:
                 self._terrain_images_raw[name] = raw_variants
         self._icons_raw = {}
         icons_dir = os.path.join(_ASSETS_DIR, 'icons')
-        for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius'), ('flag', 'flag'), ('torch', 'restriction'), ('wood', 'wood'), ('iron', 'iron')):
+        for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius'), ('flag', 'flag'), ('torch', 'restriction'), ('wood', 'wood'), ('iron', 'iron'), ('hammer', 'hammer')):
             path = os.path.join(icons_dir, f'{file_name}.png')
             if os.path.exists(path):
                 self._icons_raw[icon_name] = pygame.image.load(path).convert_alpha()
@@ -430,7 +430,7 @@ class Renderer:
         resource_icon_size = int(HEX_SIZE * self.zoom * 0.35)
         outline_r = 4
         self._faction_resource_icons = {}
-        for resource in ('wood', 'iron'):
+        for resource in ('wood', 'iron', 'hammer'):
             if resource in self._icons_raw:
                 scaled_res = pygame.transform.scale(self._icons_raw[resource], (resource_icon_size, resource_icon_size))
                 res_mask = scaled_res.copy()
@@ -911,6 +911,10 @@ class Renderer:
                     self.screen.blit(icon, (dx - int(apothem * 0.4), icon_y))
                 if tile.current_extraction_job is not None:
                     icon = self._get_tile_job_icon(tile.current_extraction_job, tile)
+                    if icon:
+                        self.screen.blit(icon, (int(cx) + dot_offset_x - icon.get_width() + int(apothem * 0.4), icon_y))
+                if tile.city is not None and tile.city.production_target.type == 'manufacturing':
+                    icon = self._get_tile_job_icon('hammer', tile)
                     if icon:
                         self.screen.blit(icon, (int(cx) + dot_offset_x - icon.get_width() + int(apothem * 0.4), icon_y))
                 if tile.is_disrupted:
