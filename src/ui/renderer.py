@@ -1655,27 +1655,23 @@ class Renderer:
         self.production_target_button_rect = self._draw_button(x, y, CITY_PANEL_WIDTH - pad * 2, 22, pt_label)
         y += 22 + 4
         workers = city.production_workers
-        if pt.type == 'manufacturing':
-            if city.production_yield <= 0:
-                prod_line = "No Production"
-            elif city.production_yield < workers:
-                prod_line = f"Production: {city.production_yield:.1f}/{workers:.1f}"
-            else:
-                prod_line = f"Production: {city.production_yield:.1f}"
+        if not pt.type:
+            status_surf = self.font_body.render("No Production Target", True, TEXT_COLOR)
+            self.screen.blit(status_surf, (x + 4, y))
+            y += status_surf.get_height() + 4
+        elif workers == 0:
+            status_surf = self.font_body.render("No Workers", True, TEXT_COLOR)
+            self.screen.blit(status_surf, (x + 4, y))
+            y += status_surf.get_height() + 4
+        elif pt.type == 'manufacturing':
+            prod_line = f"Production: {city.production_yield:.1f}/{workers:.1f}"
             prod_surf = self.font_body.render(prod_line, True, TEXT_COLOR)
             self.screen.blit(prod_surf, (x + 4, y))
             y += prod_surf.get_height() + 2
             for resource, amount in city.resources_allocated_to_production.items():
-                res_surf = self.font_body.render(f"  {resource.capitalize()}: {amount:.2f}", True, TEXT_COLOR)
+                res_surf = self.font_body.render(f"  {resource.capitalize()}: {amount:.1f}", True, TEXT_COLOR)
                 self.screen.blit(res_surf, (x + 4, y))
                 y += res_surf.get_height() + 2
-            y += 2
-            if pt.target_item:
-                item = pt.target_item
-                prog_text = f"  {item.name.capitalize()} ({int(pt.progress)}/{item.production_needed})"
-                line = self.font_body.render(prog_text, True, TEXT_COLOR)
-                self.screen.blit(line, (x + 4, y))
-                y += line.get_height() + 2
             y += 2
         else:
             prod_line = f"Production: {city.production_yield:.1f}" if city.production_yield > 0 else "No Production"
@@ -2106,6 +2102,7 @@ class Renderer:
 
     def _draw_production_popup(self, city):
         from src.game.production import PRODUCTION_CATEGORIES, PRODUCTION_SUBTYPES
+        from src.game.items import ITEM_REGISTRY
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 160))
         self.screen.blit(overlay, (0, 0))
@@ -2139,7 +2136,16 @@ class Renderer:
                 for subtype in subtypes:
                     active = (city.production_target.type == category and
                               city.production_target.target == subtype)
-                    unavailable = (category == 'extraction' and not city.has_deposit(subtype))
+                    if category == 'extraction':
+                        unavailable = not city.has_deposit(subtype)
+                    elif category == 'manufacturing':
+                        item_cls = ITEM_REGISTRY.get(subtype)
+                        unavailable = item_cls is None or any(
+                            item_cls.requires_resource(r) and not city.has_resource(r)
+                            for r in item_cls.resource_cost
+                        )
+                    else:
+                        unavailable = False
                     rect = self._draw_button(sx + pad, y, btn_w, btn_h, subtype.capitalize(), active=active, disabled=unavailable)
                     if not unavailable:
                         self.production_popup_rects[(category, subtype)] = rect

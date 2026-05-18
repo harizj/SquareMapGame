@@ -30,6 +30,9 @@ class ProductionTarget:
 
     @property
     def label(self):
+        if self.type == 'manufacturing' and self.target_item:
+            item = self.target_item
+            return f"{item.name.capitalize()} ({int(self.progress)}/{item.production_needed})"
         if self.type and self.target:
             return f"{self.target.capitalize()} ({self.type.capitalize()})"
         return "None"

@@ -607,22 +607,22 @@
       {
         "biome": "temperate",
         "terrain_features": [
+          "forest"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [
+          "forest"
+        ],
+        "river_edges": []
+      },
+      {
+        "biome": "temperate",
+        "terrain_features": [
           "hills",
           "forest"
-        ],
-        "river_edges": []
-      },
-      {
-        "biome": "temperate",
-        "terrain_features": [
-          "forest"
-        ],
-        "river_edges": []
-      },
-      {
-        "biome": "temperate",
-        "terrain_features": [
-          "hills"
         ],
         "river_edges": []
       },
@@ -779,8 +779,8 @@
           "floodplain"
         ],
         "river_edges": [
-          "NE",
-          "SE"
+          "SE",
+          "NE"
         ]
       },
       {
@@ -1007,8 +1007,8 @@
           "floodplain"
         ],
         "river_edges": [
-          "NE",
-          "SE"
+          "SE",
+          "NE"
         ]
       },
       {
@@ -1770,8 +1770,8 @@
           "river"
         ],
         "river_edges": [
-          "NW",
-          "E"
+          "E",
+          "NW"
         ]
       },
       {
