@@ -111,6 +111,7 @@ RIVER_IMG_SCALE = 1.2  # bleed past tile edge so adjacent river images connect
 ISO_SCALE      = 1  # vertical compression for isometric perspective
 LOG_PANEL_WIDTH = 0
 CITY_PANEL_WIDTH = 220
+BOTTOM_PANEL_HEIGHT = 36
 
 
 class Renderer:
@@ -120,7 +121,9 @@ class Renderer:
         map_area_w = int(DISPLAY_COLS * w + w / 2 + 2 * MARGIN)
         self.map_w = CITY_PANEL_WIDTH + map_area_w
         self.map_start_x = CITY_PANEL_WIDTH
-        screen_h = int((DISPLAY_ROWS - 1) * HEX_SIZE * 1.5 + 2 * HEX_SIZE + 2 * MARGIN)
+        map_h = int((DISPLAY_ROWS - 1) * HEX_SIZE * 1.5 + 2 * HEX_SIZE + 2 * MARGIN)
+        self.bottom_panel_y = map_h
+        screen_h = map_h + BOTTOM_PANEL_HEIGHT
         self.offset_x = CITY_PANEL_WIDTH + MARGIN + w / 2
         self.offset_y = MARGIN + HEX_SIZE
         self.screen = pygame.display.set_mode((self.map_w + PANEL_WIDTH, screen_h))
@@ -266,6 +269,7 @@ class Renderer:
         self.battle_popup_confirm_rect = None
         self.battle_popup_cancel_rect = None
         self.battle_result_close_rect = None
+        self.los_button_rects = {}
         self._recruit_slider_dragging = False
         self._recruit_food_slider_dragging = False
 
@@ -685,7 +689,8 @@ class Renderer:
              move_hover_tile=None,
              console_active=False, console_input="",
              battle_popup_active=False, battle_popup_preview=None,
-             battle_result_active=False, battle_result=None, battle_result_preview=None):
+             battle_result_active=False, battle_result=None, battle_result_preview=None,
+             los=None, factions=None):
         if reachable is None:
             reachable = {}
         self.screen.fill(BG_COLOR)
@@ -1173,6 +1178,8 @@ class Renderer:
 
         if console_active:
             self._draw_console_overlay(console_input)
+
+        self._draw_los_panel(los, factions or {})
 
         pygame.display.flip()
 
@@ -2283,6 +2290,55 @@ class Renderer:
         btn_w = (W - pad * 2 - 8) // 2
         self.recruit_popup_confirm_rect = self._draw_button(sx + pad, btn_y, btn_w, 24, "Confirm")
         self.recruit_popup_cancel_rect = self._draw_button(sx + pad + btn_w + 8, btn_y, btn_w, 24, "Cancel")
+
+    def _draw_los_panel(self, los, factions):
+        sw = self.map_w + PANEL_WIDTH
+        y = self.bottom_panel_y
+        h = BOTTOM_PANEL_HEIGHT
+        pygame.draw.rect(self.screen, PANEL_BG, (0, y, sw, h))
+        pygame.draw.line(self.screen, PANEL_DIVIDER, (0, y), (sw, y))
+
+        self.los_button_rects.clear()
+        btn_h = h - 10
+        btn_y = y + 5
+        pad = 10
+        gap = 6
+
+        lbl = self.font_body.render("LoS:", True, TEXT_COLOR)
+        entries = [('All', 'all', None), ('None', 'none', None)]
+        for fname, faction in factions.items():
+            entries.append((fname, fname, faction))
+
+        text_surfs = [self.font_body.render(label, True, BUTTON_TEXT) for label, _, _ in entries]
+        btn_widths = [s.get_width() + 2 * pad for s in text_surfs]
+
+        total_w = lbl.get_width() + 10 + sum(btn_widths) + gap * (len(btn_widths) - 1)
+        x = (sw - total_w) // 2
+
+        self.screen.blit(lbl, (x, y + (h - lbl.get_height()) // 2))
+        x += lbl.get_width() + 10
+
+        for (label, key, faction), text_surf, btn_w in zip(entries, text_surfs, btn_widths):
+            if los is None:
+                is_active = (key == 'all')
+            elif key == 'all':
+                is_active = los.mode == 'all'
+            elif key == 'none':
+                is_active = los.mode == 'none'
+            else:
+                is_active = los.mode == 'faction' and los.faction is faction
+
+            if faction:
+                base = faction.colors['dark']
+                color = base if is_active else tuple(max(0, int(v * 0.55)) for v in base)
+            else:
+                color = BUTTON_ACTIVE if is_active else BUTTON_NORMAL
+
+            rect = pygame.Rect(x, btn_y, btn_w, btn_h)
+            pygame.draw.rect(self.screen, color, rect, border_radius=4)
+            self.screen.blit(text_surf, (x + pad, btn_y + (btn_h - text_surf.get_height()) // 2))
+            self.los_button_rects[key] = rect
+            x += btn_w + gap
 
     def _draw_battle_popup(self, preview):
         import collections

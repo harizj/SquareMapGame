@@ -4,6 +4,7 @@ import pygame
 from src.game.battles import compute_battle_preview, resolve_battle
 from src.game.city import City
 from src.game.faction import Faction, COLOR_SETS, CITY_NAME_SETS
+from src.game.line_of_sight import LineOfSight
 from src.game.pop import Pop
 from src.game.unit_group import UnitGroup
 from src.game.map import Map
@@ -104,6 +105,7 @@ def main():
     factions = _apply_game_config(game_map, game_config)
 
     renderer = Renderer(game_map)
+    los = LineOfSight()
     clock = pygame.time.Clock()
     selected_tile = None
     move_mode = False
@@ -285,7 +287,21 @@ def main():
                 pos = event.pos
                 # print(f"[LMB] pos={pos} battle={battle_popup_active} terrain={terrain_popup_active} river={river_popup_active} save={save_popup_active} recruit={renderer.recruit_popup_active} one_way_pending={renderer.one_way_route_pending is not None}")
 
-                if battle_result_active:
+                if any(rect.collidepoint(pos) for rect in renderer.los_button_rects.values()):
+                    for key, rect in renderer.los_button_rects.items():
+                        if rect.collidepoint(pos):
+                            if key == 'all':
+                                los.mode = 'all'
+                                los.faction = None
+                            elif key == 'none':
+                                los.mode = 'none'
+                                los.faction = None
+                            else:
+                                los.mode = 'faction'
+                                los.faction = factions.get(key)
+                            break
+
+                elif battle_result_active:
                     if renderer.battle_result_close_rect and renderer.battle_result_close_rect.collidepoint(pos):
                         battle_result_active = False
                         pending_battle_result = None
@@ -909,7 +925,9 @@ def main():
                       battle_popup_preview=pending_combat_preview,
                       battle_result_active=battle_result_active,
                       battle_result=pending_battle_result,
-                      battle_result_preview=pending_battle_result_preview)
+                      battle_result_preview=pending_battle_result_preview,
+                      los=los,
+                      factions=factions)
         clock.tick(60)
 
     pygame.quit()
