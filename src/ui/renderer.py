@@ -1672,6 +1672,10 @@ class Renderer:
                 res_surf = self.font_body.render(f"  {resource.capitalize()}: {amount:.1f}", True, TEXT_COLOR)
                 self.screen.blit(res_surf, (x + 4, y))
                 y += res_surf.get_height() + 2
+            if city.production_limited_by:
+                lim_surf = self.font_body.render(f"  Limited By {city.production_limited_by.capitalize()}", True, TEXT_COLOR)
+                self.screen.blit(lim_surf, (x + 4, y))
+                y += lim_surf.get_height() + 2
             y += 2
         else:
             prod_line = f"Production: {city.production_yield:.1f}" if city.production_yield > 0 else "No Production"

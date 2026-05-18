@@ -46,7 +46,7 @@ TILE_FARM_SLOTS = {
     'mountain': 0,
 }
 DEPOSIT_STARTING_WOOD = 40
-DEPOSIT_STARTING_IRON = 20
+DEPOSIT_STARTING_IRON = 10
 
 BIOMES = ['temperate',
         'arid',
