@@ -6,7 +6,7 @@ from src.game.city import STOCKPILE_MAX
 from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, MILITARY_CARRY_CAPACITY, WATER_CARRY_CAPACITY, MOVE_CARRY_OVER
 from src.game.map import TERRAIN_TYPES
 from src.game.tile import BIOMES, TERRAIN_FEATURES, BIOME_COLORS
-from src.game.unit import unit_list as UNIT_DISPLAY_ORDER
+from src.game.unit import unit_list as UNIT_DISPLAY_ORDER, UNIT_REGISTRY
 
 _ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'assets')
 
@@ -149,7 +149,7 @@ class Renderer:
                 self._terrain_images_raw[name] = raw_variants
         self._icons_raw = {}
         icons_dir = os.path.join(_ASSETS_DIR, 'icons')
-        for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius'), ('flag', 'flag'), ('torch', 'restriction'), ('wood', 'wood'), ('iron', 'iron'), ('hammer', 'hammer')):
+        for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius'), ('flag', 'flag'), ('torch', 'restriction'), ('wood', 'wood'), ('iron', 'iron'), ('hammer', 'hammer'), ('club', 'club'), ('spear', 'spear'), ('bow', 'bow'), ('gladius', 'gladius'), ('pitchfork', 'pitchfork')):
             path = os.path.join(icons_dir, f'{file_name}.png')
             if os.path.exists(path):
                 self._icons_raw[icon_name] = pygame.image.load(path).convert_alpha()
@@ -181,6 +181,7 @@ class Renderer:
         self._faction_flag_icons = {}
         self._faction_torch_icons = {}
         self._faction_resource_icons = {}
+        self._unit_map_icons = {}
         self._apply_zoom()
         self.move_button_rect = None
         self.capture_button_rect = None
@@ -392,6 +393,20 @@ class Renderer:
                 if city.faction and city.faction.name not in self._faction_sword_icons:
                     t, d, s = self._make_icon_pair(scaled, city.get_city_color('light'), city.get_city_color('dark'), sword_outline_radius, pad=sword_outline_radius)
                     self._faction_sword_icons[city.faction.name] = {'tinted': t, 'dark': d, 'selected': s}
+        self._unit_map_icons = {}
+        _unit_icon_r = 5
+        for icon_name in {cls.icon for cls in UNIT_REGISTRY.values() if hasattr(cls, 'icon')}:
+            raw = self._icons_raw.get(icon_name)
+            if not raw:
+                continue
+            scaled = pygame.transform.scale(raw, (sword_size, sword_size))
+            tinted, _, sel_surf = self._make_icon_pair(scaled, (180, 210, 255), (35, 65, 150), _unit_icon_r, pad=_unit_icon_r)
+            entry = {'plain': scaled, 'tinted': tinted, 'selected': sel_surf}
+            for city in self.map.cities.values():
+                if city.faction and city.faction.name not in entry:
+                    t, _, s = self._make_icon_pair(scaled, city.get_city_color('light'), city.get_city_color('dark'), _unit_icon_r, pad=_unit_icon_r)
+                    entry[city.faction.name] = {'tinted': t, 'selected': s}
+            self._unit_map_icons[icon_name] = entry
         if 'flag' in self._icons_raw:
             flag_size = int(ICON_SIZE * 0.4 * self.zoom)
             flag_outline_radius = 6
@@ -987,20 +1002,29 @@ class Renderer:
             any_selected = any(g in self.selected_unit_groups for g in unit_groups_here)
             first_faction = unit_groups_here[0].faction
             fname = first_faction.name if first_faction else None
-            faction_sword = self._faction_sword_icons.get(fname)
-            if faction_sword:
-                icon = faction_sword['selected'] if any_selected else faction_sword['tinted']
-            else:
-                icon = self.icons_selected.get('sword') if any_selected else self.icons_tinted.get('sword')
-            if icon:
-                total_units = sum(len(g.units) for g in unit_groups_here)
-                count = max(1, min(3, total_units))
+            _utype_to_icon = {cls.unit_type: getattr(cls, 'icon', None) for cls in UNIT_REGISTRY.values()}
+            _order = {t: i for i, t in enumerate(UNIT_DISPLAY_ORDER)}
+            all_units = sorted(
+                [u for g in unit_groups_here for u in g.units],
+                key=lambda u: _order.get(u.unit_type, 99)
+            )
+            flat_icons = []
+            for unit in all_units[:3]:
+                icon_name = _utype_to_icon.get(unit.unit_type)
+                icon_data = self._unit_map_icons.get(icon_name, {})
+                faction_data = icon_data.get(fname, {})
+                surf = (faction_data.get('selected') or icon_data.get('selected')) if any_selected else (faction_data.get('tinted') or icon_data.get('tinted'))
+                if surf:
+                    flat_icons.append(surf)
+            if flat_icons:
                 icon_overlap = 7
-                combined_w = icon.get_width() + (count - 1) * icon_overlap
+                icon_w = flat_icons[0].get_width()
+                icon_h = flat_icons[0].get_height()
+                combined_w = icon_w + (len(flat_icons) - 1) * icon_overlap
                 start_x = int(cx) - combined_w // 2
-                icon_y = int(cy) - icon.get_height() // 2
-                for i in range(count):
-                    self.screen.blit(icon, (start_x + i * icon_overlap, icon_y))
+                icon_y = int(cy) - icon_h // 2
+                for j, surf in enumerate(reversed(flat_icons)):
+                    self.screen.blit(surf, (start_x + j * icon_overlap, icon_y))
             else:
                 self._draw_unit_marker(int(cx), int(cy))
                 icon_x = int(cx)
@@ -1944,20 +1968,24 @@ class Renderer:
             y += btn_h + 6
 
         icon_h = self.font_body.get_height()
-        icon_raw = self._icons_raw.get('sword')
-        small_icon = pygame.transform.scale(icon_raw, (icon_h, icon_h)) if icon_raw else None
-        small_icon_tinted = None
-        small_icon_tinted_by_faction = {}
-        if icon_raw:
+        outline_r = 2
+        # Build per-unit-type small icon surfaces: {icon_name: {'plain': surf, 'default': surf, fname: surf}}
+        _unit_icon_names = {cls.unit_type: cls.icon for cls in UNIT_REGISTRY.values() if hasattr(cls, 'icon')}
+        small_icons = {}
+        for icon_name in set(_unit_icon_names.values()):
+            icon_raw = self._icons_raw.get(icon_name)
+            if not icon_raw:
+                continue
             scaled = pygame.transform.scale(icon_raw, (icon_h, icon_h))
-            outline_r = 2
-            small_icon_tinted, _, _ = self._make_icon_pair(scaled, (180, 210, 255), (35, 65, 150), outline_r, pad=outline_r)
+            tinted, _, _ = self._make_icon_pair(scaled, (180, 210, 255), (35, 65, 150), outline_r, pad=outline_r)
+            entry = {'plain': scaled, 'default': tinted}
             for group in unit_groups:
                 if group.faction:
                     fname = group.faction.name
-                    if fname not in small_icon_tinted_by_faction:
+                    if fname not in entry:
                         t, _, _ = self._make_icon_pair(scaled, group.faction.colors['light'], group.faction.colors['dark'], outline_r, pad=outline_r)
-                        small_icon_tinted_by_faction[fname] = t
+                        entry[fname] = t
+            small_icons[icon_name] = entry
         bar_w = PANEL_WIDTH - pad * 2
         bar_h = 6
 
@@ -1965,24 +1993,27 @@ class Renderer:
         for group in unit_groups:
             selected = group in self.selected_unit_groups
             fname = group.faction.name if group.faction else None
-            tinted = small_icon_tinted_by_faction.get(fname, small_icon_tinted)
-            icon_to_use = tinted if selected else small_icon
             type_counts = collections.Counter(u.unit_type for u in group.units)
             _order = {t: i for i, t in enumerate(UNIT_DISPLAY_ORDER)}
             sorted_types = sorted(type_counts.items(), key=lambda kv: _order.get(kv[0], 99))
-            total_units = len(group.units)
             icon_overlap = 5
-            icons_total_w = 0
-            row_top_y = y
-            if icon_to_use:
-                for i in range(total_units):
-                    self.screen.blit(icon_to_use, (x + 4 + i * icon_overlap, y))
-                icons_total_w = icon_h + (total_units - 1) * icon_overlap
-            text_x = x + 4 + (icons_total_w + 8 if icon_to_use else 0)
             unit_text_color = (220, 50, 50) if group.pending_pop_loss > 0 else TEXT_COLOR
+            row_top_y = y
+            cur_x = x + 4
+            flat_icons = []
+            for unit_type, count in sorted_types:
+                icon_name = _unit_icon_names.get(unit_type)
+                icon_data = small_icons.get(icon_name, {})
+                icon_surf = (icon_data.get(fname) or icon_data.get('default')) if selected else icon_data.get('plain')
+                flat_icons.extend([icon_surf] * count)
+            for j, icon_surf in enumerate(reversed(flat_icons)):
+                if icon_surf:
+                    self.screen.blit(icon_surf, (cur_x + j * icon_overlap, y))
+            if flat_icons:
+                cur_x += icon_h + (len(flat_icons) - 1) * icon_overlap + 4
             label = ', '.join(f"{count} {unit_type.capitalize()}" for unit_type, count in sorted_types)
             surf = self.font_body.render(label, True, unit_text_color)
-            self.screen.blit(surf, (text_x, y))
+            self.screen.blit(surf, (cur_x, y))
             y += icon_h + 4
             icon_rect = pygame.Rect(x + 4, row_top_y, bar_w - 4, y - row_top_y)
             self.group_icon_rects.append((icon_rect, group))

@@ -22,21 +22,25 @@ class Unit:
 class Militia(Unit):
     unit_type = 'Militia'
     combat_strength = 1
+    icon = 'pitchfork'
 
 
 class Swordsmen(Unit):
     unit_type = 'Swordsmen'
     combat_strength = 3
+    icon = 'gladius'
 
 
 class Archers(Unit):
     unit_type = 'Archers'
     combat_strength = 2
+    icon = 'bow'
 
 
 class Spearmen(Unit):
     unit_type = 'Spearmen'
     combat_strength = 2
+    icon = 'spear'
 
 
 UNIT_REGISTRY = {cls.unit_type: cls for cls in [Swordsmen, Archers, Spearmen, Militia]}
