@@ -6,6 +6,7 @@ from src.game.city import STOCKPILE_MAX
 from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, MILITARY_CARRY_CAPACITY, WATER_CARRY_CAPACITY, MOVE_CARRY_OVER
 from src.game.map import TERRAIN_TYPES
 from src.game.tile import BIOMES, TERRAIN_FEATURES, BIOME_COLORS
+from src.game.unit import unit_list as UNIT_DISPLAY_ORDER
 
 _ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'assets')
 
@@ -1967,19 +1968,22 @@ class Renderer:
             tinted = small_icon_tinted_by_faction.get(fname, small_icon_tinted)
             icon_to_use = tinted if selected else small_icon
             type_counts = collections.Counter(u.unit_type for u in group.units)
+            _order = {t: i for i, t in enumerate(UNIT_DISPLAY_ORDER)}
+            sorted_types = sorted(type_counts.items(), key=lambda kv: _order.get(kv[0], 99))
+            total_units = len(group.units)
+            icon_overlap = 5
+            icons_total_w = 0
             row_top_y = y
-            for unit_type, count in type_counts.items():
-                icon_overlap = 5
-                icons_total_w = 0
-                if icon_to_use:
-                    for i in range(count):
-                        self.screen.blit(icon_to_use, (x + 4 + i * icon_overlap, y))
-                    icons_total_w = icon_h + (count - 1) * icon_overlap
-                text_x = x + 4 + (icons_total_w + 8 if icon_to_use else 0)
-                unit_text_color = (220, 50, 50) if group.pending_pop_loss > 0 else TEXT_COLOR
-                surf = self.font_body.render(f"{count} {unit_type.capitalize()}", True, unit_text_color)
-                self.screen.blit(surf, (text_x, y))
-                y += icon_h + 4
+            if icon_to_use:
+                for i in range(total_units):
+                    self.screen.blit(icon_to_use, (x + 4 + i * icon_overlap, y))
+                icons_total_w = icon_h + (total_units - 1) * icon_overlap
+            text_x = x + 4 + (icons_total_w + 8 if icon_to_use else 0)
+            unit_text_color = (220, 50, 50) if group.pending_pop_loss > 0 else TEXT_COLOR
+            label = ', '.join(f"{count} {unit_type.capitalize()}" for unit_type, count in sorted_types)
+            surf = self.font_body.render(label, True, unit_text_color)
+            self.screen.blit(surf, (text_x, y))
+            y += icon_h + 4
             icon_rect = pygame.Rect(x + 4, row_top_y, bar_w - 4, y - row_top_y)
             self.group_icon_rects.append((icon_rect, group))
             y += 2

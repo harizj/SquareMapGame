@@ -9,7 +9,7 @@ from src.game.unit_group import UnitGroup
 from src.game.map import Map
 from src.game.save_load import load_map_data, save_map
 from src.game.trade_route import TradeRoute
-from src.game.unit import Unit
+from src.game.unit import Militia
 from src.ui.renderer import Renderer
 from src.game.constants import DEFAULT_MOVE_DISTANCE
 
@@ -37,7 +37,7 @@ def _apply_game_config(game_map, game_config):
     for ug_data in game_config.get('unit_groups', []):
         r, c = ug_data['row'], ug_data['col']
         faction = factions.get(ug_data.get('faction'))
-        group = UnitGroup(r, c, units=[Unit(Pop()) for _ in range(ug_data['num_units'])], faction=faction)
+        group = UnitGroup(r, c, units=[Militia(Pop()) for _ in range(ug_data['num_units'])], faction=faction)
         group.add_food(ug_data['food'])
         game_map.tiles[r][c].unit_groups.append(group)
 
@@ -400,7 +400,7 @@ def main():
                             city.pops = city.pops[n:]
                             city.food_stockpile -= food
                             city.rebalance_pops()
-                            new_group = UnitGroup(selected_tile.row, selected_tile.col, units=[Unit(p) for p in recruited_pops], faction=city.faction)
+                            new_group = UnitGroup(selected_tile.row, selected_tile.col, units=[Militia(p) for p in recruited_pops], faction=city.faction)
                             new_group.moves_remaining = 0
                             new_group.move_exhausted = True
                             new_group.add_food(food)
@@ -584,6 +584,17 @@ def main():
                             renderer.selected_unit_groups.discard(group)
                         city.rebalance_pops()
                         selected_tile.update_after_movement()
+                    move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
+                    if not move_mode:
+                        move_hover_tile = None
+
+                elif renderer.equip_button_rect and renderer.equip_button_rect.collidepoint(pos):
+                    if selected_tile and selected_tile.item_stockpiles:
+                        selected_on_tile = [g for g in game_map.get_unit_groups(selected_tile.row, selected_tile.col) if g in renderer.selected_unit_groups]
+                        if not selected_on_tile:
+                            selected_on_tile = game_map.get_unit_groups(selected_tile.row, selected_tile.col)
+                        if len(selected_on_tile) == 1:
+                            selected_on_tile[0].equip_from_stockpile(selected_tile.item_stockpiles)
                     move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                     if not move_mode:
                         move_hover_tile = None
@@ -775,7 +786,7 @@ def main():
                         if captured_pops:
                             attacker_faction = selected_on_tile[0].faction if selected_on_tile else None
                             new_group = UnitGroup(selected_tile.row, selected_tile.col,
-                                                  units=[Unit(p) for p in captured_pops],
+                                                  units=[Militia(p) for p in captured_pops],
                                                   faction=attacker_faction)
                             new_group.moves_remaining = DEFAULT_MOVE_DISTANCE
                             new_group.move_exhausted = False

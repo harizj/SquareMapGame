@@ -103,6 +103,38 @@ class UnitGroup:
         self.update_moves_remaining()
         self.move_exhausted = False
 
+    def equip_from_stockpile(self, item_stockpiles):
+        from src.game.items import ITEM_REGISTRY
+        from src.game.unit import UNIT_REGISTRY
+        import collections
+        def _summary(units):
+            counts = collections.Counter(u.unit_type for u in units)
+            return ', '.join(f"{v} {t}" for t, v in counts.items())
+        print(f"[equip] before: units=[{_summary(self.units)}] stockpile={dict(item_stockpiles)}")
+        militia = [u for u in self.units if u.is_militia]
+        for item_name in ['sword', 'bow', 'spear']:
+            if not militia:
+                break
+            count = item_stockpiles.get(item_name, 0)
+            if count <= 0:
+                continue
+            item_cls = ITEM_REGISTRY.get(item_name)
+            unit_cls = UNIT_REGISTRY.get(item_cls.upgrades_to) if item_cls else None
+            if not unit_cls:
+                continue
+            while count > 0 and militia:
+                old_unit = militia.pop(0)
+                new_unit = unit_cls(old_unit.pop)
+                new_unit.max_moves = old_unit.max_moves
+                new_unit.moves_remaining = old_unit.moves_remaining
+                self.units[self.units.index(old_unit)] = new_unit
+                count -= 1
+            if count > 0:
+                item_stockpiles[item_name] = count
+            else:
+                del item_stockpiles[item_name]
+        print(f"[equip] after:  units=[{_summary(self.units)}] stockpile={dict(item_stockpiles)}")
+
     def reset_after_movement(self):
         self.food_allocated_from_city = 0.0
         self.food_allocated_to_stockpile = 0.0
