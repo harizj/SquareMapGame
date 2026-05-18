@@ -1654,17 +1654,39 @@ class Renderer:
         pt_label = f"Production: {pt.label}"
         self.production_target_button_rect = self._draw_button(x, y, CITY_PANEL_WIDTH - pad * 2, 22, pt_label)
         y += 22 + 4
-        prod_job = next((j for j in city.jobs if j.job_type == 'production'), None)
-        prod_assigned = prod_job.assigned if prod_job else 0
-        prod_line = f"Production: {city.production_yield:.1f}" if city.production_yield > 0 else "No Production"
-        prod_surf = self.font_body.render(prod_line, True, TEXT_COLOR)
-        self.screen.blit(prod_surf, (x + 4, y))
-        y += prod_surf.get_height() + 2
-        efficiency = city.production_yield / prod_assigned if prod_assigned > 0 else 0.0
-        eff_line = f"Extraction Efficiency: {efficiency:.2f}"
-        eff_surf = self.font_body.render(eff_line, True, TEXT_COLOR)
-        self.screen.blit(eff_surf, (x + 4, y))
-        y += eff_surf.get_height() + 4
+        workers = city.production_workers
+        if pt.type == 'manufacturing':
+            if city.production_yield <= 0:
+                prod_line = "No Production"
+            elif city.production_yield < workers:
+                prod_line = f"Production: {city.production_yield:.1f}/{workers:.1f}"
+            else:
+                prod_line = f"Production: {city.production_yield:.1f}"
+            prod_surf = self.font_body.render(prod_line, True, TEXT_COLOR)
+            self.screen.blit(prod_surf, (x + 4, y))
+            y += prod_surf.get_height() + 2
+            for resource, amount in city.resources_allocated_to_production.items():
+                res_surf = self.font_body.render(f"  {resource.capitalize()}: {amount:.2f}", True, TEXT_COLOR)
+                self.screen.blit(res_surf, (x + 4, y))
+                y += res_surf.get_height() + 2
+            y += 2
+            if pt.target_item:
+                item = pt.target_item
+                prog_text = f"  {item.name.capitalize()} ({int(pt.progress)}/{item.production_needed})"
+                line = self.font_body.render(prog_text, True, TEXT_COLOR)
+                self.screen.blit(line, (x + 4, y))
+                y += line.get_height() + 2
+            y += 2
+        else:
+            prod_line = f"Production: {city.production_yield:.1f}" if city.production_yield > 0 else "No Production"
+            prod_surf = self.font_body.render(prod_line, True, TEXT_COLOR)
+            self.screen.blit(prod_surf, (x + 4, y))
+            y += prod_surf.get_height() + 2
+            efficiency = city.production_yield / workers if workers > 0 else 0.0
+            eff_line = f"Extraction Efficiency: {efficiency:.2f}"
+            eff_surf = self.font_body.render(eff_line, True, TEXT_COLOR)
+            self.screen.blit(eff_surf, (x + 4, y))
+            y += eff_surf.get_height() + 4
 
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
         y += 10
@@ -2032,14 +2054,23 @@ class Renderer:
             y += btn_h + 6
 
         # Resources section
-        if tile and tile.resource_stockpiles:
+        city_here = tile.city if tile else None
+        has_resources = bool(tile and tile.resource_stockpiles)
+        has_items = bool(city_here and city_here.item_stockpiles)
+        if has_resources or has_items:
             surf = self.font_header.render("RESOURCES", True, HEADER_TEXT_COLOR)
             self.screen.blit(surf, (x, y))
             y += surf.get_height() + 6
-            for resource, amount in tile.resource_stockpiles.items():
-                line = self.font_body.render(f"{amount:.1f} {resource}", True, TEXT_COLOR)
-                self.screen.blit(line, (x + 4, y))
-                y += line.get_height() + 4
+            if has_resources:
+                for resource, amount in tile.resource_stockpiles.items():
+                    line = self.font_body.render(f"{amount:.1f} {resource.capitalize()}", True, TEXT_COLOR)
+                    self.screen.blit(line, (x + 4, y))
+                    y += line.get_height() + 4
+            if has_items:
+                for item_name, count in city_here.item_stockpiles.items():
+                    line = self.font_body.render(f"{count} {item_name.capitalize()}", True, TEXT_COLOR)
+                    self.screen.blit(line, (x + 4, y))
+                    y += line.get_height() + 4
             y += 4
 
         # End Turn button anchored to bottom

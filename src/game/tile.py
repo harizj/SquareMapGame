@@ -32,7 +32,7 @@ from src.game.jobs import FarmJob
 #     5.00: 1.28,
 # }
 
-FARM_YIELD_AT_MAX_DISTANCE = 1.2
+FARM_YIELD_AT_MAX_DISTANCE = 1.3
 # Derived: (YIELD_PER_POP - FARM_YIELD_AT_MAX_DISTANCE) / DEFAULT_MOVE_DISTANCE
 
 EXTRACTION_YIELD_BASE = 1.0
@@ -45,8 +45,8 @@ TILE_FARM_SLOTS = {
     'forest':   2,
     'mountain': 0,
 }
-DEPOSIT_STARTING_WOOD = 20
-DEPOSIT_STARTING_IRON = 10
+DEPOSIT_STARTING_WOOD = 40
+DEPOSIT_STARTING_IRON = 20
 
 BIOMES = ['temperate',
         'arid',

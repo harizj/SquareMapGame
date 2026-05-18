@@ -57,6 +57,9 @@ class City:
         self.production_progress = 0.0
         self.production_complete = None
         self.extraction_tile = None
+        self.item_stockpiles = {}
+        self.resources_allocated_to_production = {}
+        self.production_workers = 0
 
     @property
     def unassigned_pops(self):
@@ -120,21 +123,35 @@ class City:
         admin_count = admin_job.assigned if admin_job else 0
         return admin_count * STOCKPILE_PER_ADMIN
 
+    def has_resource(self, resource):
+        return self.tile is not None and self.tile.resource_stockpiles.get(resource, 0) > 0
+
     def has_deposit(self, resource):
         return any(resource in t.resource_deposits for t in self.owned_tiles if not t.is_disrupted)
 
     def update_production_bar(self):
         pt = self.production_target
-        if not pt.type or not pt.target:
+        if not pt.type:
             self.production_complete = None
             self.production_progress = 0.0
             return
         if pt.type == 'extraction':
+            if not pt.target:
+                self.production_complete = None
+                self.production_progress = 0.0
+                return
             if self.extraction_tile:
                 current = self.extraction_tile.resource_deposits.get(pt.target, 0)
                 starting = _DEPOSIT_STARTING.get(pt.target, 1)
                 self.production_complete = float(starting)
                 self.production_progress = starting - current
+            else:
+                self.production_complete = None
+                self.production_progress = 0.0
+        elif pt.type == 'manufacturing':
+            if pt.target_item:
+                self.production_complete = float(pt.target_item.production_needed)
+                self.production_progress = pt.progress
             else:
                 self.production_complete = None
                 self.production_progress = 0.0
@@ -398,6 +415,8 @@ class City:
 
         # Production yield
         self.production_yield = 0.0
+        self.production_workers = prod_job.assigned if prod_job else 0
+        self.resources_allocated_to_production = {}
         if self.extraction_tile:
             self.extraction_tile.clear_extraction_job()
         self.extraction_tile = None
@@ -424,6 +443,20 @@ class City:
                     # print(f"[extraction] {self.name}: extraction_tile=({self.extraction_tile.row},{self.extraction_tile.col}) production_yield={self.production_yield:.2f}")
                 else:
                     print(f"[extraction] {self.name}: no deposit tiles found for {pt.target}")
+            elif pt.type == 'manufacturing' and pt.target_item:
+                item = pt.target_item
+                remaining = item.production_needed - pt.progress
+                work_done = min(prod_job.assigned, remaining)
+                if self.tile:
+                    for resource, cost in item.resource_cost.items():
+                        rate = cost / item.production_needed
+                        available = self.tile.resource_stockpiles.get(resource, 0.0)
+                        work_done = min(work_done, available / rate if rate > 0 else work_done)
+                work_done = max(0.0, work_done)
+                self.production_yield = work_done
+                for resource, cost in item.resource_cost.items():
+                    rate = cost / item.production_needed
+                    self.resources_allocated_to_production[resource] = work_done * rate
 
         self.update_production_bar()
         self._update_food_allocations()
@@ -506,6 +539,19 @@ class City:
             if self.tile:
                 self.tile.add_resources_to_stockpile(extracted, resource)
                 # print(f"[extraction] {self.name} end_turn: extracted={extracted:.2f}, city_tile stockpile={self.tile.resource_stockpiles}")
+        if pt.type == 'manufacturing' and pt.target_item and self.production_yield > 0:
+            item = pt.target_item
+            work_done = min(self.production_yield, item.production_needed - pt.progress)
+            fraction = work_done / item.production_needed
+            if self.tile:
+                for resource, cost in item.resource_cost.items():
+                    consume = fraction * cost
+                    current = self.tile.resource_stockpiles.get(resource, 0.0)
+                    self.tile.resource_stockpiles[resource] = max(0.0, current - consume)
+            pt.progress += work_done
+            if pt.progress >= item.production_needed:
+                self.item_stockpiles[item.name] = self.item_stockpiles.get(item.name, 0) + 1
+                pt.progress = 0.0
 
         # Step 5: spawn new pops
         spawned = 0
