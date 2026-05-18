@@ -121,7 +121,7 @@ class City:
         return admin_count * STOCKPILE_PER_ADMIN
 
     def has_deposit(self, resource):
-        return any(resource in t.resource_deposits for t in self.owned_tiles)
+        return any(resource in t.resource_deposits for t in self.owned_tiles if not t.is_disrupted)
 
     def update_production_bar(self):
         pt = self.production_target
@@ -130,13 +130,8 @@ class City:
             self.production_progress = 0.0
             return
         if pt.type == 'extraction':
-            deposit_tiles = sorted(
-                [t for t in self.owned_tiles if pt.target in t.resource_deposits],
-                key=lambda t: t.extraction_yield,
-                reverse=True,
-            )
-            if deposit_tiles:
-                current = deposit_tiles[0].resource_deposits[pt.target]
+            if self.extraction_tile:
+                current = self.extraction_tile.resource_deposits.get(pt.target, 0)
                 starting = _DEPOSIT_STARTING.get(pt.target, 1)
                 self.production_complete = float(starting)
                 self.production_progress = starting - current
@@ -415,7 +410,7 @@ class City:
             pt = self.production_target
             if pt.type == 'extraction' and pt.target:
                 deposit_tiles = sorted(
-                    [t for t in self.owned_tiles if pt.target in t.resource_deposits],
+                    [t for t in self.owned_tiles if pt.target in t.resource_deposits and not t.is_disrupted],
                     key=lambda t: t.extraction_yield,
                     reverse=True,
                 )
