@@ -130,6 +130,8 @@ class TradeRoute:
                 None
             )
             available = city_tile.resource_stockpiles.get(self.export_resource, 0) if city_tile else 0
+            allocated = self.city_a.resources_allocated_to_production.get(self.export_resource, 0)
+            available = max(0, available - allocated)
             self.export_amount = min(available, self.max_amount)
 
         if self.import_resource and self.import_resource != 'food':
