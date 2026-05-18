@@ -260,14 +260,11 @@ def main():
                             path, _ = game_map.get_path_to(selected_tile.row, selected_tile.col, tile.row, tile.col)
                             if len(path) >= 2:
                                 stop_pos = path[-2]
-                                if stop_pos != (selected_tile.row, selected_tile.col):
-                                    #stop_cost = reachable[stop_pos]
-                                    cost = reachable[(tile.row, tile.col)]
-                                    for group in move_mode_unit_groups:
-                                        game_map.move_group(group, stop_pos[0], stop_pos[1], cost)
-                                    selected_tile = game_map.tiles[stop_pos[0]][stop_pos[1]]
-                                    renderer.selected_unit_groups = {g for g in move_mode_unit_groups}
-                                    #move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
+                                cost = reachable[(tile.row, tile.col)]
+                                for group in move_mode_unit_groups:
+                                    game_map.move_group(group, stop_pos[0], stop_pos[1], cost)
+                                selected_tile = game_map.tiles[stop_pos[0]][stop_pos[1]]
+                                renderer.selected_unit_groups = {g for g in move_mode_unit_groups}
                                 attacker_tile = selected_tile
                                 defender_tile = game_map.tiles[tile.row][tile.col]
                                 pending_combat_preview = compute_battle_preview(list(move_mode_unit_groups), list(enemy_groups), attacker_tile, defender_tile)
