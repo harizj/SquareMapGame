@@ -1,3 +1,6 @@
+from src.game.constants import DEFAULT_MOVE_DISTANCE, CITY_VISION_DISTANCE
+
+
 class LineOfSight:
     """Controls which tiles are visible on the map.
 
@@ -7,9 +10,10 @@ class LineOfSight:
       'faction' -- only tiles visible to `faction`
     """
 
-    def __init__(self):
+    def __init__(self, game_map):
         self.mode = 'all'
         self.faction = None
+        self._game_map = game_map
 
     def get_visible(self):
         """Returns None (all visible), set() (none visible), or a set of (row, col) tuples."""
@@ -17,5 +21,26 @@ class LineOfSight:
             return None
         if self.mode == 'none':
             return set()
-        # faction mode: computed later
-        return None
+        return self._compute_faction_visible()
+
+    def _compute_faction_visible(self):
+        game_map = self._game_map
+        faction = self.faction
+        visible = set()
+
+        for (r, c), groups in game_map.unit_groups.items():
+            for group in groups:
+                if group.faction is faction:
+                    reachable = game_map.get_reachable_from(
+                        r, c, DEFAULT_MOVE_DISTANCE, mode='any', include_start=True
+                    )
+                    visible.update(reachable.keys())
+
+        for (r, c), city in game_map.cities.items():
+            if city.faction is faction:
+                reachable = game_map.get_reachable_from(
+                    r, c, CITY_VISION_DISTANCE, mode='any', include_start=True
+                )
+                visible.update(reachable.keys())
+
+        return visible

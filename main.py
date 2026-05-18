@@ -105,7 +105,7 @@ def main():
     factions = _apply_game_config(game_map, game_config)
 
     renderer = Renderer(game_map)
-    los = LineOfSight()
+    los = LineOfSight(game_map)
     clock = pygame.time.Clock()
     selected_tile = None
     move_mode = False
