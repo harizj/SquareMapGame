@@ -9,21 +9,21 @@ class Item:
 
 
 class Sword(Item):
-    name = 'sword'
+    name = 'swords'
     production_needed = 10
     resource_cost = {'iron': 4, 'wood': 2}
     upgrades_to = 'Swordsmen'
 
 
 class Spear(Item):
-    name = 'spear'
+    name = 'spears'
     production_needed = 6
     resource_cost = {'wood': 4, 'iron': 2}
     upgrades_to = 'Spearmen'
 
 
 class Bow(Item):
-    name = 'bow'
+    name = 'bows'
     production_needed = 10
     resource_cost = {'wood': 4}
     upgrades_to = 'Archers'

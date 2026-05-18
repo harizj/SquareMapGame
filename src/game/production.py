@@ -4,7 +4,7 @@ PRODUCTION_CATEGORIES = ['extraction', 'manufacturing', 'construction']
 
 PRODUCTION_SUBTYPES = {
     'extraction':    ['wood', 'iron'],
-    'manufacturing': ['sword', 'spear', 'bow'],
+    'manufacturing': ['swords', 'spears', 'bows'],
     'construction':  [],
 }
 

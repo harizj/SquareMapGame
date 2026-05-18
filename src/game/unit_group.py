@@ -112,7 +112,7 @@ class UnitGroup:
             return ', '.join(f"{v} {t}" for t, v in counts.items())
         print(f"[equip] before: units=[{_summary(self.units)}] stockpile={dict(item_stockpiles)}")
         militia = [u for u in self.units if u.is_militia]
-        for item_name in ['sword', 'bow', 'spear']:
+        for item_name in ['swords', 'bows', 'spears']:
             if not militia:
                 break
             count = item_stockpiles.get(item_name, 0)
