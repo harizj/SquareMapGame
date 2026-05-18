@@ -7,8 +7,8 @@ from src.game.unit_group import UnitGroup
 from src.game.unit import Unit
 from src.game.pop import Pop
 
-GRID_COLS = 16
-GRID_ROWS = 16
+GRID_COLS = 24
+GRID_ROWS = 24
 
 MAP_CONFIG = {
     'rows': 16,

@@ -9,8 +9,8 @@
     {"row": 11, "col": 6, "faction": "Horde", "population": 20, "name":"Thunder Bluff"},
     {"row": 3, "col": 1, "faction": "Alliance",  "population": 20, "name":"Darnassus"},
     {"row": 11,  "col": 11, "faction": "Alliance",  "population": 20, "name":"Theramore"},
-    {"row": 4,  "col": 5, "faction": "Alliance",  "population": 20, "name":"Auberdine"},
-    {"row": 5,  "col": 7, "faction": "Alliance",  "population": 20, "name":"Astranaar"},
+    {"row": 4,  "col": 5, "faction": "Alliance",  "population": 15, "name":"Auberdine"},
+    {"row": 5,  "col": 7, "faction": "Alliance",  "population": 15, "name":"Astranaar"},
     {"row": 8, "col": 8, "faction": "Horde", "population": 20, "name":"The Crossroads"}
   ]
 }

@@ -669,7 +669,7 @@ def main():
                     if selected_tile:
                         selected_tile.restricted = not selected_tile.restricted
                         selected_tile._restricted_ticker = 5 if selected_tile.restricted else 0
-                        selected_tile._init_jobs()
+                        selected_tile.update_terrain_properties()
                         city = selected_tile.owning_city
                         if city:
                             city._build_cumulative_farm_yield()

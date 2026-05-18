@@ -78,7 +78,7 @@ BIOME_FARM_SLOTS = {'temperate': 4,
         'desert': 0,
         'ice': 0,
         'wetlands': 1,
-        'coastal': 2,
+        'coastal': 1,
         'ocean': 0}
 
 TERRAIN_FEATURE_FARM_SLOTS = {
@@ -179,13 +179,6 @@ class Tile:
         # print(f"[extraction] tile=({self.row},{self.col}) clear_extraction_job (was: {self.current_extraction_job})")
         self.current_extraction_job = None
 
-    def _init_jobs(self):
-        if self.raided or self.restricted:
-            self.jobs = []
-            return
-        slots = TILE_FARM_SLOTS.get(self.terrain, 0)
-        self.jobs = [FarmJob(slots)] if slots > 0 else []
-
     def build_deposits(self):
         features = self.terrain_features
         if 'forest' in features:
@@ -270,7 +263,7 @@ class Tile:
         result['food_gained'] = raided_farms * self.farm_yield
         self.raided = True
         self._raided_ticker = 5
-        self._init_jobs()
+        self.jobs = []
         city.rebalance_pops()
 
         captured_count = sum(1 for _ in range(raided_farms) if random.random() < 0.5)
@@ -300,7 +293,7 @@ class Tile:
             self._raided_ticker -= 1
             if self._raided_ticker == 0:
                 self.raided = False
-                self._init_jobs()
+                self.update_terrain_properties()
                 city = self.owning_city
                 if city is not None:
                     city._build_cumulative_farm_yield()
