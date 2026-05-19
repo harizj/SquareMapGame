@@ -25,7 +25,7 @@ class Job:
 class FarmJob(Job):
     job_type = 'farm'
     label = 'Peasants'
-    YIELD_PER_POP = 1.4
+    YIELD_PER_POP = 1.5
 
     def __init__(self, slots=0):
         super().__init__(slots)
