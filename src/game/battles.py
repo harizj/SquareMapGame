@@ -1,6 +1,8 @@
 import random
 
 LETHALITY = 0.2
+WOODEN_WALL_MODIFIER = .5
+STONE_WALL_MODIFIER = 1
 
 
 def _attacker_modifier(unit, attacker_tile, defender_tile, spearmen_count=0):
@@ -86,6 +88,36 @@ def compute_battle_preview(attacker_groups, defender, attacker_tile, defender_ti
     if def_spearmen > 4:
         modifiers.append(('Spear Wall', 'defender', .25))
 
+    # Wall counts from the defender's tile
+    wooden_walls = defender_tile.building_list.get('wooden walls', 0)
+    stone_walls  = defender_tile.building_list.get('stone walls',  0)
+    if stone_walls > 0:
+        modifiers.append((f'Stone Walls Defence x{stone_walls}', 'defender', STONE_WALL_MODIFIER))
+    if wooden_walls > 0:
+        modifiers.append((f'Wooden Walls Defence x{wooden_walls}', 'defender', WOODEN_WALL_MODIFIER))
+
+    # Units ranked by effective strength (modifiers applied), strongest first
+    attacker_units_ranked = sorted(
+        attacker_units_list,
+        key=lambda u: u.combat_strength * (1 + _attacker_modifier(u, attacker_tile, defender_tile, atk_spearmen)),
+        reverse=True,
+    )
+    if not defending_city:
+        defender_units_ranked = sorted(
+            defender_units_list,
+            key=lambda u: u.combat_strength * (1 + _defender_modifier(u, defender_tile, attacker_tile, def_spearmen)),
+            reverse=True,
+        )
+    else:
+        defender_units_ranked = []
+
+    def _wall_mod(rank):
+        if rank < stone_walls:
+            return STONE_WALL_MODIFIER
+        if rank < stone_walls + wooden_walls:
+            return WOODEN_WALL_MODIFIER
+        return 0.0
+
     attacker_total = sum(
         u.combat_strength * (1 + _attacker_modifier(u, attacker_tile, defender_tile, atk_spearmen))
         for u in attacker_units_list
@@ -95,22 +127,26 @@ def compute_battle_preview(attacker_groups, defender, attacker_tile, defender_ti
         defender_total = defender_strength * (1 + defender_mult)
     else:
         defender_total = sum(
-            u.combat_strength * (1 + _defender_modifier(u, defender_tile, attacker_tile, def_spearmen))
-            for u in defender_units_list
+            u.combat_strength * (1 + _defender_modifier(u, defender_tile, attacker_tile, def_spearmen) + _wall_mod(rank))
+            for rank, u in enumerate(defender_units_ranked)
         )
 
     return {
-        'attacker_groups':  attacker_groups,
-        'defender':         defender,
-        'attacker_tile':    attacker_tile,
-        'defender_tile':    defender_tile,
-        'attacker_units':   attacker_units,
-        'defender_units':   defender_units,
-        'attacker_strength': attacker_strength,
-        'defender_strength': defender_strength,
-        'modifiers':        modifiers,
-        'attacker_total':   attacker_total,
-        'defender_total':   defender_total,
+        'attacker_groups':        attacker_groups,
+        'defender':               defender,
+        'attacker_tile':          attacker_tile,
+        'defender_tile':          defender_tile,
+        'attacker_units':         attacker_units,
+        'defender_units':         defender_units,
+        'attacker_strength':      attacker_strength,
+        'defender_strength':      defender_strength,
+        'modifiers':              modifiers,
+        'attacker_total':         attacker_total,
+        'defender_total':         defender_total,
+        'wooden_walls':           wooden_walls,
+        'stone_walls':            stone_walls,
+        'attacker_units_ranked':  attacker_units_ranked,
+        'defender_units_ranked':  defender_units_ranked,
         'attacker_unit_strength': attacker_total / attacker_units,
         'defender_unit_strength': defender_total / defender_units,
     }
