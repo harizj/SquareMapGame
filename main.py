@@ -89,6 +89,15 @@ def _compute_move_state(selected_unit_groups, selected_tile, game_map):
     return False, [], {}
 
 
+_UNIT_TO_ITEM = {cls.upgrades_to: cls.name for cls in ITEM_REGISTRY.values()}
+
+def _drop_items_for_units(units, tile):
+    for unit in units:
+        item = _UNIT_TO_ITEM.get(unit.unit_type)
+        if item:
+            tile.item_stockpiles[item] = tile.item_stockpiles.get(item, 0) + 1
+
+
 def main():
     pygame.init()
 
@@ -313,18 +322,18 @@ def main():
                         result = resolve_battle(pending_combat_preview)
                         attacker_groups = pending_combat_preview['attacker_groups']
                         defender = pending_combat_preview['defender']
-                        _unit_to_item = {cls.upgrades_to: cls.name for cls in ITEM_REGISTRY.values()}
                         # Remove lowest-combat-strength units first
                         atk_sorted = sorted(
                             [(g, u) for g in attacker_groups for u in g.units],
                             key=lambda x: x[1].combat_strength
                         )
+                        atk_killed = []
                         for g, u in atk_sorted[:result['attacker_losses']]:
                             if u in g.units:
                                 g.units.remove(u)
-                                item = _unit_to_item.get(u.unit_type)
-                                if item and pending_combat_tile:
-                                    pending_combat_tile.item_stockpiles[item] = pending_combat_tile.item_stockpiles.get(item, 0) + 1
+                                atk_killed.append(u)
+                        if pending_combat_tile:
+                            _drop_items_for_units(atk_killed, pending_combat_tile)
                         for g in attacker_groups:
                             g.max_food_stockpile = g._carry_capacity()
                             g.food_stockpile = min(g.food_stockpile, g.max_food_stockpile)
@@ -333,12 +342,13 @@ def main():
                                 [(g, u) for g in defender for u in g.units],
                                 key=lambda x: x[1].combat_strength
                             )
+                            def_killed = []
                             for g, u in def_sorted[:result['defender_losses']]:
                                 if u in g.units:
                                     g.units.remove(u)
-                                    item = _unit_to_item.get(u.unit_type)
-                                    if item and pending_combat_tile:
-                                        pending_combat_tile.item_stockpiles[item] = pending_combat_tile.item_stockpiles.get(item, 0) + 1
+                                    def_killed.append(u)
+                            if pending_combat_tile:
+                                _drop_items_for_units(def_killed, pending_combat_tile)
                             for g in defender:
                                 g.max_food_stockpile = g._carry_capacity()
                                 g.food_stockpile = min(g.food_stockpile, g.max_food_stockpile)
@@ -627,6 +637,7 @@ def main():
                         city = selected_tile.city
                         selected_on_tile = [g for g in game_map.get_unit_groups(selected_tile.row, selected_tile.col) if g in renderer.selected_unit_groups]
                         for group in selected_on_tile:
+                            _drop_items_for_units(group.units, selected_tile)
                             city.pops.extend(unit.pop for unit in group.units)
                             transferable = min(group.food_stockpile, city._stockpile_max() - city.food_stockpile)
                             city.food_stockpile += max(0.0, transferable)
@@ -806,6 +817,9 @@ def main():
                             source_group = selected_on_tile[0]
                             detached_unit = source_group.units.pop(0)
                             source_group.max_food_stockpile = source_group._carry_capacity()
+                            if not source_group.units:
+                                selected_tile.unit_groups = [g for g in selected_tile.unit_groups if g.units]
+                                renderer.selected_unit_groups.discard(source_group)
                             detached_unit.pop.assigned_job = None
                             friendly_city.pops.append(detached_unit.pop)
                             selected_tile.owning_city = friendly_city

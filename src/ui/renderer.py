@@ -2171,7 +2171,7 @@ class Renderer:
         has_resources = bool(tile and tile.resource_stockpiles)
         has_items = bool(tile and tile.item_stockpiles)
         if has_resources or has_items:
-            surf = self.font_header.render("RESOURCES", True, HEADER_TEXT_COLOR)
+            surf = self.font_header.render("TILE INVENTORY", True, HEADER_TEXT_COLOR)
             self.screen.blit(surf, (x, y))
             y += surf.get_height() + 6
             if has_resources:
