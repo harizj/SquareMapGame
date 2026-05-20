@@ -1116,12 +1116,13 @@ class Renderer:
             block_h = mini_bar_h * 3 + mini_gap * 2 + mini_pad * 2
             circle_r = block_h
             overlap = 1
-            total_w = circle_r * 2 + block_w - overlap
+            total_w = circle_r * 4 + block_w - overlap * 2
             start_x = int(cx) - total_w // 2
             by = name_y
-            circle_cx = start_x + circle_r
+            left_circle_cx = start_x + circle_r
             circle_cy = by + block_h // 2
             bx = start_x + circle_r * 2 - overlap
+            right_circle_cx = bx + block_w - overlap + circle_r
             bar_pad = 1
             city_dark  = city.get_city_color('dark')  or (35, 65, 150)
             city_light = city.get_city_color('light') or (180, 210, 255)
@@ -1137,38 +1138,44 @@ class Renderer:
             self._draw_city_bar_fill(city, mbx, constr_bar_y, mini_bar_w, mini_bar_h, 'production')
             pop_fill_r = circle_r
             pop_ring_r = circle_r + 3
-            pygame.draw.circle(self.screen, city_dark, (circle_cx, circle_cy), pop_ring_r)
-            pygame.draw.circle(self.screen, (255, 255, 255), (circle_cx, circle_cy), pop_fill_r)
-            pct = min(1.0, city.food_pops / city.food_pop_limit) if city.food_pop_limit > 0 else 0.0
-            fill_h = int(pop_fill_r * 2 * pct)
-            if fill_h > 0:
-                old_clip = self.screen.get_clip()
-                self.screen.set_clip(pygame.Rect(
-                    circle_cx - pop_fill_r,
-                    circle_cy + pop_fill_r - fill_h,
-                    pop_fill_r * 2,
-                    fill_h,
-                ))
-                pygame.draw.circle(self.screen, city_light, (circle_cx, circle_cy), pop_fill_r)
-                self.screen.set_clip(old_clip)
-                y_off = pop_fill_r - fill_h
-                if abs(y_off) < pop_fill_r:
-                    chord_half = int(math.sqrt(pop_fill_r ** 2 - y_off ** 2))
-                    line_y = int(circle_cy) + y_off
-                    pygame.draw.line(self.screen, city_dark,
-                                     (int(circle_cx) - chord_half, line_y),
-                                     (int(circle_cx) + chord_half, line_y), 1)
-            pop_str = str(len(city.pops))
             pop_num_outline_r = 3
-            pop_outline = self.font_pop.render(pop_str, True, city_dark)
-            pop_white = self.font_pop.render(pop_str, True, (255, 255, 255))
-            tx = circle_cx - pop_white.get_width() // 2
-            ty = circle_cy - pop_white.get_height() // 2
-            for dx in range(-pop_num_outline_r, pop_num_outline_r + 1):
-                for dy in range(-pop_num_outline_r, pop_num_outline_r + 1):
-                    if (dx, dy) != (0, 0) and dx * dx + dy * dy <= pop_num_outline_r * pop_num_outline_r:
-                        self.screen.blit(pop_outline, (tx + dx, ty + dy))
-            self.screen.blit(pop_white, (tx, ty))
+            food_pct = min(1.0, city.food_pops / city.food_pop_limit) if city.food_pop_limit > 0 else 0.0
+            non_food_pct = min(1.0, city.non_food_pops / city.non_food_pop_limit) if city.non_food_pop_limit > 0 else 0.0
+            circle_data = (
+                (left_circle_cx,  city.food_pops,     food_pct),
+                (right_circle_cx, city.non_food_pops, non_food_pct),
+            )
+            for circle_cx, count, pct in circle_data:
+                fill_h = int(pop_fill_r * 2 * pct)
+                pop_str = str(count)
+                pop_outline = self.font_pop.render(pop_str, True, city_dark)
+                pop_white   = self.font_pop.render(pop_str, True, (255, 255, 255))
+                pygame.draw.circle(self.screen, city_dark, (circle_cx, circle_cy), pop_ring_r)
+                pygame.draw.circle(self.screen, (255, 255, 255), (circle_cx, circle_cy), pop_fill_r)
+                if fill_h > 0:
+                    old_clip = self.screen.get_clip()
+                    self.screen.set_clip(pygame.Rect(
+                        circle_cx - pop_fill_r,
+                        circle_cy + pop_fill_r - fill_h,
+                        pop_fill_r * 2,
+                        fill_h,
+                    ))
+                    pygame.draw.circle(self.screen, city_light, (circle_cx, circle_cy), pop_fill_r)
+                    self.screen.set_clip(old_clip)
+                    y_off = pop_fill_r - fill_h
+                    if abs(y_off) < pop_fill_r:
+                        chord_half = int(math.sqrt(pop_fill_r ** 2 - y_off ** 2))
+                        line_y = int(circle_cy) + y_off
+                        pygame.draw.line(self.screen, city_dark,
+                                         (int(circle_cx) - chord_half, line_y),
+                                         (int(circle_cx) + chord_half, line_y), 1)
+                tx = circle_cx - pop_white.get_width() // 2
+                ty = circle_cy - pop_white.get_height() // 2
+                for dx in range(-pop_num_outline_r, pop_num_outline_r + 1):
+                    for dy in range(-pop_num_outline_r, pop_num_outline_r + 1):
+                        if (dx, dy) != (0, 0) and dx * dx + dy * dy <= pop_num_outline_r * pop_num_outline_r:
+                            self.screen.blit(pop_outline, (tx + dx, ty + dy))
+                self.screen.blit(pop_white, (tx, ty))
 
         # Pass 8: selected tile border (drawn over all map content)
         if selected_tile is not None:
