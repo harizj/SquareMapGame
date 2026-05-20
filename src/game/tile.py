@@ -37,6 +37,7 @@ FARM_YIELD_AT_MAX_DISTANCE = 1.45
 
 EXTRACTION_YIELD_BASE = 1.0
 EXTRACTION_YIELD_AT_MAX_DISTANCE = 0.80
+EXTRACTION_YIELD_HILLS = 0.5
 
 TILE_FARM_SLOTS = {
     'river':    6,
@@ -65,6 +66,7 @@ TERRAIN_FEATURES = ['hills',
                     'river',
                     'floodplain',
                     'mountain',
+                    'iron',
                     'water',
                     'city',
                     'water_access']
@@ -157,9 +159,13 @@ class Tile:
     @property
     def extraction_yield(self):
         if self.city_distance is None:
-            return EXTRACTION_YIELD_BASE
-        decay_rate = (EXTRACTION_YIELD_BASE - EXTRACTION_YIELD_AT_MAX_DISTANCE) / DEFAULT_MOVE_DISTANCE
-        return max(EXTRACTION_YIELD_AT_MAX_DISTANCE, EXTRACTION_YIELD_BASE - decay_rate * self.city_distance)
+            base = EXTRACTION_YIELD_BASE
+        else:
+            decay_rate = (EXTRACTION_YIELD_BASE - EXTRACTION_YIELD_AT_MAX_DISTANCE) / DEFAULT_MOVE_DISTANCE
+            base = max(EXTRACTION_YIELD_AT_MAX_DISTANCE, EXTRACTION_YIELD_BASE - decay_rate * self.city_distance)
+        if 'hills' in self.terrain_features:
+            base *= EXTRACTION_YIELD_HILLS
+        return base
 
     def _update_city_with_movement(self):
         if self.city is not None:
@@ -184,7 +190,7 @@ class Tile:
         features = self.terrain_features
         if 'forest' in features:
             self.resource_deposits.setdefault('wood', DEPOSIT_STARTING_WOOD)
-        elif 'hills' in features:
+        if 'iron' in features:
             self.resource_deposits.setdefault('iron', DEPOSIT_STARTING_IRON)
 
     _ART_PRIORITY = ['river', 'mountain', 'forest', 'hills', 'water']

@@ -246,7 +246,8 @@
       {
         "biome": "temperate",
         "terrain_features": [
-          "hills"
+          "hills",
+          "iron"
         ],
         "river_edges": []
       },
@@ -383,8 +384,8 @@
           "river"
         ],
         "river_edges": [
-          "W",
-          "E"
+          "E",
+          "W"
         ]
       },
       {
@@ -402,15 +403,16 @@
           "river"
         ],
         "river_edges": [
-          "SW",
-          "NE"
+          "NE",
+          "SW"
         ]
       },
       {
         "biome": "tundra",
         "terrain_features": [
           "hills",
-          "forest"
+          "forest",
+          "iron"
         ],
         "river_edges": []
       },
@@ -512,7 +514,8 @@
         "biome": "temperate",
         "terrain_features": [
           "forest",
-          "hills"
+          "hills",
+          "iron"
         ],
         "river_edges": []
       },
@@ -776,12 +779,15 @@
         "river_edges": []
       },
       {
-        "biome": "temperate",
+        "biome": "badlands",
         "terrain_features": [
-          "forest",
+          "river",
           "hills"
         ],
-        "river_edges": []
+        "river_edges": [
+          "NE",
+          "SE"
+        ]
       },
       {
         "biome": "coastal",
@@ -894,8 +900,8 @@
           "river"
         ],
         "river_edges": [
-          "SW",
-          "NE"
+          "NW",
+          "SW"
         ]
       },
       {
@@ -1007,8 +1013,8 @@
           "floodplain"
         ],
         "river_edges": [
-          "SE",
-          "NE"
+          "NE",
+          "SE"
         ]
       },
       {
@@ -1091,7 +1097,8 @@
       {
         "biome": "arid",
         "terrain_features": [
-          "hills"
+          "hills",
+          "iron"
         ],
         "river_edges": []
       },
@@ -1178,7 +1185,8 @@
       {
         "biome": "desert",
         "terrain_features": [
-          "hills"
+          "hills",
+          "iron"
         ],
         "river_edges": []
       },
@@ -1197,7 +1205,8 @@
       {
         "biome": "temperate",
         "terrain_features": [
-          "hills"
+          "hills",
+          "iron"
         ],
         "river_edges": []
       },
@@ -1664,7 +1673,8 @@
       {
         "biome": "arid",
         "terrain_features": [
-          "hills"
+          "hills",
+          "iron"
         ],
         "river_edges": []
       },
@@ -1732,8 +1742,8 @@
           "river"
         ],
         "river_edges": [
-          "W",
-          "E"
+          "E",
+          "W"
         ]
       },
       {
@@ -1742,8 +1752,8 @@
           "river"
         ],
         "river_edges": [
-          "W",
-          "NE"
+          "NE",
+          "W"
         ]
       },
       {
@@ -1784,8 +1794,8 @@
           "river"
         ],
         "river_edges": [
-          "W",
-          "E"
+          "E",
+          "W"
         ]
       },
       {
@@ -1794,8 +1804,8 @@
           "river"
         ],
         "river_edges": [
-          "W",
-          "E"
+          "E",
+          "W"
         ]
       },
       {
@@ -1820,43 +1830,5 @@
         "river_edges": []
       }
     ]
-  ],
-  "unit_groups": [],
-  "cities": [
-    {
-      "row": 7,
-      "col": 11,
-      "name": "Orgrimmar"
-    },
-    {
-      "row": 11,
-      "col": 6,
-      "name": "Thunder Bluff"
-    },
-    {
-      "row": 3,
-      "col": 1,
-      "name": "Darnassus"
-    },
-    {
-      "row": 11,
-      "col": 11,
-      "name": "Theramore"
-    },
-    {
-      "row": 4,
-      "col": 5,
-      "name": "Auberdine"
-    },
-    {
-      "row": 5,
-      "col": 7,
-      "name": "Astranaar"
-    },
-    {
-      "row": 8,
-      "col": 8,
-      "name": "The Crossroads"
-    }
   ]
 }

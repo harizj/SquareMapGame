@@ -454,6 +454,7 @@ class Renderer:
         resource_icon_size = int(HEX_SIZE * self.zoom * 0.35)
         outline_r = 4
         self._faction_resource_icons = {}
+        self._deposit_icons = {}
         for resource in ('wood', 'iron', 'hammer'):
             if resource in self._icons_raw:
                 scaled_res = pygame.transform.scale(self._icons_raw[resource], (resource_icon_size, resource_icon_size))
@@ -469,6 +470,13 @@ class Renderer:
                             outlined.blit(black_mask, (outline_r + _odx, outline_r + _ody))
                 outlined.blit(res_mask, (outline_r, outline_r))
                 self.icons[resource] = outlined
+                if resource == 'iron':
+                    dep_size = int(resource_icon_size * 1.1)
+                    dep_raw = pygame.transform.scale(self._icons_raw['iron'], (dep_size, dep_size))
+                    padded = dep_size + outline_r * 2
+                    deposit_surf = pygame.Surface((padded, padded), pygame.SRCALPHA)
+                    deposit_surf.blit(dep_raw, (outline_r, outline_r))
+                    self._deposit_icons['iron'] = deposit_surf
                 for city in self.map.cities.values():
                     if city.faction and (city.faction.name, resource) not in self._faction_resource_icons:
                         t, d, _ = self._make_icon_pair(scaled_res, city.get_city_color('light'), city.get_city_color('dark'), outline_r, pad=outline_r)
@@ -944,6 +952,10 @@ class Renderer:
                     faction_torch = self._faction_torch_icons.get(faction.name, {}).get('dark') if faction else None
                     icon = faction_torch or torch_icon
                     self.screen.blit(icon, (dx - int(apothem * 0.4), icon_y))
+                if 'iron' in tile.terrain_features and 'iron' in tile.resource_deposits:
+                    deposit_icon = self._deposit_icons.get('iron')
+                    if deposit_icon:
+                        self.screen.blit(deposit_icon, (int(cx) + dot_offset_x - deposit_icon.get_width() + int(apothem * 0.4), icon_y))
                 if tile.current_extraction_job is not None:
                     icon = self._get_tile_job_icon(tile.current_extraction_job, tile)
                     if icon:

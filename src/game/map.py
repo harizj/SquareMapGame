@@ -248,17 +248,6 @@ class Map:
                 [{'biome': t.biome, 'terrain_features': list(t.terrain_features), 'river_edges': list(t.river_edges)} for t in row]
                 for row in self.tiles
             ],
-            'unit_groups': [
-                {
-                    'row': u.row, 'col': u.col, 'unit_type': u.unit_type,
-                    'max_moves': u.max_moves, 'moves_remaining': u.moves_remaining,
-                }
-                for u in self.unit_groups.values()
-            ],
-            'cities': [
-                {'row': c.row, 'col': c.col, 'name': c.name}
-                for c in self.cities.values()
-            ],
         }
 
     @classmethod
