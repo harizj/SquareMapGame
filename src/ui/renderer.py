@@ -1129,6 +1129,8 @@ class Renderer:
         for (r, c), city in self.map.cities.items():
             if visible is not None and (r, c) not in visible:
                 continue
+            if los and los.mode == 'faction' and city.faction is not los.faction:
+                continue
             cx, cy = all_centers[(r, c)]
             name_y = city_name_ys.get((r, c), int(cy))
             mini_bar_w = 30
