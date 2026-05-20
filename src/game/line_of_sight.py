@@ -46,7 +46,6 @@ class LineOfSight:
                 for route in city.trade_routes:
                     if id(route) not in seen_routes:
                         seen_routes.add(id(route))
-                        if route.established:
-                            visible.update(route.path)
+                        visible.update(route.get_visual_path())
 
         return visible

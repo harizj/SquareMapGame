@@ -13,7 +13,7 @@ from src.game.trade_route import TradeRoute
 from src.game.items import ITEM_REGISTRY
 from src.game.unit import Militia, UNIT_REGISTRY
 from src.ui.renderer import Renderer
-from src.game.constants import DEFAULT_MOVE_DISTANCE
+from src.game.constants import DEFAULT_MOVE_DISTANCE, RESTRICTED_STARTING_TICKER
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
 GAME_CONFIG_PATH = os.path.join(_DIR, 'game_config_kalimdor.json')
@@ -763,7 +763,7 @@ def main():
                 elif renderer.restrict_tile_button_rect and renderer.restrict_tile_button_rect.collidepoint(pos):
                     if selected_tile:
                         selected_tile.restricted = not selected_tile.restricted
-                        selected_tile._restricted_ticker = 5 if selected_tile.restricted else 0
+                        selected_tile._restricted_ticker = RESTRICTED_STARTING_TICKER if selected_tile.restricted else 0
                         selected_tile.update_terrain_properties()
                         city = selected_tile.owning_city
                         if city:
@@ -876,6 +876,26 @@ def main():
                             selected_tile.unit_groups.append(new_group)
                             selected_tile.update_after_movement()
                         game_log.append(f"Raid: {raided} farms, {result['food_gained']:.0f} food, {len(captured_pops)} captured.")
+
+                elif renderer.plunder_route_button_rect and renderer.plunder_route_button_rect.collidepoint(pos):
+                    if selected_tile:
+                        selected_on_tile = [g for g in game_map.get_unit_groups(selected_tile.row, selected_tile.col) if g in renderer.selected_unit_groups]
+                        for group in selected_on_tile:
+                            group.moves_remaining = max(0, group.moves_remaining - 2)
+                            if group.moves_remaining == 0:
+                                group.move_exhausted = True
+                        plundering_faction = selected_on_tile[0].faction if selected_on_tile else None
+                        plunder = game_map.plunder_routes(selected_tile, plundering_faction)
+                        for resource, amount in plunder.items():
+                            if resource == 'food':
+                                remaining = amount
+                                for group in selected_on_tile:
+                                    if remaining <= 0:
+                                        break
+                                    remaining -= group.add_food(remaining)
+                            else:
+                                selected_tile.add_resources_to_stockpile(amount, resource)
+                        game_log.append(f"Plunder: {', '.join(f'{v:.0f} {k}' for k, v in plunder.items()) or 'nothing found'}.")
 
                 elif renderer.end_turn_button_rect and renderer.end_turn_button_rect.collidepoint(pos):
                     do_end_turn = True

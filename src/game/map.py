@@ -242,6 +242,27 @@ class Map:
         dst_tile.update_after_movement()
         # print('Calling dst tile after movement')
 
+    def plunder_routes(self, tile, raiding_faction):
+        """Detach enemy trade routes whose visual path crosses tile.
+
+        Returns a dict of {resource: total_amount} plundered across all hit routes.
+        """
+        target = (tile.row, tile.col)
+        seen = set()
+        plunder = {}
+        for city in self.cities.values():
+            for route in city.trade_routes:
+                if id(route) in seen:
+                    continue
+                seen.add(id(route))
+                if route.faction is raiding_faction:
+                    continue
+                if target in route.get_visual_path():
+                    for resource, amount in route.get_plunder_resources().items():
+                        plunder[resource] = plunder.get(resource, 0.0) + amount
+                    route.detach(rebalance=True)
+        return plunder
+
     def to_dict(self):
         return {
             'tiles': [

@@ -191,6 +191,7 @@ class Renderer:
         self.move_button_rect = None
         self.capture_button_rect = None
         self.raid_button_rect = None
+        self.plunder_route_button_rect = None
         self.end_turn_button_rect = None
         self.save_map_button_rect = None
         self.change_terrain_button_rect = None
@@ -1924,6 +1925,7 @@ class Renderer:
         self.move_button_rect = None
         self.capture_button_rect = None
         self.raid_button_rect = None
+        self.plunder_route_button_rect = None
         self.restrict_tile_button_rect = None
         self.save_map_button_rect = None
         self.change_terrain_button_rect = None
@@ -2112,6 +2114,15 @@ class Renderer:
             self.raid_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Raid", disabled=not raid_enabled)
             if not raid_enabled:
                 self.raid_button_rect = None
+            y += btn_h + 6
+            plunder_enabled = (
+                bool(selected_on_tile) and
+                not any(g.move_exhausted for g in selected_on_tile) and
+                all(g.moves_remaining >= 2 for g in selected_on_tile)
+            )
+            self.plunder_route_button_rect = self._draw_button(x, y, full_w, btn_h, "Plunder Route", disabled=not plunder_enabled)
+            if not plunder_enabled:
+                self.plunder_route_button_rect = None
             y += btn_h + 6
 
         icon_h = self.font_body.get_height()

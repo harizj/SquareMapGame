@@ -216,6 +216,20 @@ class City:
         if tile.resource_stockpiles[resource] == 0:
             tile.resource_stockpiles.pop(resource, None)
 
+    def take_resource(self, resource, amount):
+        """Remove up to amount of resource from stockpile, returning what was taken."""
+        if resource == 'food':
+            taken = min(amount, self.food_stockpile)
+            self.food_stockpile -= taken
+            return taken
+        if self.tile is None:
+            return 0.0
+        available = self.tile.resource_stockpiles.get(resource, 0.0)
+        taken = min(amount, available)
+        if taken > 0:
+            self._move_resource(self.tile, resource, -taken)
+        return taken
+
     def _process_resource_routes(self):
         if not self.tile:
             return

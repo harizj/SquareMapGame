@@ -1,6 +1,7 @@
 from src.game.jobs import CaravanJob
 from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, WATER_CARRY_CAPACITY
 import math
+import random
 
 
 class TradeRoute:
@@ -137,6 +138,39 @@ class TradeRoute:
         if self.import_resource and self.import_resource != 'food':
             available = self.dest_tile.resource_stockpiles.get(self.import_resource, 0)
             self.import_amount = min(available, self.max_amount)
+
+    def get_plunder_resources(self):
+        """Take resources in transit on this route, returning {resource: amount_taken}.
+
+        One-way: always plunders the export side from city_a.
+        Two-way: randomly chooses export (from city_a) or import (from dest_tile, non-food only).
+        """
+        if self.one_way:
+            if not self.export_resource:
+                return {}
+            taken = self.city_a.take_resource(self.export_resource, self.export_amount)
+            return {self.export_resource: taken} if taken > 0 else {}
+
+        # Two-way: randomly pick a side
+        plunder_export = random.random() < 0.5
+
+        if plunder_export:
+            if not self.export_resource:
+                return {}
+            taken = self.city_a.take_resource(self.export_resource, self.export_amount)
+            return {self.export_resource: taken} if taken > 0 else {}
+        else:
+            if not self.import_resource or self.import_resource == 'food':
+                return {}
+            available = self.dest_tile.resource_stockpiles.get(self.import_resource, 0.0)
+            taken = min(self.import_amount, available)
+            if taken > 0:
+                remaining = available - taken
+                if remaining > 0:
+                    self.dest_tile.resource_stockpiles[self.import_resource] = remaining
+                else:
+                    self.dest_tile.resource_stockpiles.pop(self.import_resource, None)
+            return {self.import_resource: taken} if taken > 0 else {}
 
     def reduce_export_amount(self):
         if self.max_amount <= 1:
