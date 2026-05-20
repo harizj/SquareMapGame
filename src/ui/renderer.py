@@ -2479,7 +2479,7 @@ class Renderer:
                         lbl, val = mods[i]
                         sign = '+' if val >= 0 else ''
                         color = (180, 200, 160) if val > 0 else (200, 160, 160)
-                        self.screen.blit(self.font_body.render(f"{lbl}: {sign}{val}", True, color), (col_x, y))
+                        self.screen.blit(self.font_body.render(f"{lbl}: {sign}{int(val * 100)}%", True, color), (col_x, y))
                 y += line_h
             y += 8
             pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, y), (sx + W - pad, y))

@@ -3,6 +3,30 @@ import random
 LETHALITY = 0.2
 
 
+def _attacker_modifier(unit, attacker_tile, defender_tile, spearmen_count=0):
+    """Returns the total combat modifier multiplier for an attacking unit."""
+    mod = 0.0
+    if unit.unit_type == 'Spearmen' and spearmen_count > 4:
+        mod += 0.25
+    return mod
+
+
+def _defender_modifier(unit, defender_tile, attacker_tile, spearmen_count=0):
+    """Returns the total combat modifier multiplier for a defending unit."""
+    features = defender_tile.terrain_features
+    is_archer = unit.unit_type == 'Archers'
+    mod = 0.0
+    if 'hills' in features:
+        mod += 0.50 if is_archer else 0.25
+    elif 'forest' in features:
+        mod += 0.50 if is_archer else 0.25
+    elif 'river' in features and 'river' not in attacker_tile.terrain_features:
+        mod += 0.50 if is_archer else 0.25
+    if unit.unit_type == 'Spearmen' and spearmen_count > 4:
+        mod += 0.25
+    return mod
+
+
 def compute_battle_preview(attacker_groups, defender, attacker_tile, defender_tile):
     """Computes combat strengths and modifiers for both sides before resolution.
 
@@ -21,31 +45,59 @@ def compute_battle_preview(attacker_groups, defender, attacker_tile, defender_ti
     """
     from src.game.city import City
 
-    attacker_units = sum(len(g.units) for g in attacker_groups)
-    attacker_strength = sum(u.combat_strength for g in attacker_groups for u in g.units)
+    attacker_units_list = [u for g in attacker_groups for u in g.units]
+    attacker_units = len(attacker_units_list)
+    attacker_strength = sum(u.combat_strength for u in attacker_units_list)
 
     defending_city = defender if isinstance(defender, City) else None
     defender_groups = [] if defending_city else defender
-    defender_units = len(defending_city.pops) if defending_city else sum(len(g.units) for g in defender_groups)
-    defender_strength = defender_units if defending_city else sum(u.combat_strength for g in defender_groups for u in g.units)
+    if defending_city:
+        defender_units_list = []
+        defender_units = len(defending_city.pops)
+        defender_strength = defender_units
+    else:
+        defender_units_list = [u for g in defender_groups for u in g.units]
+        defender_units = len(defender_units_list)
+        defender_strength = sum(u.combat_strength for u in defender_units_list)
 
     modifiers = []
 
-    # Terrain modifier for defender
-    if defender_tile.terrain == 'hills':
-        modifiers.append(('Hills defence', 'defender', .5))
-    if defender_tile.terrain == 'forest':
-        modifiers.append(('Forest defence', 'defender', .25))
+    # Terrain modifier for display (non-stacking, hills takes priority)
+    terrain_mod_applies = False
+    if 'hills' in defender_tile.terrain_features:
+        modifiers.append(('Hills Defence', 'defender', .25))
+        terrain_mod_applies = True
+    elif 'forest' in defender_tile.terrain_features:
+        modifiers.append(('Forest Defence', 'defender', .25))
+        terrain_mod_applies = True
+    elif 'river' in defender_tile.terrain_features and 'river' not in attacker_tile.terrain_features:
+        modifiers.append(('River Crossing Defence', 'defender', .25))
+        terrain_mod_applies = True
 
-    # City wall modifier (placeholder — city fortification not yet implemented)
     if defending_city:
-        modifiers.append(('City walls', 'defender', .5))
+        modifiers.append(('City Walls', 'defender', .5))
+    elif terrain_mod_applies and any(u.unit_type == 'Archers' for u in defender_units_list):
+        modifiers.append(('Archer Terrain Defence', 'defender', .25))
 
-    attacker_mult = sum(v for _, side, v in modifiers if side == 'attacker')
-    defender_mult = sum(v for _, side, v in modifiers if side == 'defender')
+    atk_spearmen = sum(1 for u in attacker_units_list if u.unit_type == 'Spearmen')
+    def_spearmen = sum(1 for u in defender_units_list if u.unit_type == 'Spearmen')
+    if atk_spearmen > 4:
+        modifiers.append(('Spear Wall', 'attacker', .25))
+    if def_spearmen > 4:
+        modifiers.append(('Spear Wall', 'defender', .25))
 
-    attacker_total = attacker_strength * (1 + attacker_mult)
-    defender_total = defender_strength * (1 + defender_mult)
+    attacker_total = sum(
+        u.combat_strength * (1 + _attacker_modifier(u, attacker_tile, defender_tile, atk_spearmen))
+        for u in attacker_units_list
+    )
+    if defending_city:
+        defender_mult = sum(v for _, side, v in modifiers if side == 'defender')
+        defender_total = defender_strength * (1 + defender_mult)
+    else:
+        defender_total = sum(
+            u.combat_strength * (1 + _defender_modifier(u, defender_tile, attacker_tile, def_spearmen))
+            for u in defender_units_list
+        )
 
     return {
         'attacker_groups':  attacker_groups,
@@ -96,6 +148,8 @@ def resolve_battle(preview):
 
     attacker_groups = preview['attacker_groups']
     defender        = preview['defender']
+    attacker_tile   = preview['attacker_tile']
+    defender_tile   = preview['defender_tile']
     attacker_name = (attacker_groups[0].faction.name
                      if attacker_groups and attacker_groups[0].faction else 'Attacker')
     if isinstance(defender, City):
@@ -112,7 +166,7 @@ def resolve_battle(preview):
     defending_city = isinstance(defender, City)
     if defending_city:
         def_remaining = preview['defender_units']
-        def_base_str  = preview['defender_strength']
+        def_base_str  = preview['defender_total']
     else:
         def_units = sorted(
             [u for g in defender for u in g.units],
@@ -126,17 +180,16 @@ def resolve_battle(preview):
 
     for round_num in range(1, 4):
         num_atk = len(atk_units)
+        atk_str = preview['attacker_total'] * (num_atk / preview['attacker_units']) if preview['attacker_units'] else 0
         if defending_city:
             num_def = def_remaining
             def_str = def_base_str * (num_def / preview['defender_units']) if preview['defender_units'] else 0
         else:
             num_def = len(def_units)
-            def_str = sum(u.combat_strength for u in def_units)
+            def_str = preview['defender_total'] * (num_def / preview['defender_units']) if preview['defender_units'] else 0
 
         if num_atk <= 0 or num_def <= 0:
             break
-
-        atk_str = sum(u.combat_strength for u in atk_units)
         atk_adv = atk_str / def_str if def_str > 0 else 1.0
         def_adv = def_str / atk_str if atk_str > 0 else 1.0
         atk_lam = atk_adv * num_def * LETHALITY

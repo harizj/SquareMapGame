@@ -31,21 +31,21 @@ class Militia(Unit):
 
 class Swordsmen(Unit):
     unit_type = 'Swordsmen'
-    combat_strength = 30
+    combat_strength = 20
     icon = 'gladius'
     icon_scale = 1.0
 
 
 class Archers(Unit):
     unit_type = 'Archers'
-    combat_strength = 20
+    combat_strength = 15
     icon = 'bow'
     icon_scale = 1.3
 
 
 class Spearmen(Unit):
     unit_type = 'Spearmen'
-    combat_strength = 20
+    combat_strength = 15
     icon = 'spear'
     icon_scale = 1.4
     icon_x_offset = 0
