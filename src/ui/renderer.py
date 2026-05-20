@@ -138,6 +138,7 @@ class Renderer:
         _font_caesar        = os.path.join(_ASSETS_DIR, 'fonts', 'Caesar_Dressing', 'CaesarDressing-Regular.ttf')
         _font_glass_antiqua = os.path.join(_ASSETS_DIR, 'fonts', 'Glass_Antiqua', 'GlassAntiqua-Regular.ttf')
         self.font_pop = pygame.font.Font(_font_cinzel, 13)
+        self.font_unit_count = pygame.font.Font(_font_cinzel, 15)
         hex_w = int(math.sqrt(3) * HEX_SIZE)
         hex_h = 2 * HEX_SIZE
         self._terrain_images_raw = {}
@@ -1059,9 +1060,23 @@ class Renderer:
             icon_data = self._unit_map_icons.get(icon_name, {})
             faction_data = icon_data.get(fname, {})
             icon = (faction_data.get('selected') or icon_data.get('selected')) if any_selected else (faction_data.get('tinted') or icon_data.get('tinted'))
+            total_units = sum(len(g.units) for g in unit_groups_here)
             if icon:
                 icon_y = int(cy) - icon.get_height() // 2
-                self.screen.blit(icon, (int(cx) - icon.get_width() // 2, icon_y))
+                icon_x = int(cx) - icon.get_width() // 2 + int(apothem * 0.3)
+                self.screen.blit(icon, (icon_x, icon_y))
+                count_str = str(total_units)
+                outline_color = first_faction.colors['dark'] if first_faction else (35, 65, 150)
+                count_outline = self.font_unit_count.render(count_str, True, outline_color)
+                count_white   = self.font_unit_count.render(count_str, True, (255, 255, 255))
+                pop_r = 3
+                tx = icon_x - count_white.get_width()
+                ty = int(cy) - count_white.get_height() // 2
+                for dx in range(-pop_r, pop_r + 1):
+                    for dy in range(-pop_r, pop_r + 1):
+                        if (dx, dy) != (0, 0) and dx * dx + dy * dy <= pop_r * pop_r:
+                            self.screen.blit(count_outline, (tx + dx, ty + dy))
+                self.screen.blit(count_white, (tx, ty))
             else:
                 self._draw_unit_marker(int(cx), int(cy))
                 icon_y = int(cy)
