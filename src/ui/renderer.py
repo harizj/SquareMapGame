@@ -1137,8 +1137,27 @@ class Renderer:
             self._draw_city_bar_fill(city, mbx, constr_bar_y, mini_bar_w, mini_bar_h, 'production')
             pop_fill_r = circle_r
             pop_ring_r = circle_r + 3
-            pygame.draw.circle(self.screen, city_dark,  (circle_cx, circle_cy), pop_ring_r)
-            pygame.draw.circle(self.screen, city_light, (circle_cx, circle_cy), pop_fill_r)
+            pygame.draw.circle(self.screen, city_dark, (circle_cx, circle_cy), pop_ring_r)
+            pygame.draw.circle(self.screen, (255, 255, 255), (circle_cx, circle_cy), pop_fill_r)
+            pct = min(1.0, city.food_pops / city.food_pop_limit) if city.food_pop_limit > 0 else 0.0
+            fill_h = int(pop_fill_r * 2 * pct)
+            if fill_h > 0:
+                old_clip = self.screen.get_clip()
+                self.screen.set_clip(pygame.Rect(
+                    circle_cx - pop_fill_r,
+                    circle_cy + pop_fill_r - fill_h,
+                    pop_fill_r * 2,
+                    fill_h,
+                ))
+                pygame.draw.circle(self.screen, city_light, (circle_cx, circle_cy), pop_fill_r)
+                self.screen.set_clip(old_clip)
+                y_off = pop_fill_r - fill_h
+                if abs(y_off) < pop_fill_r:
+                    chord_half = int(math.sqrt(pop_fill_r ** 2 - y_off ** 2))
+                    line_y = int(circle_cy) + y_off
+                    pygame.draw.line(self.screen, city_dark,
+                                     (int(circle_cx) - chord_half, line_y),
+                                     (int(circle_cx) + chord_half, line_y), 1)
             pop_str = str(len(city.pops))
             pop_num_outline_r = 3
             pop_outline = self.font_pop.render(pop_str, True, city_dark)

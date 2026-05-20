@@ -442,6 +442,10 @@ class City:
                         j.assigned += 1
                         assigned_to_farm += 1
 
+        self.food_pops = assigned_to_farm
+        self.non_food_pops = self._get_population() - assigned_to_farm
+        self.locked_pops = (admin_assigned if admin_job else 0) + (caravan_assigned if route_caravan_jobs else 0)
+
         # Rest to production
         if prod_job:
             for pop in self.pops:
