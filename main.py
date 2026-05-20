@@ -10,6 +10,7 @@ from src.game.unit_group import UnitGroup
 from src.game.map import Map
 from src.game.save_load import load_map_data, save_map
 from src.game.trade_route import TradeRoute
+from src.game.items import ITEM_REGISTRY
 from src.game.unit import Militia, UNIT_REGISTRY
 from src.ui.renderer import Renderer
 from src.game.constants import DEFAULT_MOVE_DISTANCE
@@ -312,6 +313,7 @@ def main():
                         result = resolve_battle(pending_combat_preview)
                         attacker_groups = pending_combat_preview['attacker_groups']
                         defender = pending_combat_preview['defender']
+                        _unit_to_item = {cls.upgrades_to: cls.name for cls in ITEM_REGISTRY.values()}
                         # Remove lowest-combat-strength units first
                         atk_sorted = sorted(
                             [(g, u) for g in attacker_groups for u in g.units],
@@ -320,11 +322,13 @@ def main():
                         for g, u in atk_sorted[:result['attacker_losses']]:
                             if u in g.units:
                                 g.units.remove(u)
+                                item = _unit_to_item.get(u.unit_type)
+                                if item and pending_combat_tile:
+                                    pending_combat_tile.item_stockpiles[item] = pending_combat_tile.item_stockpiles.get(item, 0) + 1
                         for g in attacker_groups:
                             g.max_food_stockpile = g._carry_capacity()
                             g.food_stockpile = min(g.food_stockpile, g.max_food_stockpile)
-                        from src.game.city import City as _City
-                        if not isinstance(defender, _City):
+                        if not isinstance(defender, City):
                             def_sorted = sorted(
                                 [(g, u) for g in defender for u in g.units],
                                 key=lambda x: x[1].combat_strength
@@ -332,6 +336,9 @@ def main():
                             for g, u in def_sorted[:result['defender_losses']]:
                                 if u in g.units:
                                     g.units.remove(u)
+                                    item = _unit_to_item.get(u.unit_type)
+                                    if item and pending_combat_tile:
+                                        pending_combat_tile.item_stockpiles[item] = pending_combat_tile.item_stockpiles.get(item, 0) + 1
                             for g in defender:
                                 g.max_food_stockpile = g._carry_capacity()
                                 g.food_stockpile = min(g.food_stockpile, g.max_food_stockpile)
@@ -352,6 +359,7 @@ def main():
                         for row in game_map.tiles:
                             for t in row:
                                 t.unit_groups = [g for g in t.unit_groups if g.units]
+                                t.update_unit_allocations()
                         move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                         battle_result_active = True
                         pending_battle_result = result
