@@ -427,6 +427,7 @@ class City:
                 pops_for_farm = bisect.bisect_left(self.cumulative_farm_yield_net, food_target)
                 # print('cumulative_farm_yield_net',self.cumulative_farm_yield_net)
                 # print('pops_for_farm',pops_for_farm)
+                pops_for_farm = max(pops_for_farm, self.food_pop_min)
                 pops_for_farm = min(pops_for_farm, total_farm_slots, remaining_pops)
                 # print('pops_for_farm',pops_for_farm)
 
