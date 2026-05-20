@@ -89,7 +89,7 @@ class ProductionTarget:
             return f"{item.name.capitalize()} ({int(self.progress)}/{item.production_needed})"
         if self.type == 'construction' and self.target_building:
             b = self.target_building
-            return f"{b.name.capitalize()} ({int(self.progress)}/{b.production_needed})"
+            return f"{b.name.title()} ({int(self.progress)}/{b.production_needed})"
         if self.type == 'extraction' and self.target:
             return EXTRACTION_LABELS.get(self.target, self.target.capitalize())
         if self.type and self.target:

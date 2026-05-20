@@ -1811,6 +1811,20 @@ class Renderer:
                     self.screen.blit(lim_surf, (x + 4, y))
                     y += lim_surf.get_height() + 2
                 y += 2
+            elif pt.type == 'construction':
+                prod_line = f"Production: {city.production_yield:.1f}/{workers:.1f}"
+                prod_surf = self.font_body.render(prod_line, True, TEXT_COLOR)
+                self.screen.blit(prod_surf, (x + 4, y))
+                y += prod_surf.get_height() + 2
+                for resource, amount in city.resources_allocated_to_production.items():
+                    res_surf = self.font_body.render(f"  {resource.capitalize()}: {amount:.1f}", True, TEXT_COLOR)
+                    self.screen.blit(res_surf, (x + 4, y))
+                    y += res_surf.get_height() + 2
+                if city.production_limited_by:
+                    lim_surf = self.font_body.render(f"  Limited By {city.production_limited_by.capitalize()}", True, TEXT_COLOR)
+                    self.screen.blit(lim_surf, (x + 4, y))
+                    y += lim_surf.get_height() + 2
+                y += 2
             else:
                 prod_line = f"Production: {city.production_yield:.1f}" if city.production_yield > 0 else "No Production"
                 prod_surf = self.font_body.render(prod_line, True, TEXT_COLOR)
@@ -2280,16 +2294,17 @@ class Renderer:
         self.screen.blit(overlay, (0, 0))
 
         pad = 14
-        btn_h = 22
+        btn_h = 18
+        btn_w = 110
         row_h = btn_h + 4
         category_gap = 10
+        W = 560
 
         n_rows = sum(max(1, len(PRODUCTION_SUBTYPES[c])) for c in PRODUCTION_CATEGORIES)
         H = pad + 20 + 6 + len(PRODUCTION_CATEGORIES) * (18 + 4 + category_gap) + n_rows * row_h + pad
-        W = 260
         sx = (self.screen.get_width() - W) // 2
         sy = (self.screen.get_height() - H) // 2
-        btn_w = W - pad * 2
+        desc_x = sx + pad + btn_w + 8
 
         pygame.draw.rect(self.screen, (40, 40, 55), (sx, sy, W, H), border_radius=6)
         pygame.draw.rect(self.screen, PANEL_DIVIDER, (sx, sy, W, H), 1, border_radius=6)
@@ -2297,6 +2312,13 @@ class Renderer:
         surf = self.font_header.render("PRODUCTION TARGET", True, HEADER_TEXT_COLOR)
         self.screen.blit(surf, (sx + pad, sy + pad))
         y = sy + pad + surf.get_height() + 6
+
+        def _item_desc(cls):
+            parts = [f"{cls.production_needed} Production"]
+            for r, cost in cls.resource_cost.items():
+                parts.append(f"{int(cost)} {r.capitalize()}")
+            rate_parts = [f"{cost / cls.production_needed:.1f} {r.capitalize()}" for r, cost in cls.resource_cost.items()]
+            return ", ".join(parts) + f" ({', '.join(rate_parts)} Per Production)"
 
         self.production_popup_rects = {}
         for category in PRODUCTION_CATEGORIES:
@@ -2308,9 +2330,12 @@ class Renderer:
                 for subtype in subtypes:
                     active = (city.production_target.type == category and
                               city.production_target.target == subtype)
+                    desc = None
                     if category == 'extraction':
                         unavailable = not city.has_accessible_deposit(subtype)
-                        label = EXTRACTION_LABELS.get(subtype, subtype.capitalize())
+                        label = EXTRACTION_LABELS.get(subtype, subtype.capitalize()) if active else subtype.capitalize()
+                        total = sum(t.resource_deposits.get(subtype, 0) for t in city.get_eligible_extraction_tiles(subtype))
+                        desc = f"{int(total)} {subtype.capitalize()} Accessible"
                     elif category == 'manufacturing':
                         item_cls = ITEM_REGISTRY.get(subtype)
                         unavailable = item_cls is None or any(
@@ -2318,10 +2343,9 @@ class Renderer:
                             for r in item_cls.resource_cost
                         )
                         unfinished = city.production_target.get_unfinished_progress(item_cls) if item_cls else None
-                        if unfinished is not None:
-                            label = f"{subtype.capitalize()} ({int(unfinished)}/{item_cls.production_needed})"
-                        else:
-                            label = subtype.capitalize()
+                        label = f"{subtype.capitalize()} ({int(unfinished)}/{item_cls.production_needed})" if unfinished is not None else subtype.capitalize()
+                        if item_cls:
+                            desc = _item_desc(item_cls)
                     elif category == 'construction':
                         building_cls = BUILDING_REGISTRY.get(subtype)
                         already_built = city.tile is not None and city.tile.building_list.get(subtype, 0) > 0
@@ -2331,12 +2355,18 @@ class Renderer:
                             (not building_cls.multiple and already_built)
                         )
                         label = subtype.title()
+                        if building_cls:
+                            desc = _item_desc(building_cls)
                     else:
                         unavailable = False
                         label = subtype.capitalize()
                     rect = self._draw_button(sx + pad, y, btn_w, btn_h, label, active=active, disabled=unavailable)
                     if not unavailable:
                         self.production_popup_rects[(category, subtype)] = rect
+                    if desc:
+                        desc_color = TEXT_COLOR if not unavailable else PANEL_DIVIDER
+                        desc_surf = self.font_body.render(desc, True, desc_color)
+                        self.screen.blit(desc_surf, (desc_x, y + (btn_h - desc_surf.get_height()) // 2))
                     y += row_h
             else:
                 placeholder = self.font_small.render("(none available)", True, PANEL_DIVIDER)
