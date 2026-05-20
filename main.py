@@ -220,6 +220,8 @@ def main():
                 renderer._one_way_slider_dragging = False
                 renderer._recruit_slider_dragging = False
                 renderer._recruit_food_slider_dragging = False
+                renderer._separate_slider_dragging = None
+                renderer._separate_food_slider_dragging = False
                 if city_drag_active and renderer.adding_one_way_route:
                     tile = renderer.get_tile_at(*event.pos)
                     current_city = selected_tile.city if selected_tile else None
@@ -260,6 +262,25 @@ def main():
                     max_food_per_pop = min(MCC, int(selected_tile.city.food_stockpile / n)) if n > 0 else 0
                     t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
                     renderer.recruit_popup_food = max(0, min(max_food_per_pop, round(t * max_food_per_pop)))
+                if renderer._separate_slider_dragging and renderer.separate_popup_active:
+                    unit_type = renderer._separate_slider_dragging
+                    sr = renderer.separate_popup_slider_rects.get(unit_type)
+                    if sr and renderer.separate_popup_group:
+                        import collections
+                        type_counts = collections.Counter(u.unit_type for u in renderer.separate_popup_group.units)
+                        max_val = type_counts.get(unit_type, 0)
+                        t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
+                        renderer.separate_popup_counts[unit_type] = round(t * max_val)
+                if renderer._separate_food_slider_dragging and renderer.separate_popup_active and renderer.separate_popup_group:
+                    from src.game.constants import MILITARY_CARRY_CAPACITY as MCC
+                    sr = renderer.separate_popup_food_slider_rect
+                    if sr:
+                        total = sum(renderer.separate_popup_counts.values())
+                        max_food = min(total * MCC, int(renderer.separate_popup_group.food_stockpile)) if total > 0 else renderer.separate_popup_min_food
+                        min_food = renderer.separate_popup_min_food
+                        food_range = max_food - min_food
+                        t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
+                        renderer.separate_popup_food = max(min_food, min(max_food, min_food + round(t * food_range)))
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
                 if move_mode and event.pos[0] < renderer.map_w:
@@ -461,6 +482,65 @@ def main():
                     if not hit:
                         renderer.production_popup_active = False
 
+                elif renderer.separate_popup_active:
+                    if renderer.separate_popup_confirm_rect and renderer.separate_popup_confirm_rect.collidepoint(pos):
+                        group = renderer.separate_popup_group
+                        if group and selected_tile:
+                            from src.game.constants import MILITARY_CARRY_CAPACITY as MCC
+                            counts = renderer.separate_popup_counts
+                            new_units = []
+                            kept_units = []
+                            type_taken = {ut: 0 for ut in counts}
+                            for u in group.units:
+                                want = counts.get(u.unit_type, 0)
+                                if type_taken.get(u.unit_type, 0) < want:
+                                    new_units.append(u)
+                                    type_taken[u.unit_type] += 1
+                                else:
+                                    kept_units.append(u)
+                            group.units = kept_units
+                            food = renderer.separate_popup_food
+                            group.food_stockpile = max(0.0, group.food_stockpile - food)
+                            group.max_food_stockpile = group._carry_capacity()
+                            new_group = UnitGroup(selected_tile.row, selected_tile.col, units=new_units, faction=group.faction)
+                            new_group.moves_remaining = group.moves_remaining
+                            new_group.move_exhausted = group.move_exhausted
+                            new_group.add_food(food)
+                            selected_tile.unit_groups.append(new_group)
+                            selected_tile.update_after_movement()
+                            selected_tile.update_unit_allocations()
+                            renderer.selected_unit_groups.discard(group)
+                            renderer.selected_unit_groups.add(new_group)
+                        renderer.separate_popup_active = False
+                        renderer.separate_popup_group = None
+                        renderer.separate_popup_counts = {}
+                        renderer.separate_popup_food = 0
+                    elif renderer.separate_popup_cancel_rect and renderer.separate_popup_cancel_rect.collidepoint(pos):
+                        renderer.separate_popup_active = False
+                        renderer.separate_popup_group = None
+                        renderer.separate_popup_counts = {}
+                        renderer.separate_popup_food = 0
+                    else:
+                        for unit_type, sr in renderer.separate_popup_slider_rects.items():
+                            if sr.collidepoint(pos):
+                                renderer._separate_slider_dragging = unit_type
+                                import collections
+                                type_counts = collections.Counter(u.unit_type for u in renderer.separate_popup_group.units)
+                                max_val = type_counts.get(unit_type, 0)
+                                t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
+                                renderer.separate_popup_counts[unit_type] = round(t * max_val)
+                                break
+                        if renderer.separate_popup_food_slider_rect and renderer.separate_popup_food_slider_rect.collidepoint(pos):
+                            from src.game.constants import MILITARY_CARRY_CAPACITY as MCC
+                            renderer._separate_food_slider_dragging = True
+                            sr = renderer.separate_popup_food_slider_rect
+                            total = sum(renderer.separate_popup_counts.values())
+                            max_food = min(total * MCC, int(renderer.separate_popup_group.food_stockpile)) if total > 0 else renderer.separate_popup_min_food
+                            min_food = renderer.separate_popup_min_food
+                            food_range = max_food - min_food
+                            t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
+                            renderer.separate_popup_food = max(min_food, min(max_food, min_food + round(t * food_range)))
+
                 elif renderer.recruit_popup_active:
                     if renderer.recruit_popup_confirm_rect and renderer.recruit_popup_confirm_rect.collidepoint(pos):
                         if selected_tile and selected_tile.city:
@@ -623,16 +703,15 @@ def main():
 
                 elif renderer.select_all_button_rect and renderer.select_all_button_rect.collidepoint(pos):
                     if selected_tile:
-                        renderer.selected_unit_groups.update(game_map.get_unit_groups(selected_tile.row, selected_tile.col))
+                        tile_groups = set(game_map.get_unit_groups(selected_tile.row, selected_tile.col))
+                        if tile_groups.issubset(renderer.selected_unit_groups):
+                            renderer.selected_unit_groups -= tile_groups
+                        else:
+                            renderer.selected_unit_groups.update(tile_groups)
                     move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                     if not move_mode:
                         move_hover_tile = None
 
-                elif renderer.unselect_all_button_rect and renderer.unselect_all_button_rect.collidepoint(pos):
-                    if selected_tile:
-                        for g in game_map.get_unit_groups(selected_tile.row, selected_tile.col):
-                            renderer.selected_unit_groups.discard(g)
-                    move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                     if not move_mode:
                         move_hover_tile = None
 
@@ -701,6 +780,21 @@ def main():
                     move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                     if not move_mode:
                         move_hover_tile = None
+
+                elif renderer.separate_button_rect and renderer.separate_button_rect.collidepoint(pos):
+                    if selected_tile:
+                        all_unit_groups = game_map.get_unit_groups(selected_tile.row, selected_tile.col)
+                        selected_on_tile = [g for g in all_unit_groups if g in renderer.selected_unit_groups]
+                        if len(selected_on_tile) == 1:
+                            import collections
+                            renderer.separate_popup_group = selected_on_tile[0]
+                            renderer.separate_popup_counts = {
+                                ut: 0 for ut in collections.Counter(
+                                    u.unit_type for u in selected_on_tile[0].units
+                                )
+                            }
+                            renderer.separate_popup_food = 0
+                            renderer.separate_popup_active = True
 
                 elif renderer.merge_button_rect and renderer.merge_button_rect.collidepoint(pos):
                     if selected_tile:

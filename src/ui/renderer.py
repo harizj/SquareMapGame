@@ -249,7 +249,6 @@ class Renderer:
         self.selected_unit_groups = set()
         self.group_icon_rects = []
         self.select_all_button_rect = None
-        self.unselect_all_button_rect = None
         self.merge_button_rect = None
         self.separate_button_rect = None
         self.restock_all_button_rect = None
@@ -271,6 +270,17 @@ class Renderer:
         self.recruit_popup_food_slider_rect = None
         self.recruit_popup_confirm_rect = None
         self.recruit_popup_cancel_rect = None
+        self.separate_popup_active = False
+        self.separate_popup_group = None
+        self.separate_popup_counts = {}
+        self.separate_popup_food = 0
+        self.separate_popup_min_food = 0
+        self.separate_popup_slider_rects = {}
+        self.separate_popup_food_slider_rect = None
+        self.separate_popup_confirm_rect = None
+        self.separate_popup_cancel_rect = None
+        self._separate_slider_dragging = None
+        self._separate_food_slider_dragging = False
         self.battle_popup_confirm_rect = None
         self.battle_popup_cancel_rect = None
         self.battle_result_close_rect = None
@@ -1259,6 +1269,9 @@ class Renderer:
 
         if self.recruit_popup_active and selected_tile and selected_tile.city:
             self._draw_recruit_popup(selected_tile.city)
+
+        if self.separate_popup_active and self.separate_popup_group:
+            self._draw_separate_popup()
 
         if self.production_popup_active and selected_tile and selected_tile.city:
             self._draw_production_popup(selected_tile.city)
@@ -2263,12 +2276,19 @@ class Renderer:
         if unit_groups and not _units_collapsed:
             btn_h = 20
             half_w = (bar_w - 4) // 2
-            self.select_all_button_rect = self._draw_button(x, y, half_w, btn_h, "Select All")
-            self.unselect_all_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Unselect All")
-            y += btn_h + 4
             selected_on_tile = [g for g in unit_groups if g in self.selected_unit_groups]
+            equip_groups = selected_on_tile if selected_on_tile else unit_groups
+            equip_disabled = not (tile and tile.item_stockpiles) or len(equip_groups) != 1
+            self.select_all_button_rect = self._draw_button(x, y, half_w, btn_h, "Select All")
+            self.equip_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Equip", disabled=equip_disabled)
+            if equip_disabled:
+                self.equip_button_rect = None
+            y += btn_h + 4
             self.merge_button_rect = self._draw_button(x, y, half_w, btn_h, "Merge", disabled=len(selected_on_tile) < 2)
-            self.separate_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Separate", disabled=True)
+            separate_disabled = len(selected_on_tile) != 1 or len(selected_on_tile[0].units) < 2
+            self.separate_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Separate", disabled=separate_disabled)
+            if separate_disabled:
+                self.separate_button_rect = None
             y += btn_h + 4
             self.restock_all_button_rect = self._draw_button(x, y, half_w, btn_h, "Restock All", disabled=True)
             self.drop_all_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Drop All", disabled=True)
@@ -2284,13 +2304,8 @@ class Renderer:
             )
             groups_for_settle = selected_on_tile if selected_on_tile else unit_groups
             has_full_moves = all(g.moves_remaining >= g.max_moves for g in groups_for_settle)
-            equip_groups = selected_on_tile if selected_on_tile else unit_groups
-            equip_disabled = not (tile and tile.item_stockpiles) or len(equip_groups) != 1
-            self.equip_button_rect = self._draw_button(x, y, half_w, btn_h, "Equip", disabled=equip_disabled)
-            if equip_disabled:
-                self.equip_button_rect = None
             settle_disabled = tile_owned_by_other or (tile and tile.city is not None) or not has_full_moves
-            self.settle_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Settle", disabled=settle_disabled)
+            self.settle_button_rect = self._draw_button(x, y, half_w, btn_h, "Settle", disabled=settle_disabled)
             if settle_disabled:
                 self.settle_button_rect = None
             y += btn_h + 6
@@ -2479,6 +2494,98 @@ class Renderer:
         btn_w = (W - pad * 2 - 8) // 2
         self.recruit_popup_confirm_rect = self._draw_button(sx + pad, btn_y, btn_w, 24, "Confirm")
         self.recruit_popup_cancel_rect = self._draw_button(sx + pad + btn_w + 8, btn_y, btn_w, 24, "Cancel")
+
+    def _draw_separate_popup(self):
+        import collections
+        group = self.separate_popup_group
+        if not group:
+            return
+        type_counts = collections.Counter(u.unit_type for u in group.units)
+        unit_types = list(type_counts.keys())
+        n_types = len(unit_types)
+
+        track_h = 6
+        pad = 16
+        row_h = 44
+        W = 300
+        H = 32 + n_types * row_h + 52 + 40 + pad
+        sx = (self.screen.get_width() - W) // 2
+        sy = (self.screen.get_height() - H) // 2
+        track_w = W - pad * 2
+
+        overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        self.screen.blit(overlay, (0, 0))
+        pygame.draw.rect(self.screen, (40, 40, 55), (sx, sy, W, H), border_radius=6)
+        pygame.draw.rect(self.screen, PANEL_DIVIDER, (sx, sy, W, H), 1, border_radius=6)
+
+        title = self.font_header.render("SEPARATE GROUP", True, HEADER_TEXT_COLOR)
+        self.screen.blit(title, (sx + pad, sy + 10))
+
+        self.separate_popup_slider_rects = {}
+        track_x = sx + pad
+        y = sy + 32
+
+        for unit_type in unit_types:
+            max_val = type_counts[unit_type]
+            val = max(0, min(self.separate_popup_counts.get(unit_type, 0), max_val))
+            self.separate_popup_counts[unit_type] = val
+
+            label = self.font_body.render(f"{unit_type}: {val}/{max_val}", True, TEXT_COLOR)
+            self.screen.blit(label, (track_x, y))
+            y += label.get_height() + 4
+
+            track_y = y
+            pygame.draw.rect(self.screen, (60, 60, 80), (track_x, track_y, track_w, track_h), border_radius=2)
+            hx = track_x + (int(val / max_val * track_w) if max_val > 0 else 0)
+            hy = track_y + track_h // 2
+            pygame.draw.circle(self.screen, (160, 190, 240), (hx, hy), 6)
+            pygame.draw.circle(self.screen, (100, 130, 190), (hx, hy), 6, 1)
+            self.screen.blit(self.font_small.render("0", True, PANEL_DIVIDER), (track_x, track_y + track_h + 3))
+            max_surf = self.font_small.render(str(max_val), True, PANEL_DIVIDER)
+            self.screen.blit(max_surf, (track_x + track_w - max_surf.get_width(), track_y + track_h + 3))
+            self.separate_popup_slider_rects[unit_type] = pygame.Rect(track_x, track_y - 6, track_w, track_h + 16)
+            y += track_h + 18
+
+        # Food slider
+        total_selected = sum(self.separate_popup_counts.values())
+        from src.game.constants import MILITARY_CARRY_CAPACITY
+        type_kept = {ut: type_counts[ut] - self.separate_popup_counts.get(ut, 0) for ut in type_counts}
+        kept_carry = 0
+        type_seen = {ut: 0 for ut in type_counts}
+        for u in group.units:
+            if type_seen[u.unit_type] < type_kept[u.unit_type]:
+                kept_carry += u.carry_capacity
+                type_seen[u.unit_type] += 1
+        min_food = max(0, int(group.food_stockpile) - kept_carry)
+        max_food = min(total_selected * MILITARY_CARRY_CAPACITY, int(group.food_stockpile)) if total_selected > 0 else min_food
+        self.separate_popup_min_food = min_food
+        food_val = max(min_food, min(max_food, self.separate_popup_food))
+        self.separate_popup_food = food_val
+
+        food_label = self.font_body.render(f"Food: {food_val}", True, TEXT_COLOR)
+        self.screen.blit(food_label, (track_x, y))
+        y += food_label.get_height() + 4
+
+        f_track_y = y
+        pygame.draw.rect(self.screen, (60, 60, 80), (track_x, f_track_y, track_w, track_h), border_radius=2)
+        food_range = max_food - min_food
+        fhx = track_x + (int((food_val - min_food) / food_range * track_w) if food_range > 0 else 0)
+        fhy = f_track_y + track_h // 2
+        pygame.draw.circle(self.screen, (160, 190, 240), (fhx, fhy), 6)
+        pygame.draw.circle(self.screen, (100, 130, 190), (fhx, fhy), 6, 1)
+        self.screen.blit(self.font_small.render(str(min_food), True, PANEL_DIVIDER), (track_x, f_track_y + track_h + 3))
+        mf_surf = self.font_small.render(str(max_food), True, PANEL_DIVIDER)
+        self.screen.blit(mf_surf, (track_x + track_w - mf_surf.get_width(), f_track_y + track_h + 3))
+        self.separate_popup_food_slider_rect = pygame.Rect(track_x, f_track_y - 6, track_w, track_h + 16)
+        y += track_h + 18
+
+        btn_w = (W - pad * 2 - 8) // 2
+        confirm_disabled = total_selected == 0
+        self.separate_popup_confirm_rect = self._draw_button(sx + pad, y, btn_w, 24, "Confirm", disabled=confirm_disabled)
+        if confirm_disabled:
+            self.separate_popup_confirm_rect = None
+        self.separate_popup_cancel_rect = self._draw_button(sx + pad + btn_w + 8, y, btn_w, 24, "Cancel")
 
     def _draw_los_panel(self, los, factions):
         sw = self.map_w + PANEL_WIDTH
