@@ -297,7 +297,19 @@ def main():
                 pos = event.pos
                 # print(f"[LMB] pos={pos} battle={battle_popup_active} terrain={terrain_popup_active} river={river_popup_active} save={save_popup_active} recruit={renderer.recruit_popup_active} one_way_pending={renderer.one_way_route_pending is not None}")
 
-                if any(rect.collidepoint(pos) for rect in renderer.los_button_rects.values()):
+                _section_clicked = False
+                for key, rect in renderer.section_header_rects.items():
+                    if rect.collidepoint(pos):
+                        if key in renderer.collapsed_sections:
+                            renderer.collapsed_sections.discard(key)
+                        else:
+                            renderer.collapsed_sections.add(key)
+                        _section_clicked = True
+                        break
+
+                if _section_clicked:
+                    pass
+                elif any(rect.collidepoint(pos) for rect in renderer.los_button_rects.values()):
                     for key, rect in renderer.los_button_rects.items():
                         if rect.collidepoint(pos):
                             if key == 'all':

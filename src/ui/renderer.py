@@ -271,6 +271,8 @@ class Renderer:
         self.battle_popup_cancel_rect = None
         self.battle_result_close_rect = None
         self.los_button_rects = {}
+        self.collapsed_sections = set()
+        self.section_header_rects = {}
         self._recruit_slider_dragging = False
         self._recruit_food_slider_dragging = False
 
@@ -691,6 +693,14 @@ class Renderer:
         pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, bar_w, bar_h), 1, border_radius=2)
         return y + bar_h + gap
 
+    def _draw_section_header(self, key, label, x, y):
+        collapsed = key in self.collapsed_sections
+        indicator = '▶' if collapsed else '▼'
+        surf = self.font_header.render(f"{indicator} {label}", True, HEADER_TEXT_COLOR)
+        self.screen.blit(surf, (x, y))
+        self.section_header_rects[key] = pygame.Rect(x, y, surf.get_width(), surf.get_height())
+        return y + surf.get_height() + 6, collapsed
+
     def draw(self, selected_tile=None, reachable=None, move_mode=False,
              save_popup_active=False, save_popup_text="",
              terrain_popup_active=False, river_popup_active=False,
@@ -702,6 +712,7 @@ class Renderer:
              los=None, factions=None):
         if reachable is None:
             reachable = {}
+        self.section_header_rects.clear()
         self.screen.fill(BG_COLOR)
 
         all_corners = {}
@@ -1630,161 +1641,172 @@ class Renderer:
         self.rebalance_pops_button_rect = self._draw_button(pad, y, btn_w2, btn_h2, "Rebalance Pops")
         y += btn_h2 + 10
 
-        surf = self.font_header.render("CITY FOCUS", True, HEADER_TEXT_COLOR)
-        self.screen.blit(surf, (x, y))
-        y += surf.get_height() + 4
+        y, _city_focus_collapsed = self._draw_section_header('city_focus', 'CITY FOCUS', x, y)
         focus_btn_h = 20
-        focus_widths = [52, 72, 60]
-        focus_x = pad
-        self.city_focus_rects = {}
-        for label, fw in zip(("Growth", "Production", "Stockpile"), focus_widths):
-            disabled = label == 'Growth' and city.growth_halted
-            rect = self._draw_button(focus_x, y, fw, focus_btn_h, label,
-                                     active=(label == city.city_focus),
-                                     disabled=disabled)
-            if not disabled:
-                self.city_focus_rects[label] = rect
-            focus_x += fw + 2
-        y += focus_btn_h + 6
+        if not _city_focus_collapsed:
+            focus_widths = [52, 72, 60]
+            focus_x = pad
+            self.city_focus_rects = {}
+            for label, fw in zip(("Growth", "Production", "Stockpile"), focus_widths):
+                disabled = label == 'Growth' and city.growth_halted
+                rect = self._draw_button(focus_x, y, fw, focus_btn_h, label,
+                                         active=(label == city.city_focus),
+                                         disabled=disabled)
+                if not disabled:
+                    self.city_focus_rects[label] = rect
+                focus_x += fw + 2
+            y += focus_btn_h + 6
+            half_w = (CITY_PANEL_WIDTH - pad * 2 - 4) // 2
+            self.halt_growth_rect = self._draw_button(
+                pad, y, half_w, focus_btn_h, "Halt Growth", active=city.growth_halted)
+            self.gates_closed_rect = self._draw_button(
+                pad + half_w + 4, y, half_w, focus_btn_h, "Close Gates", active=city.gates_closed)
+            y += focus_btn_h + 10
+        else:
+            self.city_focus_rects = {}
+            self.halt_growth_rect = None
+            self.gates_closed_rect = None
 
-        half_w = (CITY_PANEL_WIDTH - pad * 2 - 4) // 2
-        self.halt_growth_rect = self._draw_button(
-            pad, y, half_w, focus_btn_h, "Halt Growth", active=city.growth_halted)
-        self.gates_closed_rect = self._draw_button(
-            pad + half_w + 4, y, half_w, focus_btn_h, "Close Gates", active=city.gates_closed)
-        y += focus_btn_h + 10
-
-        surf = self.font_header.render("POPS", True, HEADER_TEXT_COLOR)
-        self.screen.blit(surf, (x, y))
-        y += surf.get_height() + 4
+        y, _pops_collapsed = self._draw_section_header('pops', 'POPS', x, y)
 
         def _jlabel(label, n):
             return label[:-1] if n == 1 else label
 
-        btn_s = 16
-        for job in city.jobs:
-            if job.job_type == 'administrator':
-                label_surf = self.font_body.render(f"{job.assigned} {_jlabel(job.label, job.assigned)}", True, TEXT_COLOR)
-                self.screen.blit(label_surf, (x + 4, y + (btn_s - label_surf.get_height()) // 2))
-                self.admin_plus_rect = self._draw_button(
-                    CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "+")
-                if job.assigned > city.min_admin_count():
-                    self.admin_minus_rect = self._draw_button(
-                        CITY_PANEL_WIDTH - pad - btn_s * 2 - 3, y, btn_s, btn_s, "-")
+        if not _pops_collapsed:
+            btn_s = 16
+            for job in city.jobs:
+                if job.job_type == 'administrator':
+                    label_surf = self.font_body.render(f"{job.assigned} {_jlabel(job.label, job.assigned)}", True, TEXT_COLOR)
+                    self.screen.blit(label_surf, (x + 4, y + (btn_s - label_surf.get_height()) // 2))
+                    self.admin_plus_rect = self._draw_button(
+                        CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "+")
+                    if job.assigned > city.min_admin_count():
+                        self.admin_minus_rect = self._draw_button(
+                            CITY_PANEL_WIDTH - pad - btn_s * 2 - 3, y, btn_s, btn_s, "-")
+                    else:
+                        self.admin_minus_rect = None
+                    y += btn_s + 4
                 else:
-                    self.admin_minus_rect = None
-                y += btn_s + 4
-            else:
-                surf = self.font_body.render(f"{job.assigned} {_jlabel(job.label, job.assigned)}", True, TEXT_COLOR)
+                    surf = self.font_body.render(f"{job.assigned} {_jlabel(job.label, job.assigned)}", True, TEXT_COLOR)
+                    self.screen.blit(surf, (x + 4, y))
+                    y += surf.get_height() + 2
+            total_caravans = city._get_pops_assigned_to_routes()
+            if total_caravans > 0:
+                surf = self.font_body.render(f"{total_caravans} {_jlabel('Caravans', total_caravans)}", True, TEXT_COLOR)
                 self.screen.blit(surf, (x + 4, y))
                 y += surf.get_height() + 2
-        total_caravans = city._get_pops_assigned_to_routes()
-        if total_caravans > 0:
-            surf = self.font_body.render(f"{total_caravans} {_jlabel('Caravans', total_caravans)}", True, TEXT_COLOR)
+            n_peasants = city.total_farm_assigned
+            surf = self.font_body.render(f"{n_peasants}/{city.total_farm_slots} {_jlabel('Peasants', n_peasants)}", True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 2
-        n_peasants = city.total_farm_assigned
-        surf = self.font_body.render(f"{n_peasants}/{city.total_farm_slots} {_jlabel('Peasants', n_peasants)}", True, TEXT_COLOR)
-        self.screen.blit(surf, (x + 4, y))
-        y += surf.get_height() + 8
+            y += surf.get_height() + 8
+        else:
+            self.admin_plus_rect = None
+            self.admin_minus_rect = None
 
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
         y += 10
-        surf = self.font_header.render("YIELDS", True, HEADER_TEXT_COLOR)
-        self.screen.blit(surf, (x, y))
-        y += surf.get_height() + 4
+        y, _yields_collapsed = self._draw_section_header('yields', 'YIELDS', x, y)
 
         def _fmt_res(v):
             return str(int(v)) if v == int(v) else f"{v:.1f}"
 
-        surf = self.font_body.render("Food", True, HEADER_TEXT_COLOR)
-        self.screen.blit(surf, (x + 4, y))
-        y += surf.get_height() + 2
-
-        farm_food  = city._food_produced() - city._food_from_routes()
-        route_food = city._food_from_routes()
-
         def _signed(v):
             return f"+{v:.1f}" if v >= 0 else f"{v:.1f}"
 
-        positive_lines = [("Agriculture", farm_food)]
-        if route_food >= 0:
-            positive_lines.append(("Trade Routes", route_food))
-
-        negative_lines = []
-        if route_food < 0:
-            negative_lines.append(("Trade Routes", route_food, None))
-        unit_consumption = city._get_unit_consumption()
-        if unit_consumption > 0:
-            negative_lines.append(("Units", -unit_consumption, None))
-        negative_lines.append((f"Pops", -city.food_allocated_to_consumption, None))
-        negative_lines.append(("Growth", -city.food_allocated_to_growth, f"(Adds {round(city.growth_allocated)})"))
-
-        for label, val in positive_lines:
-            surf = self.font_body.render(f"{label}  {_signed(val)}", True, TEXT_COLOR)
-            self.screen.blit(surf, (x + 12, y))
+        if not _yields_collapsed:
+            surf = self.font_body.render("Food", True, HEADER_TEXT_COLOR)
+            self.screen.blit(surf, (x + 4, y))
             y += surf.get_height() + 2
 
-        for label, val, suffix in negative_lines:
-            text = f"{label}  {_signed(val)}"
-            if suffix:
-                text += f"  {suffix}"
-            surf = self.font_body.render(text, True, TEXT_COLOR)
-            self.screen.blit(surf, (x + 12, y))
-            y += surf.get_height() + 2
+            farm_food  = city._food_produced() - city._food_from_routes()
+            route_food = city._food_from_routes()
 
-        net = city.food_allocated_to_stockpile
-        net_surf = self.font_body.render(f"= {_signed(net)} Net Stockpile Change", True, HEADER_TEXT_COLOR)
-        self.screen.blit(net_surf, (x + 12, y))
-        y += net_surf.get_height() + 2
+            positive_lines = [("Agriculture", farm_food)]
+            if route_food >= 0:
+                positive_lines.append(("Trade Routes", route_food))
 
-        y += 6
-        pt = city.production_target
-        pt_label = f"Production: {pt.label}"
-        self.production_target_button_rect = self._draw_button(x, y, CITY_PANEL_WIDTH - pad * 2, 22, pt_label)
-        y += 22 + 4
-        workers = city.production_workers
-        if not pt.type:
-            status_surf = self.font_body.render("No Production Target", True, TEXT_COLOR)
-            self.screen.blit(status_surf, (x + 4, y))
-            y += status_surf.get_height() + 4
-        elif workers == 0:
-            status_surf = self.font_body.render("No Workers", True, TEXT_COLOR)
-            self.screen.blit(status_surf, (x + 4, y))
-            y += status_surf.get_height() + 4
-        elif pt.type == 'manufacturing':
-            prod_line = f"Production: {city.production_yield:.1f}/{workers:.1f}"
-            prod_surf = self.font_body.render(prod_line, True, TEXT_COLOR)
-            self.screen.blit(prod_surf, (x + 4, y))
-            y += prod_surf.get_height() + 2
-            for resource, amount in city.resources_allocated_to_production.items():
-                res_surf = self.font_body.render(f"  {resource.capitalize()}: {amount:.1f}", True, TEXT_COLOR)
-                self.screen.blit(res_surf, (x + 4, y))
-                y += res_surf.get_height() + 2
-            if city.production_limited_by:
-                lim_surf = self.font_body.render(f"  Limited By {city.production_limited_by.capitalize()}", True, TEXT_COLOR)
-                self.screen.blit(lim_surf, (x + 4, y))
-                y += lim_surf.get_height() + 2
-            y += 2
+            negative_lines = []
+            if route_food < 0:
+                negative_lines.append(("Trade Routes", route_food, None))
+            unit_consumption = city._get_unit_consumption()
+            if unit_consumption > 0:
+                negative_lines.append(("Units", -unit_consumption, None))
+            negative_lines.append((f"Pops", -city.food_allocated_to_consumption, None))
+            negative_lines.append(("Growth", -city.food_allocated_to_growth, f"(Adds {round(city.growth_allocated)})"))
+
+            for label, val in positive_lines:
+                surf = self.font_body.render(f"{label}  {_signed(val)}", True, TEXT_COLOR)
+                self.screen.blit(surf, (x + 12, y))
+                y += surf.get_height() + 2
+
+            for label, val, suffix in negative_lines:
+                text = f"{label}  {_signed(val)}"
+                if suffix:
+                    text += f"  {suffix}"
+                surf = self.font_body.render(text, True, TEXT_COLOR)
+                self.screen.blit(surf, (x + 12, y))
+                y += surf.get_height() + 2
+
+            net = city.food_allocated_to_stockpile
+            net_surf = self.font_body.render(f"= {_signed(net)} Net Stockpile Change", True, HEADER_TEXT_COLOR)
+            self.screen.blit(net_surf, (x + 12, y))
+            y += net_surf.get_height() + 2
+
+            y += 6
+            pt = city.production_target
+            pt_label = f"Production: {pt.label}"
+            self.production_target_button_rect = self._draw_button(x, y, CITY_PANEL_WIDTH - pad * 2, 22, pt_label)
+            y += 22 + 4
+            workers = city.production_workers
+            if not pt.type:
+                status_surf = self.font_body.render("No Production Target", True, TEXT_COLOR)
+                self.screen.blit(status_surf, (x + 4, y))
+                y += status_surf.get_height() + 4
+            elif workers == 0:
+                status_surf = self.font_body.render("No Workers", True, TEXT_COLOR)
+                self.screen.blit(status_surf, (x + 4, y))
+                y += status_surf.get_height() + 4
+            elif pt.type == 'manufacturing':
+                prod_line = f"Production: {city.production_yield:.1f}/{workers:.1f}"
+                prod_surf = self.font_body.render(prod_line, True, TEXT_COLOR)
+                self.screen.blit(prod_surf, (x + 4, y))
+                y += prod_surf.get_height() + 2
+                for resource, amount in city.resources_allocated_to_production.items():
+                    res_surf = self.font_body.render(f"  {resource.capitalize()}: {amount:.1f}", True, TEXT_COLOR)
+                    self.screen.blit(res_surf, (x + 4, y))
+                    y += res_surf.get_height() + 2
+                if city.production_limited_by:
+                    lim_surf = self.font_body.render(f"  Limited By {city.production_limited_by.capitalize()}", True, TEXT_COLOR)
+                    self.screen.blit(lim_surf, (x + 4, y))
+                    y += lim_surf.get_height() + 2
+                y += 2
+            else:
+                prod_line = f"Production: {city.production_yield:.1f}" if city.production_yield > 0 else "No Production"
+                prod_surf = self.font_body.render(prod_line, True, TEXT_COLOR)
+                self.screen.blit(prod_surf, (x + 4, y))
+                y += prod_surf.get_height() + 2
+                efficiency = city.production_yield / workers if workers > 0 else 0.0
+                eff_line = f"Extraction Efficiency: {efficiency:.2f}"
+                eff_surf = self.font_body.render(eff_line, True, TEXT_COLOR)
+                self.screen.blit(eff_surf, (x + 4, y))
+                y += eff_surf.get_height() + 4
         else:
-            prod_line = f"Production: {city.production_yield:.1f}" if city.production_yield > 0 else "No Production"
-            prod_surf = self.font_body.render(prod_line, True, TEXT_COLOR)
-            self.screen.blit(prod_surf, (x + 4, y))
-            y += prod_surf.get_height() + 2
-            efficiency = city.production_yield / workers if workers > 0 else 0.0
-            eff_line = f"Extraction Efficiency: {efficiency:.2f}"
-            eff_surf = self.font_body.render(eff_line, True, TEXT_COLOR)
-            self.screen.blit(eff_surf, (x + 4, y))
-            y += eff_surf.get_height() + 4
+            self.production_target_button_rect = None
 
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
         y += 10
-        surf = self.font_header.render("TRADE ROUTES", True, HEADER_TEXT_COLOR)
-        self.screen.blit(surf, (x, y))
-        y += surf.get_height() + 6
+        y, _trade_routes_collapsed = self._draw_section_header('trade_routes', 'TRADE ROUTES', x, y)
 
         self.trade_route_delete_rects = []
         self.trade_route_reduce_rects = []
+        if _trade_routes_collapsed:
+            self.trade_route_slider_rect = None
+            self.trade_route_amount_slider_rect = None
+            self.trade_route_import_slider_rect = None
+            self.trade_route_export_rects = {}
+            self.trade_route_import_rects = {}
+            self.add_one_way_route_button_rect = None
+            return
         btn_s = 16
         for route in city.trade_routes:
             is_origin = route.city_a is city
@@ -1867,129 +1889,115 @@ class Renderer:
         x = panel_x + pad
         y = 20
 
-        # Terrain section header
-        if tile:
-            surf = self.font_header.render("TERRAIN", True, HEADER_TEXT_COLOR)
-            self.screen.blit(surf, (x, y))
-            y += surf.get_height() + 6
-
-        # Terrain value + Draw River button on same row
-        row_h = 22
-        dr_btn_w = 78
-        terrain_text = tile.terrain.capitalize() if tile else "—"
-        t_surf = self.font_body.render(terrain_text, True, TEXT_COLOR)
-        self.screen.blit(t_surf, (x + 4, y + (row_h - t_surf.get_height()) // 2))
-        if tile:
-            no_river = tile.terrain in ('hills', 'mountain')
-            self.draw_river_button_rect = self._draw_button(
-                panel_x + PANEL_WIDTH - pad - dr_btn_w, y, dr_btn_w, row_h,
-                "Draw River", disabled=no_river,
-            )
-            if no_river:
-                self.draw_river_button_rect = None
-        y += row_h + 8
-
-        if tile:
-            coords_surf = self.font_body.render(f"Row {tile.row}, Col {tile.col}", True, TEXT_COLOR)
-            self.screen.blit(coords_surf, (x + 4, y))
-            y += coords_surf.get_height() + 4
-            biome_surf = self.font_body.render(f"Biome: {tile.biome.capitalize()}", True, TEXT_COLOR)
-            self.screen.blit(biome_surf, (x + 4, y))
-            y += biome_surf.get_height() + 4
-            features_text = ", ".join(
-                "Water Access" if f == "water_access" else f.capitalize()
-                for f in tile.terrain_features
-            ) if tile.terrain_features else "None"
-            features_surf = self.font_body.render(f"Features: {features_text}", True, TEXT_COLOR)
-            self.screen.blit(features_surf, (x + 4, y))
-            y += features_surf.get_height() + 4
-            if tile.resource_deposits:
-                deposits_text = ", ".join(f"{v:.1f} {k}" for k, v in tile.resource_deposits.items())
-            else:
-                deposits_text = "None"
-            deposits_surf = self.font_body.render(f"Resource Deposits: {deposits_text}", True, TEXT_COLOR)
-            self.screen.blit(deposits_surf, (x + 4, y))
-            y += deposits_surf.get_height() + 8
-
-        # Change Terrain + Save Map buttons
+        # Terrain section
         btn_w = PANEL_WIDTH - pad * 2
         btn_h = 22
         if tile:
-            self.change_terrain_button_rect = self._draw_button(panel_x + pad, y, btn_w, btn_h, "Change Terrain")
-            y += btn_h + 6
+            y, _terrain_collapsed = self._draw_section_header('terrain', 'TERRAIN', x, y)
+            if _terrain_collapsed:
+                self.change_terrain_button_rect = None
+                self.draw_river_button_rect = None
+                self.restrict_tile_button_rect = None
+            else:
+                row_h = 22
+                dr_btn_w = 78
+                t_surf = self.font_body.render(tile.terrain.capitalize(), True, TEXT_COLOR)
+                self.screen.blit(t_surf, (x + 4, y + (row_h - t_surf.get_height()) // 2))
+                no_river = tile.terrain in ('hills', 'mountain')
+                self.draw_river_button_rect = self._draw_button(
+                    panel_x + PANEL_WIDTH - pad - dr_btn_w, y, dr_btn_w, row_h,
+                    "Draw River", disabled=no_river,
+                )
+                if no_river:
+                    self.draw_river_button_rect = None
+                y += row_h + 8
+                coords_surf = self.font_body.render(f"Row {tile.row}, Col {tile.col}", True, TEXT_COLOR)
+                self.screen.blit(coords_surf, (x + 4, y))
+                y += coords_surf.get_height() + 4
+                biome_surf = self.font_body.render(f"Biome: {tile.biome.capitalize()}", True, TEXT_COLOR)
+                self.screen.blit(biome_surf, (x + 4, y))
+                y += biome_surf.get_height() + 4
+                features_text = ", ".join(
+                    "Water Access" if f == "water_access" else f.capitalize()
+                    for f in tile.terrain_features
+                ) if tile.terrain_features else "None"
+                features_surf = self.font_body.render(f"Features: {features_text}", True, TEXT_COLOR)
+                self.screen.blit(features_surf, (x + 4, y))
+                y += features_surf.get_height() + 4
+                deposits_text = ", ".join(f"{v:.1f} {k}" for k, v in tile.resource_deposits.items()) if tile.resource_deposits else "None"
+                deposits_surf = self.font_body.render(f"Resource Deposits: {deposits_text}", True, TEXT_COLOR)
+                self.screen.blit(deposits_surf, (x + 4, y))
+                y += deposits_surf.get_height() + 8
+                self.change_terrain_button_rect = self._draw_button(panel_x + pad, y, btn_w, btn_h, "Change Terrain")
+                y += btn_h + 6
+                if tile.owning_city:
+                    owned_surf = self.font_body.render(f"Owned By {tile.owning_city.name}", True, TEXT_COLOR)
+                    self.screen.blit(owned_surf, (x + 4, y))
+                    y += owned_surf.get_height() + 2
+                    dist_surf = self.font_body.render(f"Distance {tile.city_distance:.2f}", True, TEXT_COLOR)
+                    self.screen.blit(dist_surf, (x + 4, y))
+                    y += dist_surf.get_height() + 2
+                    yield_surf = self.font_body.render(f"Food Yield: {tile.farm_yield:.2f}", True, TEXT_COLOR)
+                    self.screen.blit(yield_surf, (x + 4, y))
+                    y += yield_surf.get_height() + 2
+                    extraction_surf = self.font_body.render(f"Extraction Rate: {tile.extraction_yield:.2f}", True, TEXT_COLOR)
+                    self.screen.blit(extraction_surf, (x + 4, y))
+                    y += extraction_surf.get_height() + 2
+                    farms_surf = self.font_body.render(f"{tile.worked_farms} Farms", True, TEXT_COLOR)
+                    self.screen.blit(farms_surf, (x + 4, y))
+                    y += farms_surf.get_height() + 4
+                if tile.cities_in_range:
+                    surf = self.font_body.render("Cities In Range:", True, TEXT_COLOR)
+                    self.screen.blit(surf, (x + 4, y))
+                    y += surf.get_height() + 2
+                    for city in tile.cities_in_range:
+                        faction_name = city.faction.name if city.faction else "none"
+                        surf = self.font_body.render(f"  {city.name} ({faction_name})", True, TEXT_COLOR)
+                        self.screen.blit(surf, (x + 4, y))
+                        y += surf.get_height() + 2
+                if tile.raided:
+                    label = f"Raided ({tile._raided_ticker} turns left)" if tile._raided_ticker > 0 else "Raided"
+                    surf = self.font_body.render(label, True, (200, 80, 80))
+                    self.screen.blit(surf, (x + 4, y))
+                    y += surf.get_height() + 2
+                if tile.restricted:
+                    label = f"Restricted ({tile._restricted_ticker} turns left)" if tile._restricted_ticker > 0 else "Restricted"
+                    surf = self.font_body.render(label, True, (200, 160, 60))
+                    self.screen.blit(surf, (x + 4, y))
+                    y += surf.get_height() + 2
+                btn_label = "Unrestrict Tile" if tile.restricted else "Restrict Tile"
+                disabled = tile._restricted_ticker > 0
+                self.restrict_tile_button_rect = self._draw_button(x, y, PANEL_WIDTH - pad * 2, 20, btn_label, disabled=disabled)
+                if disabled:
+                    self.restrict_tile_button_rect = None
+                y += 26
+            y += 6
+
         self.save_map_button_rect = self._draw_button(panel_x + pad, y, btn_w, btn_h, "Save Map")
         y += btn_h + 6
-        if tile and tile.owning_city:
-            owned_surf = self.font_body.render(f"Owned By {tile.owning_city.name}", True, TEXT_COLOR)
-            self.screen.blit(owned_surf, (x + 4, y))
-            y += owned_surf.get_height() + 2
-            dist_surf = self.font_body.render(f"Distance {tile.city_distance:.2f}", True, TEXT_COLOR)
-            self.screen.blit(dist_surf, (x + 4, y))
-            y += dist_surf.get_height() + 2
-            # city_tile = self.game_map.tiles[tile.owning_city.row][tile.owning_city.col]
-            # print(f"[terrain] city={tile.owning_city.name} tile=({city_tile.row},{city_tile.col}) movement_cost={city_tile.movement_cost} features={city_tile.terrain_features}")
-            yield_surf = self.font_body.render(f"Food Yield: {tile.farm_yield:.2f}", True, TEXT_COLOR)
-            self.screen.blit(yield_surf, (x + 4, y))
-            y += yield_surf.get_height() + 2
-            extraction_surf = self.font_body.render(f"Extraction Rate: {tile.extraction_yield:.2f}", True, TEXT_COLOR)
-            self.screen.blit(extraction_surf, (x + 4, y))
-            y += extraction_surf.get_height() + 2
-            farms_surf = self.font_body.render(f"{tile.worked_farms} Farms", True, TEXT_COLOR)
-            self.screen.blit(farms_surf, (x + 4, y))
-            y += farms_surf.get_height() + 4
-        if tile and tile.cities_in_range:
-            surf = self.font_body.render("Cities In Range:", True, TEXT_COLOR)
-            self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 2
-            for city in tile.cities_in_range:
-                faction_name = city.faction.name if city.faction else "none"
-                surf = self.font_body.render(f"  {city.name} ({faction_name})", True, TEXT_COLOR)
-                self.screen.blit(surf, (x + 4, y))
-                y += surf.get_height() + 2
-        if tile and tile.raided:
-            label = f"Raided ({tile._raided_ticker} turns left)" if tile._raided_ticker > 0 else "Raided"
-            surf = self.font_body.render(label, True, (200, 80, 80))
-            self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 2
-        if tile and tile.restricted:
-            label = f"Restricted ({tile._restricted_ticker} turns left)" if tile._restricted_ticker > 0 else "Restricted"
-            surf = self.font_body.render(label, True, (200, 160, 60))
-            self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 2
-        if tile:
-            btn_label = "Unrestrict Tile" if tile.restricted else "Restrict Tile"
-            disabled = tile._restricted_ticker > 0
-            self.restrict_tile_button_rect = self._draw_button(x, y, PANEL_WIDTH - pad * 2, 20, btn_label, disabled=disabled)
-            if disabled:
-                self.restrict_tile_button_rect = None
-            y += 26
-        y += 6
 
         unit_groups = self.map.get_unit_groups(tile.row, tile.col) if tile else []
         has_city = tile and tile.city is not None
+        _units_collapsed = False
         if unit_groups or has_city:
             pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (panel_x + PANEL_WIDTH - pad, y), 1)
             y += 16
-
-            # UnitGroup section
-            surf = self.font_header.render("UNITS", True, HEADER_TEXT_COLOR)
-            self.screen.blit(surf, (x, y))
-            y += surf.get_height() + 6
-
-            selected_on_tile = [g for g in unit_groups if g in self.selected_unit_groups]
-            half_w = (PANEL_WIDTH - pad * 2 - 4) // 2
-            recruit_disabled = not has_city
-            disband_disabled = not has_city or len(selected_on_tile) == 0
-            self.recruit_unit_button_rect = self._draw_button(panel_x + pad, y, half_w, btn_h, "Recruit", disabled=recruit_disabled)
-            self.disband_button_rect = self._draw_button(panel_x + pad + half_w + 4, y, half_w, btn_h, "Disband", disabled=disband_disabled)
-            if recruit_disabled:
-                self.recruit_unit_button_rect = None
-            if disband_disabled:
-                self.disband_button_rect = None
-            y += btn_h + 6
+            y, _units_collapsed = self._draw_section_header('units', 'UNITS', x, y)
+            if not _units_collapsed:
+                selected_on_tile = [g for g in unit_groups if g in self.selected_unit_groups]
+                half_w = (PANEL_WIDTH - pad * 2 - 4) // 2
+                recruit_disabled = not has_city
+                disband_disabled = not has_city or len(selected_on_tile) == 0
+                self.recruit_unit_button_rect = self._draw_button(panel_x + pad, y, half_w, btn_h, "Recruit", disabled=recruit_disabled)
+                self.disband_button_rect = self._draw_button(panel_x + pad + half_w + 4, y, half_w, btn_h, "Disband", disabled=disband_disabled)
+                if recruit_disabled:
+                    self.recruit_unit_button_rect = None
+                if disband_disabled:
+                    self.disband_button_rect = None
+                y += btn_h + 6
 
         first_group = unit_groups[0] if unit_groups else None
-        if first_group:
+        if first_group and not _units_collapsed:
             btn_h = 20
             full_w = PANEL_WIDTH - pad * 2
             half_w = (full_w - 4) // 2
@@ -2053,7 +2061,7 @@ class Renderer:
         bar_h = 6
 
         self.group_icon_rects = []
-        for group in unit_groups:
+        for group in (unit_groups if not _units_collapsed else []):
             selected = group in self.selected_unit_groups
             fname = group.faction.name if group.faction else None
             type_counts = collections.Counter(u.unit_type for u in group.units)
@@ -2132,7 +2140,7 @@ class Renderer:
             pygame.draw.rect(self.screen, PANEL_DIVIDER, (x, y, move_rect_w, bar_h), 1, border_radius=2)
             y += bar_h + 8
 
-        if unit_groups:
+        if unit_groups and not _units_collapsed:
             btn_h = 20
             half_w = (bar_w - 4) // 2
             self.select_all_button_rect = self._draw_button(x, y, half_w, btn_h, "Select All")
@@ -2171,20 +2179,19 @@ class Renderer:
         has_resources = bool(tile and tile.resource_stockpiles)
         has_items = bool(tile and tile.item_stockpiles)
         if has_resources or has_items:
-            surf = self.font_header.render("TILE INVENTORY", True, HEADER_TEXT_COLOR)
-            self.screen.blit(surf, (x, y))
-            y += surf.get_height() + 6
-            if has_resources:
-                for resource, amount in tile.resource_stockpiles.items():
-                    line = self.font_body.render(f"{amount:.1f} {resource.capitalize()}", True, TEXT_COLOR)
-                    self.screen.blit(line, (x + 4, y))
-                    y += line.get_height() + 4
-            if has_items:
-                for item_name, count in tile.item_stockpiles.items():
-                    line = self.font_body.render(f"{count} {item_name.capitalize()}", True, TEXT_COLOR)
-                    self.screen.blit(line, (x + 4, y))
-                    y += line.get_height() + 4
-            y += 4
+            y, _inventory_collapsed = self._draw_section_header('inventory', 'TILE INVENTORY', x, y)
+            if not _inventory_collapsed:
+                if has_resources:
+                    for resource, amount in tile.resource_stockpiles.items():
+                        line = self.font_body.render(f"{amount:.1f} {resource.capitalize()}", True, TEXT_COLOR)
+                        self.screen.blit(line, (x + 4, y))
+                        y += line.get_height() + 4
+                if has_items:
+                    for item_name, count in tile.item_stockpiles.items():
+                        line = self.font_body.render(f"{count} {item_name.capitalize()}", True, TEXT_COLOR)
+                        self.screen.blit(line, (x + 4, y))
+                        y += line.get_height() + 4
+                y += 4
 
         # End Turn button anchored to bottom
         btn_w = PANEL_WIDTH - pad * 2
