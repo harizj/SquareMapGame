@@ -638,6 +638,12 @@ def main():
 
                 elif renderer.production_target_button_rect and renderer.production_target_button_rect.collidepoint(pos):
                     renderer.production_popup_active = True
+                    renderer.selecting_extraction_city = None
+
+                elif renderer.select_extraction_tile_button_rect and renderer.select_extraction_tile_button_rect.collidepoint(pos):
+                    city = selected_tile.city if selected_tile else None
+                    if city:
+                        renderer.selecting_extraction_city = None if renderer.selecting_extraction_city is city else city
 
                 elif renderer.recruit_unit_button_rect and renderer.recruit_unit_button_rect.collidepoint(pos):
                     if selected_tile and selected_tile.city and len(selected_tile.city.pops) > 1:
@@ -873,6 +879,16 @@ def main():
 
                 elif renderer.end_turn_button_rect and renderer.end_turn_button_rect.collidepoint(pos):
                     do_end_turn = True
+
+                elif renderer.selecting_extraction_city and renderer.map_start_x <= pos[0] < renderer.map_w:
+                    clicked_tile = renderer.get_tile_at(*pos)
+                    city = renderer.selecting_extraction_city
+                    pt = city.production_target
+                    if clicked_tile and pt.type == 'extraction' and pt.target:
+                        if clicked_tile in city.get_eligible_extraction_tiles(pt.target):
+                            city.selected_extraction_tile = clicked_tile
+                            city.rebalance_pops()
+                    renderer.selecting_extraction_city = None
 
                 elif renderer.adding_one_way_route and renderer.map_start_x <= pos[0] < renderer.map_w:
                     tile = renderer.get_tile_at(*pos)

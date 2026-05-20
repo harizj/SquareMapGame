@@ -262,6 +262,8 @@ class Renderer:
         self.recruit_popup_amount = 1
         self.production_popup_active = False
         self.production_target_button_rect = None
+        self.select_extraction_tile_button_rect = None
+        self.selecting_extraction_city = None
         self.production_popup_rects = {}
         self.recruit_popup_food = 0
         self.recruit_popup_slider_rect = None
@@ -1218,6 +1220,14 @@ class Renderer:
                 self.screen.blit(pop_white, (tx, ty))
 
         # Pass 8: selected tile border (drawn over all map content)
+        if self.selecting_extraction_city:
+            ec = self.selecting_extraction_city
+            pt = ec.production_target
+            if pt.type == 'extraction' and pt.target:
+                for t in ec.get_eligible_extraction_tiles(pt.target):
+                    key = (t.row, t.col)
+                    if key in all_corners:
+                        pygame.draw.polygon(self.screen, (255, 200, 0), all_corners[key], 3)
         if selected_tile is not None:
             pygame.draw.polygon(self.screen, (255, 220, 50),
                                 all_corners[(selected_tile.row, selected_tile.col)], 4)
@@ -1776,6 +1786,7 @@ class Renderer:
             pt = city.production_target
             pt_label = f"Production: {pt.label}"
             self.production_target_button_rect = self._draw_button(x, y, CITY_PANEL_WIDTH - pad * 2, 22, pt_label)
+            self.select_extraction_tile_button_rect = None
             y += 22 + 4
             workers = city.production_workers
             if not pt.type:
@@ -1810,6 +1821,12 @@ class Renderer:
                 eff_surf = self.font_body.render(eff_line, True, TEXT_COLOR)
                 self.screen.blit(eff_surf, (x + 4, y))
                 y += eff_surf.get_height() + 4
+                if pt.type == 'extraction':
+                    active = self.selecting_extraction_city is city
+                    self.select_extraction_tile_button_rect = self._draw_button(
+                        x, y, CITY_PANEL_WIDTH - pad * 2, 22, "Select Location", active=active
+                    )
+                    y += 22 + 4
         else:
             self.production_target_button_rect = None
 

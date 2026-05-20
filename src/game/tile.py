@@ -237,6 +237,8 @@ class Tile:
         remaining = available - extracted_amount
         if remaining <= 0:
             self.resource_deposits.pop(resource, None)
+            if self.owning_city and self.owning_city.selected_extraction_tile is self:
+                self.owning_city.selected_extraction_tile = None
             if resource == 'wood' and 'forest' in self.terrain_features:
                 self.terrain_features = [f for f in self.terrain_features if f != 'forest']
                 self.update_terrain_properties()

@@ -58,6 +58,7 @@ class City:
         self.production_progress = 0.0
         self.production_complete = None
         self.extraction_tile = None
+        self.selected_extraction_tile = None
         self.resources_allocated_to_production = {}
         self.production_limited_by = None
         self.production_workers = 0
@@ -166,6 +167,14 @@ class City:
             for t in self.owned_tiles if not t.is_disrupted
         )
 
+    def get_eligible_extraction_tiles(self, resource):
+        return [
+            t for t in self.owned_tiles
+            if not t.is_disrupted
+            and resource in t.resource_deposits
+            and not (resource == 'iron' and 'forest' in t.terrain_features)
+        ]
+
     def update_production_bar(self):
         pt = self.production_target
         if not pt.type:
@@ -196,6 +205,7 @@ class City:
     def check_additional_resources(self, resource):
         if not self.has_deposit(resource):
             self.production_target.clear()
+            self.selected_extraction_tile = None
 
     def _move_resource(self, tile, resource, amount):
         current = tile.resource_stockpiles.get(resource, 0)
@@ -477,14 +487,15 @@ class City:
             self.production_yield = prod_job.assigned
             pt = self.production_target
             if pt.type == 'extraction' and pt.target:
-                deposit_tiles = sorted(
-                    [t for t in self.owned_tiles if pt.target in t.resource_deposits and not t.is_disrupted],
-                    key=lambda t: t.extraction_yield,
-                    reverse=True,
-                )
-                # print(f"[extraction] {self.name}: target={pt.target} deposit_tiles={[(t.row,t.col,t.extraction_yield) for t in deposit_tiles]}")
-                if deposit_tiles:
-                    self.extraction_tile = deposit_tiles[0]
+                sel = self.selected_extraction_tile
+                eligible = self.get_eligible_extraction_tiles(pt.target)
+                if sel is not None and sel in eligible:
+                    chosen = sel
+                else:
+                    deposit_tiles = sorted(eligible, key=lambda t: t.extraction_yield, reverse=True)
+                    chosen = deposit_tiles[0] if deposit_tiles else None
+                if chosen:
+                    self.extraction_tile = chosen
                     self.extraction_tile.set_extraction_job(pt.target)
                     _modifiers = {'wood': BASE_WOOD_EXTRACTION_MODIFIER, 'iron': BASE_IRON_EXTRACTION_MODIFIER}
                     _modifier = _modifiers.get(pt.target, 1.0)
