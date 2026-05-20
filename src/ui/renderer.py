@@ -2050,7 +2050,37 @@ class Renderer:
                 if has_deposits:
                     _draw_inv_section("Resource Deposits", [f"{v:.1f} {k.capitalize()}" for k, v in tile.resource_deposits.items()])
                 if has_resources:
-                    _draw_inv_section("Resource Stockpiles", [f"{v:.1f} {k.capitalize()}" for k, v in tile.resource_stockpiles.items()])
+                    inv_city = tile.city if tile else None
+                    def _resource_label(res, val):
+                        label = f"{val:.1f} {res.capitalize()}"
+                        if not inv_city:
+                            return label
+                        parts = []
+                        prod_use = inv_city.resources_allocated_to_production.get(res, 0.0)
+                        if prod_use > 0:
+                            parts.append(f"-{prod_use:.1f} To Production")
+                        route_net = 0.0
+                        for route in inv_city.trade_routes:
+                            if not route.established or route.missing_caravans:
+                                continue
+                            if route.city_a is inv_city:
+                                if route.export_resource == res and res != 'food':
+                                    route_net -= route.export_amount
+                                if route.import_resource == res and res != 'food':
+                                    route_net += route.import_amount
+                            elif route.city_b is inv_city:
+                                if route.export_resource == res and res != 'food':
+                                    route_net += route.export_amount
+                                if route.import_resource == res and res != 'food':
+                                    route_net -= route.import_amount
+                        if route_net != 0.0:
+                            sign = '+' if route_net > 0 else ''
+                            direction = 'From' if route_net > 0 else 'To'
+                            parts.append(f"{sign}{route_net:.1f} {direction} Routes")
+                        if parts:
+                            label += f" ({', '.join(parts)})"
+                        return label
+                    _draw_inv_section("Resource Stockpiles", [_resource_label(k, v) for k, v in tile.resource_stockpiles.items()])
                 if has_items:
                     _draw_inv_section("Items", [_qty_label(k, v) for k, v in tile.item_stockpiles.items()])
                 if has_buildings:
