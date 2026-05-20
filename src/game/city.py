@@ -15,6 +15,7 @@ GROWTH_SLOWDOWN_POP_THRESHOLD = 20
 TURNS_WITH_STOCKPILE_LOSS_THRESHOLD = 5
 BASE_WOOD_EXTRACTION_MODIFIER = 1
 BASE_IRON_EXTRACTION_MODIFIER = .50
+FARM_YIELD = 1.5
 
 
 from src.game.production import ProductionTarget
@@ -60,6 +61,9 @@ class City:
         self.resources_allocated_to_production = {}
         self.production_limited_by = None
         self.production_workers = 0
+        self.food_pops = 0
+        self.non_food_pops = 0
+        self.locked_pops = 0
 
     @property
     def unassigned_pops(self):
@@ -72,6 +76,25 @@ class City:
     @property
     def total_farm_slots(self):
         return sum(j.slots for tile in self.owned_tiles for j in tile.jobs if j.job_type == 'farm')
+
+    @property
+    def food_pop_limit(self):
+        return self.total_farm_slots
+
+    @property
+    def food_pop_min(self):
+        return math.ceil(self._get_population() / FARM_YIELD)
+
+    @property
+    def max_pops(self):
+        return math.floor(self.food_pop_limit * FARM_YIELD)
+
+    @property
+    def non_food_pop_limit(self):
+        return self.max_pops - self.food_pop_limit
+
+    def _get_population(self):
+        return len(self.pops)
 
     def _get_unit_consumption(self):
         return sum(len(g.units) for g in self.unit_groups) * POP_FOOD_CONSUMPTION
@@ -95,11 +118,11 @@ class City:
         return net
 
     def _food_target(self):
-        num_pops = len(self.pops)
+        num_pops = self._get_population()
         pop_consumption = num_pops * POP_FOOD_CONSUMPTION
         unit_consumption = self._get_unit_consumption()
         min_stockpile = min(pop_consumption, self._stockpile_max())
-        food_needed_for_min_stockpile = min_stockpile - self.food_stockpile
+        food_needed_for_min_stockpile = min(0,min_stockpile - self.food_stockpile)
         if self.city_focus == 'Production' or not self._space_for_new_pop():
             growth_food = 0
         else:
@@ -115,7 +138,7 @@ class City:
 
     def min_admin_count(self):
         #In case of gates closing, this has to be addressed
-        return math.ceil(len(self.pops) * POP_FOOD_CONSUMPTION / STOCKPILE_PER_ADMIN)
+        return math.ceil(self._get_population() * POP_FOOD_CONSUMPTION / STOCKPILE_PER_ADMIN)
 
     def change_faction(self, new_faction):
         self.faction = new_faction
@@ -277,12 +300,12 @@ class City:
         if self.growth_halted:
             return False
         max_yield = self.cumulative_farm_yield_net[-1]
-        return len(self.pops) + 1 <= max_yield
+        return self._get_population() + 1 <= max_yield
 
     def _effective_growth_rate(self):
-        if len(self.pops) < GROWTH_SLOWDOWN_POP_THRESHOLD:
+        if self._get_population() < GROWTH_SLOWDOWN_POP_THRESHOLD:
             return GROWTH_RATE
-        steps = (len(self.pops) - GROWTH_SLOWDOWN_POP_THRESHOLD) // POPS_PER_GROWTH_SLOWDOWN + 1
+        steps = (self._get_population() - GROWTH_SLOWDOWN_POP_THRESHOLD) // POPS_PER_GROWTH_SLOWDOWN + 1
         return max(0.0, GROWTH_RATE - steps * GROWTH_SLOWDOWN)
 
     # No longer used
@@ -291,7 +314,7 @@ class City:
         self.food_stockpile -= stockpile_used
         remaining_shortfall = self.food_shortfall - stockpile_used
         if remaining_shortfall > 0:
-            to_remove = min(math.ceil(remaining_shortfall), len(self.pops))
+            to_remove = min(math.ceil(remaining_shortfall), self._get_population())
             del self.pops[:to_remove]
             self.growth_progress = 0.0
 
@@ -309,9 +332,9 @@ class City:
         return jobs, sum(j.slots for j in jobs)
 
     def _pop_loss_from_locked_jobs(self, locked_jobs):
-        farm_pops = min(max(0, len(self.pops) - locked_jobs), len(self.cumulative_farm_yield_net) - 1)
+        farm_pops = min(max(0, self._get_population() - locked_jobs), len(self.cumulative_farm_yield_net) - 1)
         max_food = self.cumulative_farm_yield_net[farm_pops]
-        consumption = len(self.pops) * POP_FOOD_CONSUMPTION + self._get_unit_consumption()
+        consumption = self._get_population() * POP_FOOD_CONSUMPTION + self._get_unit_consumption()
         return consumption > max_food + self.food_stockpile
 
 
@@ -390,7 +413,7 @@ class City:
             self.update_cumulative_farm_yield_net()
 
         # Farm: use cumulative yield list to find minimum pops needed
-        remaining_pops = len(self.pops) - admin_assigned - caravan_assigned
+        remaining_pops = self._get_population() - admin_assigned - caravan_assigned
         total_farm_slots = len(self.cumulative_farm_yield) - 1
         # print('Farm slots',total_farm_slots)
         # print('Remaining pops',remaining_pops)
@@ -515,13 +538,13 @@ class City:
         log = []
 
         # print(f"\n=== {self.name} END TURN ===")
-        # print(f"  pops={len(self.pops)}  stockpile={self.food_stockpile:.1f}/{self._stockpile_max():.0f}  growth={self.growth_progress:.1f}/{GROWTH_NEEDED_FOR_NEW_POP}")
+        # print(f"  pops={self._get_population()}  stockpile={self.food_stockpile:.1f}/{self._stockpile_max():.0f}  growth={self.growth_progress:.1f}/{GROWTH_NEEDED_FOR_NEW_POP}")
         # print(f"  produced={self._food_produced():.1f}  consumption={self.food_allocated_to_consumption:.1f}  shortfall={self.food_shortfall:.1f}")
         # print(f"  [after rebalance] alloc_consumption={self.food_allocated_to_consumption:.1f}  alloc_min_stockpile={self.food_allocated_to_min_stockpile:.1f}  alloc_growth={self.food_allocated_to_growth:.1f}  alloc_surplus={self.food_allocated_to_stockpile:.1f}  growth_allocated={self.growth_allocated:.1f}")
 
         # Step 1: stockpile replenishment
         self.food_stockpile = min(self.food_stockpile + self.food_allocated_to_stockpile, self._stockpile_max())
-        if (self.food_allocated_to_stockpile < 0) and (self.food_stockpile < .5 * len(self.pops) * POP_FOOD_CONSUMPTION):
+        if (self.food_allocated_to_stockpile < 0) and (self.food_stockpile < .5 * self._get_population() * POP_FOOD_CONSUMPTION):
             self.turns_with_stockpile_loss += 1
             if self.turns_with_stockpile_loss > TURNS_WITH_STOCKPILE_LOSS_THRESHOLD:
                 self.pending_pop_loss += 1
@@ -539,9 +562,9 @@ class City:
             del self.pops[:self.pending_pop_loss]
             self.growth_progress = 0.0
             self.pending_pop_loss = 0
-            # print(f"  [shortfall] {self.food_shortfall:.1f} shortfall, stockpile={self.food_stockpile:.1f}, pops={len(self.pops)}")
+            # print(f"  [shortfall] {self.food_shortfall:.1f} shortfall, stockpile={self.food_stockpile:.1f}, pops={self._get_population()}")
             #self._food_shortfall()
-            # print(f"  [shortfall] after -> stockpile={self.food_stockpile:.1f}, pops={len(self.pops)}")
+            # print(f"  [shortfall] after -> stockpile={self.food_stockpile:.1f}, pops={self._get_population()}")
 
         # Step 4: production
         prod_job = next((j for j in self.jobs if j.job_type == 'production'), None)
@@ -579,10 +602,10 @@ class City:
                 spawned += 1
         if spawned:
             self.rebalance_pops()
-            log.append(f"{self.name}: {spawned} new pop(s)! ({len(self.pops)} total)")
-            # print(f"  [spawn] +{spawned} pop(s), total={len(self.pops)}")
+            log.append(f"{self.name}: {spawned} new pop(s)! ({self._get_population()} total)")
+            # print(f"  [spawn] +{spawned} pop(s), total={self._get_population()}")
 
         self._process_resource_routes()
         self.rebalance_pops()
-        # print(f"  === end: stockpile={self.food_stockpile:.1f}  growth={self.growth_progress:.1f}  pops={len(self.pops)} ===")
+        # print(f"  === end: stockpile={self.food_stockpile:.1f}  growth={self.growth_progress:.1f}  pops={self._get_population()} ===")
         return log
