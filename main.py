@@ -811,6 +811,31 @@ def main():
                     if not move_mode:
                         move_hover_tile = None
 
+                elif renderer.restock_button_rect and renderer.restock_button_rect.collidepoint(pos):
+                    if selected_tile and selected_tile.city:
+                        from src.game.constants import POP_FOOD_CONSUMPTION
+                        city = selected_tile.city
+                        selected_on_tile = [g for g in game_map.get_unit_groups(selected_tile.row, selected_tile.col) if g in renderer.selected_unit_groups]
+                        for group in selected_on_tile:
+                            amount = len(group.units) * POP_FOOD_CONSUMPTION
+                            transfer = min(amount, city.food_stockpile, group.max_food_stockpile - group.food_stockpile)
+                            if transfer > 0:
+                                city.food_stockpile -= transfer
+                                group.add_food(transfer)
+
+                elif renderer.drop_button_rect and renderer.drop_button_rect.collidepoint(pos):
+                    if selected_tile and selected_tile.city:
+                        from src.game.constants import POP_FOOD_CONSUMPTION
+                        city = selected_tile.city
+                        selected_on_tile = [g for g in game_map.get_unit_groups(selected_tile.row, selected_tile.col) if g in renderer.selected_unit_groups]
+                        for group in selected_on_tile:
+                            amount = len(group.units) * POP_FOOD_CONSUMPTION
+                            space = city._stockpile_max() - city.food_stockpile
+                            transfer = min(amount, group.food_stockpile, space)
+                            if transfer > 0:
+                                group.food_stockpile -= transfer
+                                city.food_stockpile += transfer
+
                 elif any(r.collidepoint(pos) for r, _ in renderer.trade_route_delete_rects):
                     for rect, route in renderer.trade_route_delete_rects:
                         if rect.collidepoint(pos):

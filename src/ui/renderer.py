@@ -251,8 +251,6 @@ class Renderer:
         self.select_all_button_rect = None
         self.merge_button_rect = None
         self.separate_button_rect = None
-        self.restock_all_button_rect = None
-        self.drop_all_button_rect = None
         self.restock_button_rect = None
         self.drop_button_rect = None
         self.settle_button_rect = None
@@ -2163,9 +2161,21 @@ class Renderer:
                 not any(g.move_exhausted for g in selected_on_tile) and
                 all(g.moves_remaining >= 2 for g in selected_on_tile)
             )
-            self.plunder_route_button_rect = self._draw_button(x, y, full_w, btn_h, "Plunder Route", disabled=not plunder_enabled)
+            self.plunder_route_button_rect = self._draw_button(x, y, half_w, btn_h, "Plunder Route", disabled=not plunder_enabled)
             if not plunder_enabled:
                 self.plunder_route_button_rect = None
+            settle_group = selected_on_tile[0] if selected_on_tile else (first_group if first_group else None)
+            settle_faction = settle_group.faction if settle_group else None
+            tile_owned_by_other = (
+                tile and tile.owning_city is not None and
+                tile.owning_city.faction is not settle_faction
+            )
+            groups_for_settle = selected_on_tile if selected_on_tile else [first_group] if first_group else []
+            has_full_moves = all(g.moves_remaining >= g.max_moves for g in groups_for_settle)
+            settle_disabled = tile_owned_by_other or (tile and tile.city is not None) or not has_full_moves
+            self.settle_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Settle", disabled=settle_disabled)
+            if settle_disabled:
+                self.settle_button_rect = None
             y += btn_h + 6
 
         icon_h = self.font_body.get_height()
@@ -2290,24 +2300,14 @@ class Renderer:
             if separate_disabled:
                 self.separate_button_rect = None
             y += btn_h + 4
-            self.restock_all_button_rect = self._draw_button(x, y, half_w, btn_h, "Restock All", disabled=True)
-            self.drop_all_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Drop All", disabled=True)
-            y += btn_h + 4
-            self.restock_button_rect = self._draw_button(x, y, half_w, btn_h, "Restock", disabled=True)
-            self.drop_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Drop", disabled=True)
-            y += btn_h + 4
-            settle_group = selected_on_tile[0] if selected_on_tile else (unit_groups[0] if unit_groups else None)
-            settle_faction = settle_group.faction if settle_group else None
-            tile_owned_by_other = (
-                tile and tile.owning_city is not None and
-                tile.owning_city.faction is not settle_faction
-            )
-            groups_for_settle = selected_on_tile if selected_on_tile else unit_groups
-            has_full_moves = all(g.moves_remaining >= g.max_moves for g in groups_for_settle)
-            settle_disabled = tile_owned_by_other or (tile and tile.city is not None) or not has_full_moves
-            self.settle_button_rect = self._draw_button(x, y, half_w, btn_h, "Settle", disabled=settle_disabled)
-            if settle_disabled:
-                self.settle_button_rect = None
+            restock_disabled = not has_city or not selected_on_tile
+            self.restock_button_rect = self._draw_button(x, y, half_w, btn_h, "Restock", disabled=restock_disabled)
+            if restock_disabled:
+                self.restock_button_rect = None
+            drop_disabled = not has_city or not selected_on_tile
+            self.drop_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Drop", disabled=drop_disabled)
+            if drop_disabled:
+                self.drop_button_rect = None
             y += btn_h + 6
 
         # End Turn button anchored to bottom
