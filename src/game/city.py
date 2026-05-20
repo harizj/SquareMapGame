@@ -159,6 +159,13 @@ class City:
     def has_deposit(self, resource):
         return any(resource in t.resource_deposits for t in self.owned_tiles if not t.is_disrupted)
 
+    def has_accessible_deposit(self, resource):
+        return any(
+            resource in t.resource_deposits and
+            not (resource == 'iron' and 'forest' in t.terrain_features)
+            for t in self.owned_tiles if not t.is_disrupted
+        )
+
     def update_production_bar(self):
         pt = self.production_target
         if not pt.type:

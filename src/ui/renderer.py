@@ -2003,23 +2003,25 @@ class Renderer:
                 def _qty_label(name, count):
                     return name.title() if count == 1 else f"{name.title()} x{count}"
 
-                def _draw_inv_section(label, text):
+                def _draw_inv_section(label, entries):
                     nonlocal y
                     sub = self.font_body.render(label, True, HEADER_TEXT_COLOR)
                     self.screen.blit(sub, (x + 4, y))
                     y += sub.get_height() + 2
-                    line = self.font_body.render(text, True, TEXT_COLOR)
-                    self.screen.blit(line, (x + 8, y))
-                    y += line.get_height() + 6
+                    for entry in entries:
+                        line = self.font_body.render(entry, True, TEXT_COLOR)
+                        self.screen.blit(line, (x + 8, y))
+                        y += line.get_height() + 2
+                    y += 4
 
                 if has_deposits:
-                    _draw_inv_section("Resource Deposits", ", ".join(f"{v:.1f} {k.capitalize()}" for k, v in tile.resource_deposits.items()))
+                    _draw_inv_section("Resource Deposits", [f"{v:.1f} {k.capitalize()}" for k, v in tile.resource_deposits.items()])
                 if has_resources:
-                    _draw_inv_section("Resource Stockpiles", ", ".join(f"{v:.1f} {k.capitalize()}" for k, v in tile.resource_stockpiles.items()))
+                    _draw_inv_section("Resource Stockpiles", [f"{v:.1f} {k.capitalize()}" for k, v in tile.resource_stockpiles.items()])
                 if has_items:
-                    _draw_inv_section("Items", ", ".join(_qty_label(k, v) for k, v in tile.item_stockpiles.items()))
+                    _draw_inv_section("Items", [_qty_label(k, v) for k, v in tile.item_stockpiles.items()])
                 if has_buildings:
-                    _draw_inv_section("Buildings", ", ".join(_qty_label(k, v) for k, v in tile.building_list.items()))
+                    _draw_inv_section("Buildings", [_qty_label(k, v) for k, v in tile.building_list.items()])
                 y += 2
 
         unit_groups = self.map.get_unit_groups(tile.row, tile.col) if tile else []
@@ -2253,7 +2255,7 @@ class Renderer:
                                 bar_y + (bar_h - hint.get_height()) // 2))
 
     def _draw_production_popup(self, city):
-        from src.game.production import PRODUCTION_CATEGORIES, PRODUCTION_SUBTYPES
+        from src.game.production import PRODUCTION_CATEGORIES, PRODUCTION_SUBTYPES, EXTRACTION_LABELS
         from src.game.items import ITEM_REGISTRY
         from src.game.buildings import BUILDING_REGISTRY
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
@@ -2290,8 +2292,8 @@ class Renderer:
                     active = (city.production_target.type == category and
                               city.production_target.target == subtype)
                     if category == 'extraction':
-                        unavailable = not city.has_deposit(subtype)
-                        label = subtype.capitalize()
+                        unavailable = not city.has_accessible_deposit(subtype)
+                        label = EXTRACTION_LABELS.get(subtype, subtype.capitalize())
                     elif category == 'manufacturing':
                         item_cls = ITEM_REGISTRY.get(subtype)
                         unavailable = item_cls is None or any(
@@ -2306,7 +2308,11 @@ class Renderer:
                     elif category == 'construction':
                         building_cls = BUILDING_REGISTRY.get(subtype)
                         already_built = city.tile is not None and city.tile.building_list.get(subtype, 0) > 0
-                        unavailable = building_cls is not None and not building_cls.multiple and already_built
+                        unavailable = (
+                            building_cls is None or
+                            any(not city.has_resource(r) for r in building_cls.resource_cost) or
+                            (not building_cls.multiple and already_built)
+                        )
                         label = subtype.title()
                     else:
                         unavailable = False

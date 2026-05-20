@@ -9,6 +9,11 @@ PRODUCTION_SUBTYPES = {
     'construction':  ['workcamp', 'workshop', 'wooden walls', 'stone walls'],
 }
 
+EXTRACTION_LABELS = {
+    'wood': 'Chop Wood',
+    'iron': 'Mine Iron',
+}
+
 
 class ProductionTarget:
     def __init__(self):
@@ -85,6 +90,8 @@ class ProductionTarget:
         if self.type == 'construction' and self.target_building:
             b = self.target_building
             return f"{b.name.capitalize()} ({int(self.progress)}/{b.production_needed})"
+        if self.type == 'extraction' and self.target:
+            return EXTRACTION_LABELS.get(self.target, self.target.capitalize())
         if self.type and self.target:
             return f"{self.target.capitalize()} ({self.type.capitalize()})"
         return "None"
