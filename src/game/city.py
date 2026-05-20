@@ -16,6 +16,9 @@ TURNS_WITH_STOCKPILE_LOSS_THRESHOLD = 5
 BASE_WOOD_EXTRACTION_MODIFIER = 1
 BASE_IRON_EXTRACTION_MODIFIER = .50
 FARM_YIELD = 1.5
+WORKSHOP_WOOD_CONSUMPTION = 0.5
+WORKSHOP_PRODUCTION_MODIFIER = 1.5
+WORKCAMP_EXTRACTION_MODIFIER = 1.5
 
 
 from src.game.production import ProductionTarget
@@ -483,10 +486,14 @@ class City:
         # print(f"[extraction] {self.name} rebalance_pops: prod_job={prod_job} prod_job.assigned={prod_job.assigned if prod_job else 'N/A'} target={pt.type}/{pt.target}")
         # if prod_job and prod_job.assigned == 0:
         #     pt.clear()
+        has_workcamp = self.tile and self.tile.building_list.get('workcamp', 0) > 0
+        has_workshop = self.tile and self.tile.building_list.get('workshop', 0) > 0
         if prod_job and prod_job.assigned > 0:
             self.production_yield = prod_job.assigned
             pt = self.production_target
             if pt.type == 'extraction' and pt.target:
+                if has_workcamp:
+                    self.production_yield *= WORKCAMP_EXTRACTION_MODIFIER
                 sel = self.selected_extraction_tile
                 eligible = self.get_eligible_extraction_tiles(pt.target)
                 if sel is not None and sel in eligible:
@@ -499,16 +506,22 @@ class City:
                     self.extraction_tile.set_extraction_job(pt.target)
                     _modifiers = {'wood': BASE_WOOD_EXTRACTION_MODIFIER, 'iron': BASE_IRON_EXTRACTION_MODIFIER}
                     _modifier = _modifiers.get(pt.target, 1.0)
-                    self.production_yield = prod_job.assigned * self.extraction_tile.extraction_yield * _modifier
+                    self.production_yield = self.production_yield * self.extraction_tile.extraction_yield * _modifier
                     # print(f"[extraction] {self.name}: extraction_tile=({self.extraction_tile.row},{self.extraction_tile.col}) production_yield={self.production_yield:.2f}")
                 else:
                     print(f"[extraction] {self.name}: no deposit tiles found for {pt.target}")
             elif pt.type == 'manufacturing' and pt.target_item:
+                if has_workshop:
+                    work_done = prod_job.assigned * WORKSHOP_PRODUCTION_MODIFIER
+                else:
+                    work_done = prod_job.assigned
                 item = pt.target_item
-                work_done = prod_job.assigned
                 if self.tile:
                     for resource, cost in item.resource_cost.items():
-                        rate = cost / item.production_needed
+                        if resource == 'wood' and has_workshop:
+                            rate = WORKSHOP_WOOD_CONSUMPTION + cost / item.production_needed
+                        else:
+                            rate = cost / item.production_needed
                         available = self.tile.resource_stockpiles.get(resource, 0.0)
                         resource_limit = available / rate if rate > 0 else work_done
                         if resource_limit < work_done:
@@ -517,14 +530,23 @@ class City:
                 work_done = max(0.0, work_done)
                 self.production_yield = work_done
                 for resource, cost in item.resource_cost.items():
-                    rate = cost / item.production_needed
+                    if resource == 'wood' and has_workshop:
+                        rate = WORKSHOP_WOOD_CONSUMPTION + cost / item.production_needed
+                    else:
+                        rate = cost / item.production_needed
                     self.resources_allocated_to_production[resource] = work_done * rate
             elif pt.type == 'construction' and pt.target_building:
                 building = pt.target_building
-                work_done = prod_job.assigned
+                if has_workshop:
+                    work_done = prod_job.assigned * WORKSHOP_PRODUCTION_MODIFIER
+                else:
+                    work_done = prod_job.assigned
                 if self.tile:
                     for resource, cost in building.resource_cost.items():
-                        rate = cost / building.production_needed
+                        if resource == 'wood' and has_workshop:
+                            rate = WORKSHOP_WOOD_CONSUMPTION + cost / building.production_needed
+                        else:
+                            rate = cost / building.production_needed
                         available = self.tile.resource_stockpiles.get(resource, 0.0)
                         resource_limit = available / rate if rate > 0 else work_done
                         if resource_limit < work_done:
@@ -533,7 +555,10 @@ class City:
                 work_done = max(0.0, work_done)
                 self.production_yield = work_done
                 for resource, cost in building.resource_cost.items():
-                    rate = cost / building.production_needed
+                    if resource == 'wood' and has_workshop:
+                        rate = WORKSHOP_WOOD_CONSUMPTION + cost / building.production_needed
+                    else:
+                        rate = cost / building.production_needed
                     self.resources_allocated_to_production[resource] = work_done * rate
 
         self.update_production_bar()
