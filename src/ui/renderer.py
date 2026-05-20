@@ -1944,10 +1944,6 @@ class Renderer:
                 features_surf = self.font_body.render(f"Features: {features_text}", True, TEXT_COLOR)
                 self.screen.blit(features_surf, (x + 4, y))
                 y += features_surf.get_height() + 4
-                deposits_text = ", ".join(f"{v:.1f} {k}" for k, v in tile.resource_deposits.items()) if tile.resource_deposits else "None"
-                deposits_surf = self.font_body.render(f"Resource Deposits: {deposits_text}", True, TEXT_COLOR)
-                self.screen.blit(deposits_surf, (x + 4, y))
-                y += deposits_surf.get_height() + 8
                 self.change_terrain_button_rect = self._draw_button(panel_x + pad, y, btn_w, btn_h, "Change Terrain")
                 y += btn_h + 6
                 if tile.owning_city:
@@ -1997,22 +1993,34 @@ class Renderer:
         y += btn_h + 6
 
         # Resources section
+        has_deposits = bool(tile and tile.resource_deposits)
         has_resources = bool(tile and tile.resource_stockpiles)
         has_items = bool(tile and tile.item_stockpiles)
-        if has_resources or has_items:
+        has_buildings = bool(tile and tile.building_list)
+        if has_deposits or has_resources or has_items or has_buildings:
             y, _inventory_collapsed = self._draw_section_header('inventory', 'TILE INVENTORY', x, y)
             if not _inventory_collapsed:
+                def _qty_label(name, count):
+                    return name.title() if count == 1 else f"{name.title()} x{count}"
+
+                def _draw_inv_section(label, text):
+                    nonlocal y
+                    sub = self.font_body.render(label, True, HEADER_TEXT_COLOR)
+                    self.screen.blit(sub, (x + 4, y))
+                    y += sub.get_height() + 2
+                    line = self.font_body.render(text, True, TEXT_COLOR)
+                    self.screen.blit(line, (x + 8, y))
+                    y += line.get_height() + 6
+
+                if has_deposits:
+                    _draw_inv_section("Resource Deposits", ", ".join(f"{v:.1f} {k.capitalize()}" for k, v in tile.resource_deposits.items()))
                 if has_resources:
-                    for resource, amount in tile.resource_stockpiles.items():
-                        line = self.font_body.render(f"{amount:.1f} {resource.capitalize()}", True, TEXT_COLOR)
-                        self.screen.blit(line, (x + 4, y))
-                        y += line.get_height() + 4
+                    _draw_inv_section("Resource Stockpiles", ", ".join(f"{v:.1f} {k.capitalize()}" for k, v in tile.resource_stockpiles.items()))
                 if has_items:
-                    for item_name, count in tile.item_stockpiles.items():
-                        line = self.font_body.render(f"{count} {item_name.capitalize()}", True, TEXT_COLOR)
-                        self.screen.blit(line, (x + 4, y))
-                        y += line.get_height() + 4
-                y += 4
+                    _draw_inv_section("Items", ", ".join(_qty_label(k, v) for k, v in tile.item_stockpiles.items()))
+                if has_buildings:
+                    _draw_inv_section("Buildings", ", ".join(_qty_label(k, v) for k, v in tile.building_list.items()))
+                y += 2
 
         unit_groups = self.map.get_unit_groups(tile.row, tile.col) if tile else []
         has_city = tile and tile.city is not None
@@ -2247,6 +2255,7 @@ class Renderer:
     def _draw_production_popup(self, city):
         from src.game.production import PRODUCTION_CATEGORIES, PRODUCTION_SUBTYPES
         from src.game.items import ITEM_REGISTRY
+        from src.game.buildings import BUILDING_REGISTRY
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 160))
         self.screen.blit(overlay, (0, 0))
@@ -2294,6 +2303,11 @@ class Renderer:
                             label = f"{subtype.capitalize()} ({int(unfinished)}/{item_cls.production_needed})"
                         else:
                             label = subtype.capitalize()
+                    elif category == 'construction':
+                        building_cls = BUILDING_REGISTRY.get(subtype)
+                        already_built = city.tile is not None and city.tile.building_list.get(subtype, 0) > 0
+                        unavailable = building_cls is not None and not building_cls.multiple and already_built
+                        label = subtype.title()
                     else:
                         unavailable = False
                         label = subtype.capitalize()

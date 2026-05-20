@@ -501,6 +501,22 @@ class City:
                 for resource, cost in item.resource_cost.items():
                     rate = cost / item.production_needed
                     self.resources_allocated_to_production[resource] = work_done * rate
+            elif pt.type == 'construction' and pt.target_building:
+                building = pt.target_building
+                work_done = prod_job.assigned
+                if self.tile:
+                    for resource, cost in building.resource_cost.items():
+                        rate = cost / building.production_needed
+                        available = self.tile.resource_stockpiles.get(resource, 0.0)
+                        resource_limit = available / rate if rate > 0 else work_done
+                        if resource_limit < work_done:
+                            work_done = resource_limit
+                            self.production_limited_by = resource
+                work_done = max(0.0, work_done)
+                self.production_yield = work_done
+                for resource, cost in building.resource_cost.items():
+                    rate = cost / building.production_needed
+                    self.resources_allocated_to_production[resource] = work_done * rate
 
         self.update_production_bar()
         self._update_food_allocations()
@@ -595,6 +611,20 @@ class City:
                 item = pt.target_item
                 if all(self.has_resource(r) for r in item.resource_cost):
                     pt.progress -= item.production_needed
+                else:
+                    pt.clear()
+        if pt.type == 'construction' and pt.target_building and self.production_yield > 0:
+            if self.tile:
+                for resource, amount in self.resources_allocated_to_production.items():
+                    current = self.tile.resource_stockpiles.get(resource, 0.0)
+                    self.tile.resource_stockpiles[resource] = max(0.0, current - amount)
+            pt.progress += self.production_yield
+            if pt.progress >= pt.target_building.production_needed:
+                if self.tile:
+                    self.tile.building_list[pt.target_building.name] = self.tile.building_list.get(pt.target_building.name, 0) + 1
+                building = pt.target_building
+                if building.multiple and all(self.has_resource(r) for r in building.resource_cost):
+                    pt.progress -= building.production_needed
                 else:
                     pt.clear()
 

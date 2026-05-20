@@ -141,6 +141,7 @@ class Tile:
         self.food_allocated_from_routes = 0.0
         self.resource_stockpiles = {}
         self.item_stockpiles = {}
+        self.building_list = {}
         self.resource_deposits = {}
         self.build_deposits()
 
