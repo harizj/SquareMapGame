@@ -1686,10 +1686,6 @@ class Renderer:
                     else:
                         self.admin_minus_rect = None
                     y += btn_s + 4
-                else:
-                    surf = self.font_body.render(f"{job.assigned} {_jlabel(job.label, job.assigned)}", True, TEXT_COLOR)
-                    self.screen.blit(surf, (x + 4, y))
-                    y += surf.get_height() + 2
             total_caravans = city._get_pops_assigned_to_routes()
             if total_caravans > 0:
                 surf = self.font_body.render(f"{total_caravans} {_jlabel('Caravans', total_caravans)}", True, TEXT_COLOR)
@@ -1698,7 +1694,14 @@ class Renderer:
             n_peasants = city.total_farm_assigned
             surf = self.font_body.render(f"{n_peasants}/{city.total_farm_slots} {_jlabel('Peasants', n_peasants)}", True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 8
+            y += surf.get_height() + 2
+            worker_capacity = city.non_food_pop_limit - city.locked_pops
+            for job in city.jobs:
+                if job.job_type == 'production':
+                    surf = self.font_body.render(f"{job.assigned}/{worker_capacity} {_jlabel(job.label, job.assigned)}", True, TEXT_COLOR)
+                    self.screen.blit(surf, (x + 4, y))
+                    y += surf.get_height() + 2
+            y += 4
         else:
             self.admin_plus_rect = None
             self.admin_minus_rect = None
@@ -1893,7 +1896,7 @@ class Renderer:
         btn_w = PANEL_WIDTH - pad * 2
         btn_h = 22
         if tile:
-            y, _terrain_collapsed = self._draw_section_header('terrain', 'TERRAIN', x, y)
+            y, _terrain_collapsed = self._draw_section_header('terrain', 'TILE', x, y)
             if _terrain_collapsed:
                 self.change_terrain_button_rect = None
                 self.draw_river_button_rect = None
@@ -1975,6 +1978,24 @@ class Renderer:
 
         self.save_map_button_rect = self._draw_button(panel_x + pad, y, btn_w, btn_h, "Save Map")
         y += btn_h + 6
+
+        # Resources section
+        has_resources = bool(tile and tile.resource_stockpiles)
+        has_items = bool(tile and tile.item_stockpiles)
+        if has_resources or has_items:
+            y, _inventory_collapsed = self._draw_section_header('inventory', 'TILE INVENTORY', x, y)
+            if not _inventory_collapsed:
+                if has_resources:
+                    for resource, amount in tile.resource_stockpiles.items():
+                        line = self.font_body.render(f"{amount:.1f} {resource.capitalize()}", True, TEXT_COLOR)
+                        self.screen.blit(line, (x + 4, y))
+                        y += line.get_height() + 4
+                if has_items:
+                    for item_name, count in tile.item_stockpiles.items():
+                        line = self.font_body.render(f"{count} {item_name.capitalize()}", True, TEXT_COLOR)
+                        self.screen.blit(line, (x + 4, y))
+                        y += line.get_height() + 4
+                y += 4
 
         unit_groups = self.map.get_unit_groups(tile.row, tile.col) if tile else []
         has_city = tile and tile.city is not None
@@ -2175,29 +2196,11 @@ class Renderer:
                 self.settle_button_rect = None
             y += btn_h + 6
 
-        # Resources section
-        has_resources = bool(tile and tile.resource_stockpiles)
-        has_items = bool(tile and tile.item_stockpiles)
-        if has_resources or has_items:
-            y, _inventory_collapsed = self._draw_section_header('inventory', 'TILE INVENTORY', x, y)
-            if not _inventory_collapsed:
-                if has_resources:
-                    for resource, amount in tile.resource_stockpiles.items():
-                        line = self.font_body.render(f"{amount:.1f} {resource.capitalize()}", True, TEXT_COLOR)
-                        self.screen.blit(line, (x + 4, y))
-                        y += line.get_height() + 4
-                if has_items:
-                    for item_name, count in tile.item_stockpiles.items():
-                        line = self.font_body.render(f"{count} {item_name.capitalize()}", True, TEXT_COLOR)
-                        self.screen.blit(line, (x + 4, y))
-                        y += line.get_height() + 4
-                y += 4
-
         # End Turn button anchored to bottom
         btn_w = PANEL_WIDTH - pad * 2
         btn_h = 28
         self.end_turn_button_rect = self._draw_button(
-            panel_x + pad, self.screen.get_height() - pad - btn_h, btn_w, btn_h, "End Turn"
+            panel_x + pad, self.screen.get_height() - BOTTOM_PANEL_HEIGHT - pad - btn_h, btn_w, btn_h, "End Turn"
         )
 
     def _draw_console_overlay(self, console_input):
