@@ -15,7 +15,7 @@ GROWTH_SLOWDOWN_POP_THRESHOLD = 20
 TURNS_WITH_STOCKPILE_LOSS_THRESHOLD = 5
 BASE_WOOD_EXTRACTION_MODIFIER = 1
 BASE_IRON_EXTRACTION_MODIFIER = 1
-FARM_YIELD = 1.5
+FARM_YIELD = 1.51
 WORKSHOP_WOOD_CONSUMPTION = 0.5
 WORKSHOP_PRODUCTION_MODIFIER = 1.5
 WORKCAMP_EXTRACTION_MODIFIER = 1.5
@@ -126,7 +126,7 @@ class City:
         pop_consumption = num_pops * POP_FOOD_CONSUMPTION
         unit_consumption = self._get_unit_consumption()
         min_stockpile = min(pop_consumption, self._stockpile_max())
-        food_needed_for_min_stockpile = min(0,min_stockpile - self.food_stockpile)
+        food_needed_for_min_stockpile = max(0,min_stockpile - self.food_stockpile)
         if self.city_focus == 'Production' or not self._space_for_new_pop():
             growth_food = 0
         else:

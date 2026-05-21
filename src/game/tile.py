@@ -83,6 +83,18 @@ BIOME_FARM_SLOTS = {'temperate': 4,
         'coastal': 1,
         'ocean': 0}
 
+# BIOME_FARM_SLOTS = {'temperate': 5,
+#         'arid': 4,
+#         'badlands': 4,
+#         'tropical': 4,
+#         'taiga': 3,
+#         'tundra': 2,
+#         'desert': 1,
+#         'ice': 0,
+#         'wetlands': 2,
+#         'coastal': 2,
+#         'ocean': 0}
+
 TERRAIN_FEATURE_FARM_SLOTS = {
     'hills': -1,
     'forest': -2,
