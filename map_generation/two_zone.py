@@ -9,13 +9,19 @@ def generate(game_map):
     b.zone(range(2, 7),  biome='temperate')
     b.zone(range(7, 12), biome='arid')
 
+    b.blend_border('coastal',   'temperate')
+    b.blend_border('temperate', 'arid')
+    b.scatter_biome('coastal', density=0.02)
+
     # Temperate: heavy forest, light hills
-    b.scatter('forest', biome='temperate', density=0.40)
-    b.scatter('hills',  biome='temperate', density=0.15)
+    b.scatter('forest', biome='temperate', density=0.35)
+    b.scatter('hills',  biome='temperate', density=0.20)
 
     # Arid: heavy hills, some mountains
-    b.scatter('hills',    biome='arid', density=0.25)
-    b.scatter('mountain', biome='arid', density=0.20)
+    b.scatter('mountain', biome='arid', density=0.10)
+    b.scatter('mountain', biome='arid', density=0.10, requires_neighbor='mountain')
+    b.scatter('hills', biome='arid', density=0.30, requires_neighbor='mountain')
+    b.scatter('hills', biome='arid', density=0.15)
 
     # Iron on 20% of hill tiles (both zones)
-    b.scatter('iron', density=0.20, requires='hills')
+    b.scatter('iron', density=0.25, requires='hills')

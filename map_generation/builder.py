@@ -2,6 +2,12 @@ import random
 
 _WATER_BIOMES = {'ocean', 'coastal'}
 
+# Hex neighbor offsets for odd-r offset grid, keyed by row parity
+_HEX_NEIGHBORS = {
+    0: [(-1, -1), (-1, 0), (0, -1), (0, 1), (1, -1), (1, 0)],
+    1: [(-1,  0), (-1, 1), (0, -1), (0, 1), (1,  0), (1, 1)],
+}
+
 # Features that cannot coexist with the key feature
 _INCOMPATIBLE = {
     'mountain':   {'forest', 'hills', 'river', 'floodplain'},
@@ -45,13 +51,74 @@ class MapBuilder:
                 t.update_terrain_properties()
                 t.build_deposits()
 
-    def scatter(self, feature, biome=None, density=0.5, cols=None, requires=None):
+    def blend_border(self, biome_a, biome_b, probability=0.20):
+        """Randomly flip border tiles between two biomes to soften the boundary.
+
+        Each tile of biome_a adjacent to biome_b (and vice versa) has `probability`
+        chance of switching to the other biome. All eligible tiles are collected
+        before any flips so changes don't cascade within the same call.
+        """
+        border = set()
+        for row in self._map.tiles:
+            for t in row:
+                if t.biome not in (biome_a, biome_b):
+                    continue
+                for dr, dc in _HEX_NEIGHBORS[t.row % 2]:
+                    nr, nc = t.row + dr, t.col + dc
+                    if 0 <= nr < self._map.rows and 0 <= nc < self._map.cols:
+                        nb = self._map.tiles[nr][nc]
+                        if nb.biome in (biome_a, biome_b) and nb.biome != t.biome:
+                            border.add(t)
+                            break
+
+        for t in border:
+            if random.random() >= probability:
+                continue
+            new_biome = biome_b if t.biome == biome_a else biome_a
+            t.biome = new_biome
+            if new_biome in _WATER_BIOMES:
+                if 'water' not in t.terrain_features:
+                    t.terrain_features = list(t.terrain_features) + ['water']
+            else:
+                t.terrain_features = [f for f in t.terrain_features if f != 'water']
+            t.update_terrain_properties()
+            t.build_deposits()
+
+    def scatter_biome(self, biome, density=0.5, source_biome=None, cols=None):
+        """Randomly reassign tiles to the given biome at the given probability.
+
+        source_biome: if set, only tiles with that biome are eligible.
+        cols:         optional range/list to restrict which columns are eligible.
+        """
+        is_water_biome = biome in _WATER_BIOMES
+        col_set = set(cols) if cols is not None else None
+        for row in self._map.tiles:
+            for t in row:
+                if col_set is not None and t.col not in col_set:
+                    continue
+                if source_biome is not None and t.biome != source_biome:
+                    continue
+                if t.biome == biome:
+                    continue
+                if random.random() >= density:
+                    continue
+                t.biome = biome
+                if is_water_biome:
+                    if 'water' not in t.terrain_features:
+                        t.terrain_features = list(t.terrain_features) + ['water']
+                else:
+                    t.terrain_features = [f for f in t.terrain_features if f != 'water']
+                t.update_terrain_properties()
+                t.build_deposits()
+
+    def scatter(self, feature, biome=None, density=0.5, cols=None, requires=None, requires_neighbor=None):
         """Randomly add a terrain feature to matching tiles at the given probability (0-1).
 
-        biome:    if set, only tiles with that biome are eligible.
-        density:  probability per tile of receiving the feature.
-        cols:     optional range/list to restrict which columns are eligible.
-        requires: optional terrain feature that must already be present on the tile.
+        biome:            if set, only tiles with that biome are eligible.
+        density:          probability per tile of receiving the feature.
+        cols:             optional range/list to restrict which columns are eligible.
+        requires:         terrain feature that must already be present on the tile.
+        requires_neighbor: terrain feature that must be present on at least one neighbor.
         """
         incompatible = _INCOMPATIBLE.get(feature, set())
         requires_land = feature in _REQUIRES_LAND
@@ -71,6 +138,15 @@ class MapBuilder:
                     continue
                 if any(f in t.terrain_features for f in incompatible):
                     continue
+                if requires_neighbor is not None:
+                    neighbors = _HEX_NEIGHBORS[t.row % 2]
+                    if not any(
+                        0 <= t.row + dr < self._map.rows and
+                        0 <= t.col + dc < self._map.cols and
+                        requires_neighbor in self._map.tiles[t.row + dr][t.col + dc].terrain_features
+                        for dr, dc in neighbors
+                    ):
+                        continue
                 if random.random() >= density:
                     continue
                 if feature == 'mountain':
