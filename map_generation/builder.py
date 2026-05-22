@@ -11,9 +11,9 @@ _HEX_NEIGHBORS = {
 # Features that cannot coexist with the key feature
 _INCOMPATIBLE = {
     'mountain':   {'forest', 'hills', 'river', 'floodplain'},
-    'forest':     {'mountain'},
+    'forest':     {'mountain', 'river'},
     'hills':      {'mountain'},
-    'river':      {'mountain'},
+    'river':      {'mountain', 'forest'},
     'floodplain': {'mountain'},
 }
 
@@ -176,5 +176,66 @@ class MapBuilder:
             if feature == 'mountain':
                 t.terrain_features = [f for f in t.terrain_features if f not in incompatible]
             t.terrain_features = list(t.terrain_features) + [feature]
+            t.update_terrain_properties()
+            t.build_deposits()
+
+    def generate_river(self, row, start_col=0):
+        """Generate a river west-to-east along the given row.
+
+        At each step randomly chooses among available options:
+        - Straight:    W→E through the current tile, advance 1 column.
+        - Bump north:  arc through the row above, advance 3 columns.
+        - Bump south:  arc through the row below, advance 3 columns.
+        Both bumps return to the same starting row. Parity determines which
+        middle tiles are used.
+        """
+        r, c = row, start_col
+        while c < self._map.cols:
+            can_north = r > 0           and c + 2 < self._map.cols
+            can_south = r + 1 < self._map.rows and c + 2 < self._map.cols
+
+            roll = random.random()
+            if roll < 0.5 or (not can_north and not can_south):
+                choice = 'straight'
+            elif roll < 0.75 and can_north:
+                choice = 'north'
+            elif can_south:
+                choice = 'south'
+            elif can_north:
+                choice = 'north'
+            else:
+                choice = 'straight'
+
+            if choice == 'north':
+                self._river_tile(r, c, {'W', 'NE'})
+                if r % 2 == 0:
+                    self._river_tile(r - 1, c,     {'SW', 'E'})
+                    self._river_tile(r - 1, c + 1, {'W', 'SE'})
+                else:
+                    self._river_tile(r - 1, c + 1, {'SW', 'E'})
+                    self._river_tile(r - 1, c + 2, {'W', 'SE'})
+                self._river_tile(r, c + 2, {'NW', 'E'})
+                c += 3
+            elif choice == 'south':
+                self._river_tile(r, c, {'W', 'SE'})
+                if r % 2 == 0:
+                    self._river_tile(r + 1, c,     {'NW', 'E'})
+                    self._river_tile(r + 1, c + 1, {'W', 'NE'})
+                else:
+                    self._river_tile(r + 1, c + 1, {'NW', 'E'})
+                    self._river_tile(r + 1, c + 2, {'W', 'NE'})
+                self._river_tile(r, c + 2, {'SW', 'E'})
+                c += 3
+            else:
+                self._river_tile(r, c, {'W', 'E'})
+                c += 1
+
+    def _river_tile(self, r, c, edges):
+        if not (0 <= r < self._map.rows and 0 <= c < self._map.cols):
+            return
+        t = self._map.tiles[r][c]
+        t.river_edges.update(edges)
+        if 'river' not in t.terrain_features and 'mountain' not in t.terrain_features:
+            t.terrain_features = list(t.terrain_features) + ['river']
             t.update_terrain_properties()
             t.build_deposits()
