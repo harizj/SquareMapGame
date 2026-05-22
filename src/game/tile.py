@@ -1,5 +1,5 @@
 import random
-from src.game.constants import BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST, DEFAULT_MOVE_DISTANCE
+from src.game.constants import BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST, DEFAULT_MOVE_DISTANCE, FOOD_YIELD
 from src.game.jobs import FarmJob
 
 # Yield per assigned pop at each distance increment (fill in from LP results later)
@@ -32,7 +32,7 @@ from src.game.jobs import FarmJob
 #     5.00: 1.28,
 # }
 
-FARM_YIELD_AT_MAX_DISTANCE = 1.50
+FARM_YIELD_AT_MAX_DISTANCE = FOOD_YIELD - 0.01
 # Derived: (YIELD_PER_POP - FARM_YIELD_AT_MAX_DISTANCE) / DEFAULT_MOVE_DISTANCE
 
 EXTRACTION_YIELD_BASE = 1.0

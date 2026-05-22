@@ -84,14 +84,18 @@ class MapBuilder:
             t.update_terrain_properties()
             t.build_deposits()
 
-    def scatter_biome(self, biome, density=0.5, source_biome=None, cols=None):
+    def scatter_biome(self, biome, density=0.5, source_biome=None, cols=None, requires_neighbor=None):
         """Randomly reassign tiles to the given biome at the given probability.
 
-        source_biome: if set, only tiles with that biome are eligible.
-        cols:         optional range/list to restrict which columns are eligible.
+        source_biome:     if set, only tiles with that biome are eligible.
+        cols:             optional range/list to restrict which columns are eligible.
+        requires_neighbor: if set, only tiles adjacent to a tile with that biome are eligible.
+                           Candidates are collected before any flips to prevent cascade.
         """
         is_water_biome = biome in _WATER_BIOMES
         col_set = set(cols) if cols is not None else None
+
+        candidates = []
         for row in self._map.tiles:
             for t in row:
                 if col_set is not None and t.col not in col_set:
@@ -100,32 +104,49 @@ class MapBuilder:
                     continue
                 if t.biome == biome:
                     continue
-                if random.random() >= density:
-                    continue
-                t.biome = biome
-                if is_water_biome:
-                    if 'water' not in t.terrain_features:
-                        t.terrain_features = list(t.terrain_features) + ['water']
-                else:
-                    t.terrain_features = [f for f in t.terrain_features if f != 'water']
-                t.update_terrain_properties()
-                t.build_deposits()
+                if requires_neighbor is not None:
+                    neighbors = _HEX_NEIGHBORS[t.row % 2]
+                    if not any(
+                        0 <= t.row + dr < self._map.rows and
+                        0 <= t.col + dc < self._map.cols and
+                        self._map.tiles[t.row + dr][t.col + dc].biome == requires_neighbor
+                        for dr, dc in neighbors
+                    ):
+                        continue
+                candidates.append(t)
 
-    def scatter(self, feature, biome=None, density=0.5, cols=None, requires=None, requires_neighbor=None):
+        for t in candidates:
+            if random.random() >= density:
+                continue
+            t.biome = biome
+            if is_water_biome:
+                if 'water' not in t.terrain_features:
+                    t.terrain_features = list(t.terrain_features) + ['water']
+            else:
+                t.terrain_features = [f for f in t.terrain_features if f != 'water']
+            t.update_terrain_properties()
+            t.build_deposits()
+
+    def scatter(self, feature, biome=None, density=0.5, rows=None, cols=None, requires=None, requires_neighbor=None):
         """Randomly add a terrain feature to matching tiles at the given probability (0-1).
 
         biome:            if set, only tiles with that biome are eligible.
         density:          probability per tile of receiving the feature.
+        rows:             optional range/list to restrict which rows are eligible.
         cols:             optional range/list to restrict which columns are eligible.
         requires:         terrain feature that must already be present on the tile.
         requires_neighbor: terrain feature that must be present on at least one neighbor.
         """
         incompatible = _INCOMPATIBLE.get(feature, set())
         requires_land = feature in _REQUIRES_LAND
+        row_set = set(rows) if rows is not None else None
         col_set = set(cols) if cols is not None else None
 
+        candidates = []
         for row in self._map.tiles:
             for t in row:
+                if row_set is not None and t.row not in row_set:
+                    continue
                 if col_set is not None and t.col not in col_set:
                     continue
                 if biome is not None and t.biome != biome:
@@ -147,10 +168,13 @@ class MapBuilder:
                         for dr, dc in neighbors
                     ):
                         continue
-                if random.random() >= density:
-                    continue
-                if feature == 'mountain':
-                    t.terrain_features = [f for f in t.terrain_features if f not in incompatible]
-                t.terrain_features = list(t.terrain_features) + [feature]
-                t.update_terrain_properties()
-                t.build_deposits()
+                candidates.append(t)
+
+        for t in candidates:
+            if random.random() >= density:
+                continue
+            if feature == 'mountain':
+                t.terrain_features = [f for f in t.terrain_features if f not in incompatible]
+            t.terrain_features = list(t.terrain_features) + [feature]
+            t.update_terrain_properties()
+            t.build_deposits()

@@ -1,3 +1,5 @@
+from src.game.constants import FOOD_YIELD
+
 class Job:
     job_type = ''
     label = ''
@@ -25,7 +27,7 @@ class Job:
 class FarmJob(Job):
     job_type = 'farm'
     label = 'Peasants'
-    YIELD_PER_POP = 1.51
+    YIELD_PER_POP = FOOD_YIELD
 
     def __init__(self, slots=0):
         super().__init__(slots)

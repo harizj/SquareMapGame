@@ -1,10 +1,10 @@
-{"map": "two_zone",
+{"map": "black_forest",
 "factions": [
     {"name": "Babylonians", "colors": "blue", "city_names": "babylon"},
     {"name": "Assyrians",   "colors": "red",  "city_names": "assyria"}
   ],
   "cities": [
     {"row": 6, "col": 2, "faction": "Babylonians", "population": 40},
-    {"row": 6, "col": 9, "faction": "Assyrians",  "population": 40}
+    {"row": 6, "col": 11, "faction": "Assyrians",  "population": 40}
   ]
 }
