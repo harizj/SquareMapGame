@@ -16,7 +16,7 @@ from src.ui.renderer import Renderer
 from src.game.constants import DEFAULT_MOVE_DISTANCE, RESTRICTED_STARTING_TICKER
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
-GAME_CONFIG_PATH = os.path.join(_DIR, 'game_config_kalimdor.json')
+GAME_CONFIG_PATH = os.path.join(_DIR, 'game_config.json')
 
 
 def _load_game_config():
@@ -108,8 +108,16 @@ def main():
         if data:
             game_map = Map.from_dict(data)
         else:
-            # print(f"Map '{map_name}' not found — starting fresh map.")
-            game_map = Map()
+            import importlib.util, os as _os
+            script_path = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), 'map_generation', f'{map_name}.py')
+            if _os.path.exists(script_path):
+                spec = importlib.util.spec_from_file_location(map_name, script_path)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                game_map = Map()
+                module.generate(game_map)
+            else:
+                game_map = Map()
     else:
         game_map = Map()
     factions = _apply_game_config(game_map, game_config)
