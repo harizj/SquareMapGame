@@ -5,16 +5,12 @@
     {"name": "Horde",   "colors": "red",  "city_names": "assyria"}
   ],
   "cities": [
-    {"row": 7,  "col": 11, "faction": "Horde",    "population": 20, "name": "Orgrimmar"},
-    {"row": 11, "col": 6,  "faction": "Horde",    "population": 20, "name": "Thunder Bluff"},
-    {"row": 3,  "col": 1,  "faction": "Alliance", "population": 20, "name": "Darnassus"},
-    {"row": 11, "col": 11, "faction": "Alliance", "population": 20, "name": "Theramore"},
-    {"row": 4,  "col": 5,  "faction": "Alliance", "population": 15, "name": "Auberdine"},
-    {"row": 5,  "col": 7,  "faction": "Alliance", "population": 15, "name": "Astranaar"},
-    {"row": 8,  "col": 8,  "faction": "Horde",    "population": 20, "name": "The Crossroads"}
-  ],
-  "unit_groups": [
-    {"row": 5,  "col": 7,  "faction": "Alliance", "food": 10, "units": ["Archers", "Archers", "Archers", "Archers", "Archers"]},
-    {"row": 8,  "col": 8,  "faction": "Horde",    "food": 10, "units": ["Swordsmen", "Swordsmen", "Swordsmen","Swordsmen","Swordsmen"]}
+    {"row": 7,  "col": 11, "faction": "Horde",    "population": 100, "name": "Orgrimmar"},
+    {"row": 11, "col": 6,  "faction": "Horde",    "population": 100, "name": "Thunder Bluff"},
+    {"row": 3,  "col": 1,  "faction": "Alliance", "population": 150, "name": "Darnassus"},
+    {"row": 11, "col": 11, "faction": "Alliance", "population": 100, "name": "Theramore"},
+    {"row": 4,  "col": 5,  "faction": "Alliance", "population": 75, "name": "Auberdine"},
+    {"row": 5,  "col": 7,  "faction": "Alliance", "population": 75, "name": "Astranaar"},
+    {"row": 8,  "col": 8,  "faction": "Horde",    "population": 100, "name": "The Crossroads"}
   ]
 }

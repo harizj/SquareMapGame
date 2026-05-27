@@ -3,7 +3,7 @@ import math
 import os
 import pygame
 from src.game.city import STOCKPILE_MAX
-from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, MILITARY_CARRY_CAPACITY, WATER_CARRY_CAPACITY, MOVE_CARRY_OVER
+from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, MILITARY_CARRY_CAPACITY, WATER_CARRY_CAPACITY, MOVE_CARRY_OVER, GAME_SCALE
 from src.game.map import TERRAIN_TYPES
 from src.game.tile import BIOMES, TERRAIN_FEATURES, BIOME_COLORS
 from src.game.unit import unit_list as UNIT_DISPLAY_ORDER, UNIT_REGISTRY
@@ -991,7 +991,7 @@ class Renderer:
                     continue
                 if tile.worked_farms <= 0:
                     continue
-                for i in range(tile.worked_farms):
+                for i in range(max(1, tile.worked_farms // GAME_SCALE)):
                     col_i = i // 3
                     row_i = i % 3
                     dot_positions.append((dx + col_i * dot_spacing, dy + row_i * dot_spacing, tile.owning_city))

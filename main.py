@@ -16,7 +16,7 @@ from src.ui.renderer import Renderer
 from src.game.constants import DEFAULT_MOVE_DISTANCE, RESTRICTED_STARTING_TICKER
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
-GAME_CONFIG_PATH = os.path.join(_DIR, 'game_config.json')
+GAME_CONFIG_PATH = os.path.join(_DIR, 'game_config_kalimdor.json')
 
 
 def _load_game_config():

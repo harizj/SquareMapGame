@@ -1,5 +1,5 @@
 import random
-from src.game.constants import BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST, DEFAULT_MOVE_DISTANCE, FOOD_YIELD
+from src.game.constants import BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST, DEFAULT_MOVE_DISTANCE, FOOD_YIELD, GAME_SCALE
 from src.game.jobs import FarmJob
 
 # Yield per assigned pop at each distance increment (fill in from LP results later)
@@ -39,15 +39,8 @@ EXTRACTION_YIELD_BASE = 1.0
 EXTRACTION_YIELD_AT_MAX_DISTANCE = 0.80
 EXTRACTION_YIELD_HILLS = 0.5
 
-TILE_FARM_SLOTS = {
-    'river':    6,
-    'hills':    3,
-    'desert':   0,
-    'forest':   2,
-    'mountain': 0,
-}
-DEPOSIT_STARTING_WOOD = 40
-DEPOSIT_STARTING_IRON = 10
+DEPOSIT_STARTING_WOOD = 40 * GAME_SCALE
+DEPOSIT_STARTING_IRON = 10 * GAME_SCALE
 
 BIOMES = ['temperate',
         'arid',
@@ -71,7 +64,7 @@ TERRAIN_FEATURES = ['hills',
                     'city',
                     'water_access']
 
-BIOME_FARM_SLOTS = {'temperate': 4,
+BIOME_FARM_SLOTS_BASE = {'temperate': 4,
         'arid': 3,
         'badlands': 3,
         'tropical': 3,
@@ -82,6 +75,7 @@ BIOME_FARM_SLOTS = {'temperate': 4,
         'wetlands': 1,
         'coastal': 1,
         'ocean': 0}
+BIOME_FARM_SLOTS = {k: v * GAME_SCALE for k, v in BIOME_FARM_SLOTS_BASE.items()}
 
 # BIOME_FARM_SLOTS = {'temperate': 5,
 #         'arid': 4,
@@ -95,18 +89,20 @@ BIOME_FARM_SLOTS = {'temperate': 4,
 #         'coastal': 2,
 #         'ocean': 0}
 
-TERRAIN_FEATURE_FARM_SLOTS = {
+_TERRAIN_FEATURE_FARM_SLOTS_BASE = {
     'hills': -1,
     'forest': -2,
     'floodplain': 1,
     'river': -1,
     'mountains': -5
 }
+TERRAIN_FEATURE_FARM_SLOTS = {k: v * GAME_SCALE for k, v in _TERRAIN_FEATURE_FARM_SLOTS_BASE.items()}
 
-BIOME_FEATURE_FARM_INTERACTIONS = {
+_BIOME_FEATURE_FARM_INTERACTIONS_BASE = {
     ('tropical', 'forest'): 1,
     ('arid', 'hills'): 1,
 }
+BIOME_FEATURE_FARM_INTERACTIONS = {k: v * GAME_SCALE for k, v in _BIOME_FEATURE_FARM_INTERACTIONS_BASE.items()}
 
 BIOME_COLORS = {
     'temperate': (105, 168,  88),

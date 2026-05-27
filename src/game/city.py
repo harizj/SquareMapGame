@@ -2,7 +2,7 @@ import bisect
 import math
 from src.game.pop import Pop
 from src.game.jobs import FarmJob, ProductionJob, AdminJob, CaravanJob
-from src.game.constants import POP_FOOD_CONSUMPTION, FOOD_YIELD
+from src.game.constants import POP_FOOD_CONSUMPTION, FOOD_YIELD, GAME_SCALE
 
 STOCKPILE_MAX = 20
 STOCKPILE_PER_ADMIN = 20
@@ -10,8 +10,8 @@ GROWTH_NEEDED_FOR_NEW_POP = 100
 GROWTH_FOOD_REQUIREMENT = .20
 GROWTH_RATE = 4
 GROWTH_SLOWDOWN = 0.2
-POPS_PER_GROWTH_SLOWDOWN = 5
-GROWTH_SLOWDOWN_POP_THRESHOLD = 20
+POPS_PER_GROWTH_SLOWDOWN = 5*GAME_SCALE
+GROWTH_SLOWDOWN_POP_THRESHOLD = 100
 TURNS_WITH_STOCKPILE_LOSS_THRESHOLD = 5
 BASE_WOOD_EXTRACTION_MODIFIER = 1
 BASE_IRON_EXTRACTION_MODIFIER = 1
@@ -687,11 +687,10 @@ class City:
 
         # Step 5: spawn new pops
         spawned = 0
-        if self.growth_progress >= GROWTH_NEEDED_FOR_NEW_POP:
-            if self._space_for_new_pop():
-                self.growth_progress -= GROWTH_NEEDED_FOR_NEW_POP
-                self.pops.append(Pop())
-                spawned += 1
+        while self.growth_progress >= GROWTH_NEEDED_FOR_NEW_POP and self._space_for_new_pop():
+            self.growth_progress -= GROWTH_NEEDED_FOR_NEW_POP
+            self.pops.append(Pop())
+            spawned += 1
         if spawned:
             self.rebalance_pops()
             log.append(f"{self.name}: {spawned} new pop(s)! ({self._get_population()} total)")
