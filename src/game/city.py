@@ -294,23 +294,25 @@ class City:
         # if self.food_shortfall > 0:
         #     print(f"{math.ceil(self.food_shortfall)} pops in {self.name} will starve this turn!")
 
-        alloc_stockpile = max(0.0, food_needed_for_min_stockpile)
-        self.food_allocated_to_min_stockpile = min(remaining, alloc_stockpile)
-        remaining -= self.food_allocated_to_min_stockpile
+        # alloc_stockpile = max(0.0, food_needed_for_min_stockpile)
+        # self.food_allocated_to_min_stockpile = min(remaining, alloc_stockpile)
+        # remaining -= self.food_allocated_to_min_stockpile
 
         # if self.food_allocated_to_min_stockpile < alloc_stockpile:
         #     print(f"Not enough food for stockpile in {self.name}")
-
-        if self._space_for_new_pop():
-            self.food_allocated_to_growth = min(remaining, growth_food)
-            remaining -= self.food_allocated_to_growth
-            self.growth_allocated = (self.food_allocated_to_growth / GROWTH_FOOD_REQUIREMENT) * self._effective_growth_rate()
+        self.food_allocated_to_growth = 0
+        # if self._space_for_new_pop():
+        #     self.food_allocated_to_growth = min(remaining, growth_food)
+        #     remaining -= self.food_allocated_to_growth
+        #     self.growth_allocated = (self.food_allocated_to_growth / GROWTH_FOOD_REQUIREMENT) * self._effective_growth_rate()
+        # else:
+        #     self.food_allocated_to_growth = 0
+        #     self.growth_allocated = 0
+        #     self.growth_progress = 0
+        if remaining < 0:
+            self.food_allocated_to_stockpile = remaining
         else:
-            self.food_allocated_to_growth = 0
-            self.growth_allocated = 0
-            self.growth_progress = 0
-
-        self.food_allocated_to_stockpile = remaining + self.food_allocated_to_min_stockpile
+            self.food_allocated_to_stockpile = 0
         # if self.food_stockpile + self.food_allocated_to_stockpile < 0:
         #     self.pending_pop_loss = math.ceil(-(self.food_stockpile + self.food_allocated_to_stockpile))
         #     self.food_allocated_to_stockpile = - self.food_stockpile
@@ -327,7 +329,7 @@ class City:
         if self.growth_halted:
             return False
         max_yield = self.cumulative_farm_yield_net[-1]
-        return self._get_population() + 1 <= max_yield
+        return self._get_population() + 2 <= max_yield
 
     def _effective_growth_rate(self):
         if self._get_population() < GROWTH_SLOWDOWN_POP_THRESHOLD:
@@ -427,18 +429,10 @@ class City:
         # print('Farm slots',total_farm_slots)
         # print('Remaining pops',remaining_pops)
         if total_farm_slots > 0:
-            if self.city_focus == 'Stockpile':
-                pops_for_farm = min(remaining_pops, total_farm_slots)
-            else:
-                unit_consumption, pop_consumption, food_needed_for_min_stockpile, growth_food = self._food_target()
-                food_target = unit_consumption + pop_consumption + food_needed_for_min_stockpile + growth_food
-                # print('food_target',food_target)
-                pops_for_farm = bisect.bisect_left(self.cumulative_farm_yield_net, food_target)
-                # print('cumulative_farm_yield_net',self.cumulative_farm_yield_net)
-                # print('pops_for_farm',pops_for_farm)
-                pops_for_farm = max(pops_for_farm, self.food_pop_min)
-                pops_for_farm = min(pops_for_farm, total_farm_slots, remaining_pops)
-                # print('pops_for_farm',pops_for_farm)
+            unit_consumption, pop_consumption, food_needed_for_min_stockpile, growth_food = self._food_target()
+            pops_for_farm = bisect.bisect_left(self.cumulative_farm_yield_net, unit_consumption + pop_consumption)
+            pops_for_farm = min(pops_for_farm, total_farm_slots, remaining_pops)
+            # print('pops_for_farm',pops_for_farm)
 
             assigned_to_farm = 0
             for tile, j in tile_farm_jobs:
