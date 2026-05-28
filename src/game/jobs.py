@@ -51,14 +51,6 @@ class ProductionJob(Job):
         return self.assigned * self.YIELD_PER_POP
 
 
-class AdminJob(Job):
-    job_type = 'administrator'
-    label = 'Administrators'
-
-    def __init__(self):
-        super().__init__(slots=100)
-
-
 class CaravanJob(Job):
     job_type = 'caravan'
     label = 'Caravans'

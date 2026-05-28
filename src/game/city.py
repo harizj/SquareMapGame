@@ -1,11 +1,10 @@
 import bisect
 import math
 from src.game.pop import Pop
-from src.game.jobs import FarmJob, ProductionJob, AdminJob, CaravanJob
+from src.game.jobs import FarmJob, ProductionJob, CaravanJob
 from src.game.constants import POP_FOOD_CONSUMPTION, FOOD_YIELD, GAME_SCALE
 
 STOCKPILE_MAX = 20
-STOCKPILE_PER_ADMIN = 20
 GROWTH_NEEDED_FOR_NEW_POP = 100
 GROWTH_FOOD_REQUIREMENT = .20
 GROWTH_RATE = 4
@@ -140,10 +139,6 @@ class City:
         # print('growth_food',growth_food)
         return unit_consumption, pop_consumption, food_needed_for_min_stockpile, growth_food
 
-    def min_admin_count(self):
-        #In case of gates closing, this has to be addressed
-        return math.ceil(self._get_population() * POP_FOOD_CONSUMPTION / STOCKPILE_PER_ADMIN)
-
     def change_faction(self, new_faction):
         self.faction = new_faction
 
@@ -153,9 +148,7 @@ class City:
         return None
 
     def _stockpile_max(self):
-        admin_job = next((j for j in self.jobs if j.job_type == 'administrator'), None)
-        admin_count = admin_job.assigned if admin_job else 0
-        return admin_count * STOCKPILE_PER_ADMIN
+        return 2 * self._get_population()
 
     def has_resource(self, resource):
         return self.tile is not None and self.tile.resource_stockpiles.get(resource, 0) > 0
@@ -373,15 +366,8 @@ class City:
 
 
     def rebalance_pops(self):
-        admin_job = next((j for j in self.jobs if j.job_type == 'administrator'), None)
         prod_job = next((j for j in self.jobs if j.job_type == 'production'), None)
         tile_farm_jobs = self._sorted_tile_farm_jobs()
-
-        # Preserve player-set admin count before reset
-        admin_count = admin_job.assigned if admin_job else 0
-        min_admin = self.min_admin_count()
-        if admin_count < min_admin and admin_job and self.pops:
-            admin_count = min_admin
 
         for pop in self.pops:
             pop.assigned_job = None
@@ -389,17 +375,6 @@ class City:
             job.assigned = 0
         for _, j in tile_farm_jobs:
             j.assigned = 0
-
-        # Admin first (player-controlled)
-        if admin_job:
-            count = 0
-            for pop in self.pops:
-                if count >= admin_count or admin_job.available_slots == 0:
-                    break
-                pop.assigned_job = admin_job
-                admin_job.assigned += 1
-                count += 1
-        admin_assigned = admin_job.assigned if admin_job else 0
 
         # Caravans (locked to trade routes)
         route_caravan_jobs, total_caravan_slots = self._collect_caravan_jobs()
@@ -411,7 +386,7 @@ class City:
         ]
         food_pop_slots = sum(j.slots for j in food_caravan_jobs)
 
-        while food_pop_slots > 0 and self._pop_loss_from_locked_jobs(total_caravan_slots + admin_assigned):
+        while food_pop_slots > 0 and self._pop_loss_from_locked_jobs(total_caravan_slots):
             route_to_drop = next(
                 (r for r in reversed(self.trade_routes)
                  if r.city_a is self and r.caravan_job_a is not None and r.export_resource == 'food'),
@@ -447,7 +422,7 @@ class City:
             self.update_cumulative_farm_yield_net()
 
         # Farm: use cumulative yield list to find minimum pops needed
-        remaining_pops = self._get_population() - admin_assigned - caravan_assigned
+        remaining_pops = self._get_population() - caravan_assigned
         total_farm_slots = len(self.cumulative_farm_yield) - 1
         # print('Farm slots',total_farm_slots)
         # print('Remaining pops',remaining_pops)
@@ -479,7 +454,7 @@ class City:
 
         self.food_pops = assigned_to_farm
         self.non_food_pops = self._get_population() - assigned_to_farm
-        self.locked_pops = (admin_assigned if admin_job else 0) + (caravan_assigned if route_caravan_jobs else 0)
+        self.locked_pops = caravan_assigned if route_caravan_jobs else 0
 
         # Rest to production
         if prod_job:
@@ -579,8 +554,6 @@ class City:
         self._update_food_allocations()
 
     def setup_jobs(self):
-        if not any(j.job_type == 'administrator' for j in self.jobs):
-            self.jobs.insert(0, AdminJob())
         if not any(j.job_type == 'production' for j in self.jobs):
             self.jobs.append(ProductionJob())
         self._build_cumulative_farm_yield()

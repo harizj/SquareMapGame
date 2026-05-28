@@ -200,8 +200,6 @@ class Renderer:
         self.restrict_tile_button_rect = None
         self.halt_growth_rect = None
         self.gates_closed_rect = None
-        self.admin_minus_rect = None
-        self.admin_plus_rect = None
         self.city_focus_rects = {}
         self.trade_route_delete_rects = []
         self.trade_route_reduce_rects = []
@@ -1713,18 +1711,6 @@ class Renderer:
 
         if not _pops_collapsed:
             btn_s = 16
-            for job in city.jobs:
-                if job.job_type == 'administrator':
-                    label_surf = self.font_body.render(f"{job.assigned} {_jlabel(job.label, job.assigned)}", True, TEXT_COLOR)
-                    self.screen.blit(label_surf, (x + 4, y + (btn_s - label_surf.get_height()) // 2))
-                    self.admin_plus_rect = self._draw_button(
-                        CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "+")
-                    if job.assigned > city.min_admin_count():
-                        self.admin_minus_rect = self._draw_button(
-                            CITY_PANEL_WIDTH - pad - btn_s * 2 - 3, y, btn_s, btn_s, "-")
-                    else:
-                        self.admin_minus_rect = None
-                    y += btn_s + 4
             total_caravans = city._get_pops_assigned_to_routes()
             if total_caravans > 0:
                 surf = self.font_body.render(f"{total_caravans} {_jlabel('Caravans', total_caravans)}", True, TEXT_COLOR)
@@ -1741,10 +1727,6 @@ class Renderer:
                     self.screen.blit(surf, (x + 4, y))
                     y += surf.get_height() + 2
             y += 4
-        else:
-            self.admin_plus_rect = None
-            self.admin_minus_rect = None
-
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
         y += 10
         y, _yields_collapsed = self._draw_section_header('yields', 'YIELDS', x, y)

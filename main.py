@@ -920,22 +920,6 @@ def main():
                     if city:
                         city.gates_closed = not city.gates_closed
 
-                elif renderer.admin_minus_rect and renderer.admin_minus_rect.collidepoint(pos):
-                    city = selected_tile.owning_city if selected_tile else None
-                    if city:
-                        admin_job = next((j for j in city.jobs if j.job_type == 'administrator'), None)
-                        if admin_job and admin_job.assigned > city.min_admin_count():
-                            admin_job.assigned -= 1
-                            city.rebalance_pops()
-
-                elif renderer.admin_plus_rect and renderer.admin_plus_rect.collidepoint(pos):
-                    city = selected_tile.owning_city if selected_tile else None
-                    if city:
-                        admin_job = next((j for j in city.jobs if j.job_type == 'administrator'), None)
-                        if admin_job and admin_job.assigned < min(admin_job.slots, len(city.pops)):
-                            admin_job.assigned += 1
-                            city.rebalance_pops()
-
                 elif renderer.save_map_button_rect and renderer.save_map_button_rect.collidepoint(pos):
                     save_popup_active = True
                     save_popup_text = ""
