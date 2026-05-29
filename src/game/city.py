@@ -18,6 +18,7 @@ FARM_YIELD = FOOD_YIELD
 WORKSHOP_WOOD_CONSUMPTION = 0.5
 WORKSHOP_PRODUCTION_MODIFIER = 1.5
 WORKCAMP_EXTRACTION_MODIFIER = 1.5
+STOCKPILE_JOB_YIELD = 1.35
 
 
 from src.game.production import ProductionTarget
@@ -73,6 +74,7 @@ class City:
         self.pops_allocated_to_production = 0
         self.pops_allocated_to_stockpile = 0
         self.focus_unassigned_pops = 0
+        self.remaining_free_pops = 0
 
     @property
     def unassigned_pops(self):
@@ -155,6 +157,12 @@ class City:
 
     def _stockpile_max(self):
         return 2 * self._get_population()
+
+    def _stockpile_decay(self):
+        pop = self._get_population()
+        if pop == 0:
+            return 0.0
+        return round(self.food_stockpile / pop, 1)
 
     def has_job_in_queue(self, job_type):
         return any(entry.job_type == job_type for entry in self.job_queue)
@@ -324,7 +332,8 @@ class City:
         else:
             self.food_allocated_to_stockpile = 0
 
-        self.food_allocated_to_stockpile += self.pops_allocated_to_stockpile * FARM_YIELD
+        self.food_allocated_to_stockpile += self.pops_allocated_to_stockpile * STOCKPILE_JOB_YIELD
+        self.food_allocated_to_stockpile -= self._stockpile_decay()
         # if self.food_stockpile + self.food_allocated_to_stockpile < 0:
         #     self.pending_pop_loss = math.ceil(-(self.food_stockpile + self.food_allocated_to_stockpile))
         #     self.food_allocated_to_stockpile = - self.food_stockpile
@@ -510,7 +519,7 @@ class City:
                             self.pops_allocated_to_stockpile += 1
             entry.filled = given
             free_pops -= given
-        self.free_pops = free_pops
+        self.remaining_free_pops = free_pops
 
         # City focus: remaining free pops go to the focus destination
         focus_assigned = 0
@@ -668,7 +677,7 @@ class City:
         # print(f"  [after rebalance] alloc_consumption={self.food_allocated_to_consumption:.1f}  alloc_min_stockpile={self.food_allocated_to_min_stockpile:.1f}  alloc_growth={self.food_allocated_to_growth:.1f}  alloc_surplus={self.food_allocated_to_stockpile:.1f}  growth_allocated={self.growth_allocated:.1f}")
 
         # Step 1: stockpile replenishment
-        self.food_stockpile = min(self.food_stockpile + self.food_allocated_to_stockpile, self._stockpile_max())
+        self.food_stockpile = max(min(self.food_stockpile + self.food_allocated_to_stockpile, self._stockpile_max()),0)
         if (self.food_allocated_to_stockpile < 0) and (self.food_stockpile < .5 * self._get_population() * POP_FOOD_CONSUMPTION):
             self.turns_with_stockpile_loss += 1
             if self.turns_with_stockpile_loss > TURNS_WITH_STOCKPILE_LOSS_THRESHOLD:

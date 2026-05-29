@@ -1752,11 +1752,11 @@ class Renderer:
             y += 22
             for job in city.jobs:
                 if job.job_type == 'production':
-                    focus_assigned = city.free_pops - city.focus_unassigned_pops
+                    focus_assigned = city.remaining_free_pops - city.focus_unassigned_pops
                     if city.focus_unassigned_pops > 0:
-                        remaining_label = f"Remaining {focus_assigned}/{city.free_pops} To"
+                        remaining_label = f"Remaining {focus_assigned}/{city.remaining_free_pops} To"
                     else:
-                        remaining_label = f"Remaining {city.free_pops} To"
+                        remaining_label = f"Remaining {city.remaining_free_pops} To"
                     remaining_surf = self.font_body.render(remaining_label, True, TEXT_COLOR)
                     self.screen.blit(remaining_surf, (x + 4, y))
                     y += remaining_surf.get_height() + 4
@@ -2663,7 +2663,7 @@ class Renderer:
         y += 28
 
         # Pop count slider
-        max_count = city._get_population()
+        max_count = city.free_pops
         count = max(0, min(self.add_job_popup_count, max_count))
         self.add_job_popup_count = count
 

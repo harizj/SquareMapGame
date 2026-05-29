@@ -1,6 +1,6 @@
 import random
 
-LETHALITY = 0.2
+LETHALITY = 0.20
 WOODEN_WALL_MODIFIER = .5
 STONE_WALL_MODIFIER = 1
 
@@ -214,7 +214,7 @@ def resolve_battle(preview):
     flat_log = []
     rounds   = []
 
-    for round_num in range(1, 4):
+    for round_num in range(1, 5):
         num_atk = len(atk_units)
         atk_str = preview['attacker_total'] * (num_atk / preview['attacker_units']) if preview['attacker_units'] else 0
         if defending_city:
@@ -263,8 +263,8 @@ def resolve_battle(preview):
         total_d_kills += d_kills
 
         # Stop after round 2 if there were any kills; otherwise play a 3rd round
-        if round_num == 2 and (total_a_kills > 0 or total_d_kills > 0):
-            break
+        # if round_num == 2 and (total_a_kills > 0 or total_d_kills > 0):
+        #     break
 
     for line in flat_log:
         print(line)

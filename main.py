@@ -294,7 +294,7 @@ def main():
                     sr = renderer.add_job_popup_slider_rect
                     if sr:
                         city = renderer.add_job_popup_city
-                        max_count = city._get_population()
+                        max_count = city.free_pops
                         t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
                         renderer.add_job_popup_count = round(t * max_count)
 
@@ -522,7 +522,7 @@ def main():
                         if renderer.add_job_popup_slider_rect and renderer.add_job_popup_slider_rect.collidepoint(pos):
                             renderer._add_job_slider_dragging = True
                             sr = renderer.add_job_popup_slider_rect
-                            max_count = city._get_population() if city else 0
+                            max_count = city.free_pops if city else 0
                             t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
                             renderer.add_job_popup_count = round(t * max_count)
 
@@ -991,7 +991,7 @@ def main():
                     if city:
                         for i, r in enumerate(renderer.job_queue_plus_rects):
                             if r.collidepoint(pos):
-                                city.job_queue[i].count = min(city._get_population(), city.job_queue[i].count + 1)
+                                city.job_queue[i].count = min(city.free_pops, city.job_queue[i].count + 1)
                                 city.rebalance_pops()
                                 break
 
