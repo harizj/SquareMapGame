@@ -504,6 +504,7 @@ def main():
                         from src.game.jobs import JobQueue
                         if city and renderer.add_job_popup_selected_type and renderer.add_job_popup_count > 0:
                             city.job_queue.append(JobQueue(renderer.add_job_popup_selected_type, renderer.add_job_popup_count))
+                            city.rebalance_pops()
                         renderer.add_job_popup_active = False
                         renderer.add_job_popup_city = None
                         renderer.add_job_popup_selected_type = None
@@ -961,6 +962,7 @@ def main():
                         for i, r in enumerate(renderer.job_queue_up_rects):
                             if r.collidepoint(pos) and i > 0:
                                 city.job_queue[i], city.job_queue[i - 1] = city.job_queue[i - 1], city.job_queue[i]
+                                city.rebalance_pops()
                                 break
 
                 elif any(r.collidepoint(pos) for r in renderer.job_queue_down_rects):
@@ -969,6 +971,7 @@ def main():
                         for i, r in enumerate(renderer.job_queue_down_rects):
                             if r.collidepoint(pos) and i < len(city.job_queue) - 1:
                                 city.job_queue[i], city.job_queue[i + 1] = city.job_queue[i + 1], city.job_queue[i]
+                                city.rebalance_pops()
                                 break
 
                 elif any(r.collidepoint(pos) for r in renderer.job_queue_minus_rects):
@@ -980,6 +983,7 @@ def main():
                                     city.job_queue.pop(i)
                                 else:
                                     city.job_queue[i].count -= 1
+                                city.rebalance_pops()
                                 break
 
                 elif any(r.collidepoint(pos) for r in renderer.job_queue_plus_rects):
@@ -988,6 +992,7 @@ def main():
                         for i, r in enumerate(renderer.job_queue_plus_rects):
                             if r.collidepoint(pos):
                                 city.job_queue[i].count = min(city._get_population(), city.job_queue[i].count + 1)
+                                city.rebalance_pops()
                                 break
 
                 elif any(r.collidepoint(pos) for r in renderer.job_queue_x_rects):
@@ -996,6 +1001,7 @@ def main():
                         for i, r in enumerate(renderer.job_queue_x_rects):
                             if r.collidepoint(pos):
                                 city.job_queue.pop(i)
+                                city.rebalance_pops()
                                 break
 
                 elif renderer.add_job_button_rect and renderer.add_job_button_rect.collidepoint(pos):

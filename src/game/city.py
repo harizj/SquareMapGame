@@ -72,6 +72,7 @@ class City:
         self.pops_allocated_to_growth = 0
         self.pops_allocated_to_production = 0
         self.pops_allocated_to_stockpile = 0
+        self.focus_unassigned_pops = 0
 
     @property
     def unassigned_pops(self):
@@ -509,24 +510,29 @@ class City:
                             self.pops_allocated_to_stockpile += 1
             entry.filled = given
             free_pops -= given
+        self.free_pops = free_pops
 
         # City focus: remaining free pops go to the focus destination
+        focus_assigned = 0
         if self.city_focus == 'Production':
             if prod_job:
                 for pop in self.pops:
                     if pop.assigned_job is None and prod_job.available_slots > 0:
                         pop.assigned_job = prod_job
                         prod_job.assigned += 1
+                        focus_assigned += 1
         else:  # Growth or Stockpile → farm
             for _, j in tile_farm_jobs:
                 for pop in self.pops:
                     if pop.assigned_job is None and j.available_slots > 0:
                         pop.assigned_job = j
                         j.assigned += 1
+                        focus_assigned += 1
                         if self.city_focus == 'Growth':
                             self.pops_allocated_to_growth += 1
                         if self.city_focus == 'Stockpile':
                             self.pops_allocated_to_stockpile += 1
+        self.focus_unassigned_pops = free_pops - focus_assigned
 
         
         self.non_food_pops = self._get_population() - self.food_pops

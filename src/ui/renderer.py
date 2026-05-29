@@ -1752,7 +1752,12 @@ class Renderer:
             y += 22
             for job in city.jobs:
                 if job.job_type == 'production':
-                    remaining_surf = self.font_body.render(f"Remaining {job.assigned} To", True, TEXT_COLOR)
+                    focus_assigned = city.free_pops - city.focus_unassigned_pops
+                    if city.focus_unassigned_pops > 0:
+                        remaining_label = f"Remaining {focus_assigned}/{city.free_pops} To"
+                    else:
+                        remaining_label = f"Remaining {city.free_pops} To"
+                    remaining_surf = self.font_body.render(remaining_label, True, TEXT_COLOR)
                     self.screen.blit(remaining_surf, (x + 4, y))
                     y += remaining_surf.get_height() + 4
                     focus_widths = [52, 72, 60]
@@ -1767,6 +1772,10 @@ class Renderer:
                             self.city_focus_rects[label] = rect
                         focus_x += fw + 2
                     y += 24
+                    if city.focus_unassigned_pops > 0:
+                        warn_surf = self.font_body.render("Not Enough Farms!", True, (220, 80, 80))
+                        self.screen.blit(warn_surf, (x + 4, y))
+                        y += warn_surf.get_height() + 2
             y += 4
         else:
             self.add_job_button_rect = None
