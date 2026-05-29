@@ -51,6 +51,14 @@ class ProductionJob(Job):
         return self.assigned * self.YIELD_PER_POP
 
 
+class JobQueue:
+    VALID_TYPES = {'growth', 'stockpile', 'production'}
+
+    def __init__(self, job_type, count=0):
+        self.job_type = job_type
+        self.count = count
+
+
 class CaravanJob(Job):
     job_type = 'caravan'
     label = 'Caravans'

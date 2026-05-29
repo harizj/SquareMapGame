@@ -276,6 +276,20 @@ class Renderer:
         self.separate_popup_confirm_rect = None
         self.separate_popup_cancel_rect = None
         self._separate_slider_dragging = None
+        self.add_job_popup_active = False
+        self.add_job_popup_city = None
+        self.add_job_popup_selected_type = None
+        self.add_job_popup_count = 0
+        self.add_job_popup_type_rects = {}
+        self.add_job_popup_slider_rect = None
+        self.add_job_popup_confirm_rect = None
+        self.add_job_popup_cancel_rect = None
+        self._add_job_slider_dragging = False
+        self.add_job_button_rect = None
+        self.job_queue_up_rects = []
+        self.job_queue_down_rects = []
+        self.job_queue_minus_rects = []
+        self.job_queue_plus_rects = []
         self._separate_food_slider_dragging = False
         self.battle_popup_confirm_rect = None
         self.battle_popup_cancel_rect = None
@@ -1269,6 +1283,9 @@ class Renderer:
         if self.separate_popup_active and self.separate_popup_group:
             self._draw_separate_popup()
 
+        if self.add_job_popup_active and self.add_job_popup_city:
+            self._draw_add_job_popup()
+
         if self.production_popup_active and selected_tile and selected_tile.city:
             self._draw_production_popup(selected_tile.city)
 
@@ -1726,7 +1743,34 @@ class Renderer:
                     surf = self.font_body.render(f"{job.assigned}/{worker_capacity} {_jlabel(job.label, job.assigned)}", True, TEXT_COLOR)
                     self.screen.blit(surf, (x + 4, y))
                     y += surf.get_height() + 2
+            _jq_labels = {'growth': 'Growth', 'stockpile': 'Stockpile', 'production': 'Production'}
+            self.job_queue_up_rects = []
+            self.job_queue_down_rects = []
+            self.job_queue_minus_rects = []
+            self.job_queue_plus_rects = []
+            row_h = btn_s + 2
+            for entry in city.job_queue:
+                label_text = f"{entry.count} {_jq_labels.get(entry.job_type, entry.job_type)}"
+                surf = self.font_body.render(label_text, True, TEXT_COLOR)
+                self.screen.blit(surf, (x + 4, y + (row_h - surf.get_height()) // 2))
+                rx = CITY_PANEL_WIDTH - pad - btn_s
+                self.job_queue_plus_rects.append(self._draw_button(rx, y, btn_s, btn_s, "+"))
+                rx -= btn_s + 2
+                self.job_queue_minus_rects.append(self._draw_button(rx, y, btn_s, btn_s, "-"))
+                rx -= btn_s + 4
+                self.job_queue_down_rects.append(self._draw_button(rx, y, btn_s, btn_s, "v"))
+                rx -= btn_s + 2
+                self.job_queue_up_rects.append(self._draw_button(rx, y, btn_s, btn_s, "^"))
+                y += row_h + 2
+            self.add_job_button_rect = self._draw_button(x + 4, y, CITY_PANEL_WIDTH - pad * 2 - 4, 18, "Add Job")
+            y += 22
             y += 4
+        else:
+            self.add_job_button_rect = None
+            self.job_queue_up_rects = []
+            self.job_queue_down_rects = []
+            self.job_queue_minus_rects = []
+            self.job_queue_plus_rects = []
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
         y += 10
         y, _yields_collapsed = self._draw_section_header('yields', 'YIELDS', x, y)
@@ -2568,6 +2612,65 @@ class Renderer:
         if confirm_disabled:
             self.separate_popup_confirm_rect = None
         self.separate_popup_cancel_rect = self._draw_button(sx + pad + btn_w + 8, y, btn_w, 24, "Cancel")
+
+    def _draw_add_job_popup(self):
+        city = self.add_job_popup_city
+        track_h = 6
+        pad = 16
+        W = 280
+        H = 160
+        sx = (self.screen.get_width() - W) // 2
+        sy = (self.screen.get_height() - H) // 2
+        track_w = W - pad * 2
+
+        overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        self.screen.blit(overlay, (0, 0))
+        pygame.draw.rect(self.screen, (40, 40, 55), (sx, sy, W, H), border_radius=6)
+        pygame.draw.rect(self.screen, PANEL_DIVIDER, (sx, sy, W, H), 1, border_radius=6)
+
+        title = self.font_header.render("ADD JOB", True, HEADER_TEXT_COLOR)
+        self.screen.blit(title, (sx + pad, sy + 10))
+
+        # Job type buttons
+        y = sy + 34
+        type_labels = [('growth', 'Growth'), ('stockpile', 'Stockpile'), ('production', 'Production')]
+        btn_w = (track_w - 8) // 3
+        self.add_job_popup_type_rects = {}
+        for i, (jtype, jlabel) in enumerate(type_labels):
+            bx = sx + pad + i * (btn_w + 4)
+            active = self.add_job_popup_selected_type == jtype
+            rect = self._draw_button(bx, y, btn_w, 20, jlabel, active=active)
+            self.add_job_popup_type_rects[jtype] = rect
+        y += 28
+
+        # Pop count slider
+        max_count = city._get_population()
+        count = max(0, min(self.add_job_popup_count, max_count))
+        self.add_job_popup_count = count
+
+        label = self.font_body.render(f"Pops: {count}", True, TEXT_COLOR)
+        self.screen.blit(label, (sx + pad, y))
+        y += label.get_height() + 4
+
+        track_y = y
+        pygame.draw.rect(self.screen, (60, 60, 80), (sx + pad, track_y, track_w, track_h), border_radius=2)
+        hx = sx + pad + (int(count / max_count * track_w) if max_count > 0 else 0)
+        hy = track_y + track_h // 2
+        pygame.draw.circle(self.screen, (160, 190, 240), (hx, hy), 6)
+        pygame.draw.circle(self.screen, (100, 130, 190), (hx, hy), 6, 1)
+        self.screen.blit(self.font_small.render("0", True, PANEL_DIVIDER), (sx + pad, track_y + track_h + 3))
+        max_surf = self.font_small.render(str(max_count), True, PANEL_DIVIDER)
+        self.screen.blit(max_surf, (sx + pad + track_w - max_surf.get_width(), track_y + track_h + 3))
+        self.add_job_popup_slider_rect = pygame.Rect(sx + pad, track_y - 6, track_w, track_h + 16)
+        y += track_h + 24
+
+        btn_w2 = (track_w - 8) // 2
+        confirm_disabled = self.add_job_popup_selected_type is None or count == 0
+        self.add_job_popup_confirm_rect = self._draw_button(sx + pad, y, btn_w2, 24, "Confirm", disabled=confirm_disabled)
+        if confirm_disabled:
+            self.add_job_popup_confirm_rect = None
+        self.add_job_popup_cancel_rect = self._draw_button(sx + pad + btn_w2 + 8, y, btn_w2, 24, "Cancel")
 
     def _draw_los_panel(self, los, factions):
         sw = self.map_w + PANEL_WIDTH

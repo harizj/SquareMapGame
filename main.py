@@ -230,6 +230,7 @@ def main():
                 renderer._recruit_food_slider_dragging = False
                 renderer._separate_slider_dragging = None
                 renderer._separate_food_slider_dragging = False
+                renderer._add_job_slider_dragging = False
                 if city_drag_active and renderer.adding_one_way_route:
                     tile = renderer.get_tile_at(*event.pos)
                     current_city = selected_tile.city if selected_tile else None
@@ -289,6 +290,13 @@ def main():
                         food_range = max_food - min_food
                         t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
                         renderer.separate_popup_food = max(min_food, min(max_food, min_food + round(t * food_range)))
+                if renderer._add_job_slider_dragging and renderer.add_job_popup_active and renderer.add_job_popup_city:
+                    sr = renderer.add_job_popup_slider_rect
+                    if sr:
+                        city = renderer.add_job_popup_city
+                        max_count = city._get_population()
+                        t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
+                        renderer.add_job_popup_count = round(t * max_count)
 
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
                 if move_mode and event.pos[0] < renderer.map_w:
@@ -489,6 +497,33 @@ def main():
                             break
                     if not hit:
                         renderer.production_popup_active = False
+
+                elif renderer.add_job_popup_active:
+                    city = renderer.add_job_popup_city
+                    if renderer.add_job_popup_confirm_rect and renderer.add_job_popup_confirm_rect.collidepoint(pos):
+                        from src.game.jobs import JobQueue
+                        if city and renderer.add_job_popup_selected_type and renderer.add_job_popup_count > 0:
+                            city.job_queue.append(JobQueue(renderer.add_job_popup_selected_type, renderer.add_job_popup_count))
+                        renderer.add_job_popup_active = False
+                        renderer.add_job_popup_city = None
+                        renderer.add_job_popup_selected_type = None
+                        renderer.add_job_popup_count = 0
+                    elif renderer.add_job_popup_cancel_rect and renderer.add_job_popup_cancel_rect.collidepoint(pos):
+                        renderer.add_job_popup_active = False
+                        renderer.add_job_popup_city = None
+                        renderer.add_job_popup_selected_type = None
+                        renderer.add_job_popup_count = 0
+                    else:
+                        for jtype, rect in renderer.add_job_popup_type_rects.items():
+                            if rect.collidepoint(pos):
+                                renderer.add_job_popup_selected_type = jtype
+                                break
+                        if renderer.add_job_popup_slider_rect and renderer.add_job_popup_slider_rect.collidepoint(pos):
+                            renderer._add_job_slider_dragging = True
+                            sr = renderer.add_job_popup_slider_rect
+                            max_count = city._get_population() if city else 0
+                            t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
+                            renderer.add_job_popup_count = round(t * max_count)
 
                 elif renderer.separate_popup_active:
                     if renderer.separate_popup_confirm_rect and renderer.separate_popup_confirm_rect.collidepoint(pos):
@@ -919,6 +954,14 @@ def main():
                     city = selected_tile.city if selected_tile else None
                     if city:
                         city.gates_closed = not city.gates_closed
+
+                elif renderer.add_job_button_rect and renderer.add_job_button_rect.collidepoint(pos):
+                    city = selected_tile.owning_city if selected_tile else None
+                    if city:
+                        renderer.add_job_popup_active = True
+                        renderer.add_job_popup_city = city
+                        renderer.add_job_popup_selected_type = None
+                        renderer.add_job_popup_count = 0
 
                 elif renderer.save_map_button_rect and renderer.save_map_button_rect.collidepoint(pos):
                     save_popup_active = True

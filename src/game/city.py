@@ -1,7 +1,7 @@
 import bisect
 import math
 from src.game.pop import Pop
-from src.game.jobs import FarmJob, ProductionJob, CaravanJob
+from src.game.jobs import FarmJob, ProductionJob, CaravanJob, JobQueue
 from src.game.constants import POP_FOOD_CONSUMPTION, FOOD_YIELD, GAME_SCALE
 
 STOCKPILE_MAX = 20
@@ -67,6 +67,7 @@ class City:
         self.food_pops = 0
         self.non_food_pops = 0
         self.locked_pops = 0
+        self.job_queue = []
 
     @property
     def unassigned_pops(self):
