@@ -57,6 +57,7 @@ class JobQueue:
     def __init__(self, job_type, count=0):
         self.job_type = job_type
         self.count = count
+        self.filled = 0
 
 
 class CaravanJob(Job):

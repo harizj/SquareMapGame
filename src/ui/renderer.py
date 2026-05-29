@@ -290,6 +290,7 @@ class Renderer:
         self.job_queue_down_rects = []
         self.job_queue_minus_rects = []
         self.job_queue_plus_rects = []
+        self.job_queue_x_rects = []
         self._separate_food_slider_dragging = False
         self.battle_popup_confirm_rect = None
         self.battle_popup_cancel_rect = None
@@ -1721,8 +1722,8 @@ class Renderer:
                 surf = self.font_body.render(f"{total_caravans} {_jlabel('Caravans', total_caravans)}", True, TEXT_COLOR)
                 self.screen.blit(surf, (x + 4, y))
                 y += surf.get_height() + 2
-            n_peasants = city.total_farm_assigned
-            surf = self.font_body.render(f"{n_peasants}/{city.total_farm_slots} {_jlabel('Peasants', n_peasants)}", True, TEXT_COLOR)
+            n_peasants = city.food_pops
+            surf = self.font_body.render(f"{n_peasants} {_jlabel('Peasants', n_peasants)}", True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
             y += surf.get_height() + 2
             _jq_labels = {'growth': 'Growth', 'stockpile': 'Stockpile', 'production': 'Production'}
@@ -1730,12 +1731,15 @@ class Renderer:
             self.job_queue_down_rects = []
             self.job_queue_minus_rects = []
             self.job_queue_plus_rects = []
+            self.job_queue_x_rects = []
             row_h = btn_s + 2
             for entry in city.job_queue:
-                label_text = f"{entry.count} {_jq_labels.get(entry.job_type, entry.job_type)}"
+                label_text = f"{entry.filled}/{entry.count} {_jq_labels.get(entry.job_type, entry.job_type)}"
                 surf = self.font_body.render(label_text, True, TEXT_COLOR)
                 self.screen.blit(surf, (x + 4, y + (row_h - surf.get_height()) // 2))
                 rx = CITY_PANEL_WIDTH - pad - btn_s
+                self.job_queue_x_rects.append(self._draw_button(rx, y, btn_s, btn_s, "x"))
+                rx -= btn_s + 4
                 self.job_queue_plus_rects.append(self._draw_button(rx, y, btn_s, btn_s, "+"))
                 rx -= btn_s + 2
                 self.job_queue_minus_rects.append(self._draw_button(rx, y, btn_s, btn_s, "-"))
@@ -1770,6 +1774,7 @@ class Renderer:
             self.job_queue_down_rects = []
             self.job_queue_minus_rects = []
             self.job_queue_plus_rects = []
+            self.job_queue_x_rects = []
             self.city_focus_rects = {}
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
         y += 10

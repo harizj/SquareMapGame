@@ -7,8 +7,8 @@ from src.game.constants import POP_FOOD_CONSUMPTION, FOOD_YIELD, GAME_SCALE
 STOCKPILE_MAX = 20
 GROWTH_NEEDED_FOR_NEW_POP = 100
 GROWTH_FOOD_REQUIREMENT = .20
-GROWTH_RATE = 4
-GROWTH_SLOWDOWN = 0.2
+GROWTH_RATE = 16
+GROWTH_SLOWDOWN = 0.8
 POPS_PER_GROWTH_SLOWDOWN = 5*GAME_SCALE
 GROWTH_SLOWDOWN_POP_THRESHOLD = 100
 TURNS_WITH_STOCKPILE_LOSS_THRESHOLD = 5
@@ -67,7 +67,11 @@ class City:
         self.food_pops = 0
         self.non_food_pops = 0
         self.locked_pops = 0
+        self.free_pops = 0
         self.job_queue = []
+        self.pops_allocated_to_growth = 0
+        self.pops_allocated_to_production = 0
+        self.pops_allocated_to_stockpile = 0
 
     @property
     def unassigned_pops(self):
@@ -305,6 +309,7 @@ class City:
         # if self.food_allocated_to_min_stockpile < alloc_stockpile:
         #     print(f"Not enough food for stockpile in {self.name}")
         self.food_allocated_to_growth = 0
+        self.growth_allocated = self.pops_allocated_to_growth * GROWTH_RATE
         # if self._space_for_new_pop():
         #     self.food_allocated_to_growth = min(remaining, growth_food)
         #     remaining -= self.food_allocated_to_growth
@@ -317,6 +322,8 @@ class City:
             self.food_allocated_to_stockpile = remaining
         else:
             self.food_allocated_to_stockpile = 0
+
+        self.food_allocated_to_stockpile += self.pops_allocated_to_stockpile * FARM_YIELD
         # if self.food_stockpile + self.food_allocated_to_stockpile < 0:
         #     self.pending_pop_loss = math.ceil(-(self.food_stockpile + self.food_allocated_to_stockpile))
         #     self.food_allocated_to_stockpile = - self.food_stockpile
@@ -451,15 +458,78 @@ class City:
                         assigned_to_farm += 1
 
         self.food_pops = assigned_to_farm
-        self.non_food_pops = self._get_population() - assigned_to_farm
-        self.locked_pops = caravan_assigned if route_caravan_jobs else 0
 
-        # Rest to production
-        if prod_job:
-            for pop in self.pops:
-                if pop.assigned_job is None and prod_job.available_slots > 0:
-                    pop.assigned_job = prod_job
-                    prod_job.assigned += 1
+        self.locked_pops = caravan_assigned if route_caravan_jobs else 0
+        self.free_pops = remaining_pops - assigned_to_farm
+        self.pops_allocated_to_growth = 0
+        self.pops_allocated_to_production = 0
+        self.pops_allocated_to_stockpile = 0
+
+        # Job queue: allocate in priority order, track how many each entry receives
+        free_pops = self.free_pops
+        for entry in self.job_queue:
+            want = min(entry.count, free_pops)
+            if want <= 0:
+                entry.filled = 0
+                continue
+            given = 0
+            if entry.job_type == 'production':
+                if prod_job:
+                    for pop in self.pops:
+                        if given >= want:
+                            break
+                        if pop.assigned_job is None and prod_job.available_slots > 0:
+                            pop.assigned_job = prod_job
+                            prod_job.assigned += 1
+                            given += 1
+                            self.pops_allocated_to_production += 1
+            elif entry.job_type == 'growth':  # growth or stockpile → extra farm pops
+                for _, j in tile_farm_jobs:
+                    if given >= want:
+                        break
+                    for pop in self.pops:
+                        if given >= want:
+                            break
+                        if pop.assigned_job is None and j.available_slots > 0:
+                            pop.assigned_job = j
+                            j.assigned += 1
+                            given += 1
+                            self.pops_allocated_to_growth += 1
+            elif entry.job_type == 'stockpile':  # growth or stockpile → extra farm pops
+                for _, j in tile_farm_jobs:
+                    if given >= want:
+                        break
+                    for pop in self.pops:
+                        if given >= want:
+                            break
+                        if pop.assigned_job is None and j.available_slots > 0:
+                            pop.assigned_job = j
+                            j.assigned += 1
+                            given += 1
+                            self.pops_allocated_to_stockpile += 1
+            entry.filled = given
+            free_pops -= given
+
+        # City focus: remaining free pops go to the focus destination
+        if self.city_focus == 'Production':
+            if prod_job:
+                for pop in self.pops:
+                    if pop.assigned_job is None and prod_job.available_slots > 0:
+                        pop.assigned_job = prod_job
+                        prod_job.assigned += 1
+        else:  # Growth or Stockpile → farm
+            for _, j in tile_farm_jobs:
+                for pop in self.pops:
+                    if pop.assigned_job is None and j.available_slots > 0:
+                        pop.assigned_job = j
+                        j.assigned += 1
+                        if self.city_focus == 'Growth':
+                            self.pops_allocated_to_growth += 1
+                        if self.city_focus == 'Stockpile':
+                            self.pops_allocated_to_stockpile += 1
+
+        
+        self.non_food_pops = self._get_population() - self.food_pops
 
         # Production yield
         self.production_yield = 0.0

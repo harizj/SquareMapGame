@@ -990,6 +990,14 @@ def main():
                                 city.job_queue[i].count = min(city._get_population(), city.job_queue[i].count + 1)
                                 break
 
+                elif any(r.collidepoint(pos) for r in renderer.job_queue_x_rects):
+                    city = selected_tile.owning_city if selected_tile else None
+                    if city:
+                        for i, r in enumerate(renderer.job_queue_x_rects):
+                            if r.collidepoint(pos):
+                                city.job_queue.pop(i)
+                                break
+
                 elif renderer.add_job_button_rect and renderer.add_job_button_rect.collidepoint(pos):
                     city = selected_tile.owning_city if selected_tile else None
                     if city:
