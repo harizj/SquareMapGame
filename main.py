@@ -4,6 +4,7 @@ import pygame
 from src.game.battles import compute_battle_preview, resolve_battle
 from src.game.city import City
 from src.game.faction import Faction, COLOR_SETS, CITY_NAME_SETS
+from src.game.director import HordeDirector
 from src.game.line_of_sight import LineOfSight
 from src.game.pop import Pop
 from src.game.unit_group import UnitGroup
@@ -27,12 +28,17 @@ def _load_game_config():
 
 
 def _apply_game_config(game_map, game_config):
+    _director_map = {'horde': HordeDirector}
+
     factions = {}
     for f_data in game_config.get('factions', []):
+        director_key = f_data.get('director')
+        director = _director_map[director_key]() if director_key else None
         faction = Faction(
             name=f_data['name'],
             colors=COLOR_SETS[f_data['colors']],
             city_names=CITY_NAME_SETS[f_data['city_names']],
+            director=director,
         )
         factions[f_data['name']] = faction
 
@@ -1150,6 +1156,8 @@ def main():
         if do_end_turn:
             turn += 1
             game_log.append("")
+            for faction in factions.values():
+                faction.do_turn(game_map, turn)
             for row in game_map.tiles:
                 for tile in row:
                     for group in tile.unit_groups:

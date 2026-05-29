@@ -18,11 +18,21 @@ CITY_NAME_SETS = {'babylon': BABYLON_CITY_NAMES, 'assyria': ASSYRIA_CITY_NAMES}
 
 
 class Faction:
-    def __init__(self, name, colors, city_names):
+    def __init__(self, name, colors, city_names, director=None):
         self.name = name
         self.colors = colors  # dict with keys: 'dark', 'light'
         self.city_names = city_names
         self._city_name_idx = 0
+        self.director = director  # None = player controlled
+
+    @property
+    def is_player_controlled(self):
+        return self.director is None
+
+    def do_turn(self, game_map, turn):
+        if self.director is not None:
+            self.director.plan_turn(self, game_map)
+            self.director.spawn_tick(self, game_map, turn)
 
     def take_city_name(self):
         name = self.city_names[self._city_name_idx % len(self.city_names)]
