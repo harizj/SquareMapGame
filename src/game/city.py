@@ -7,13 +7,13 @@ from src.game.constants import POP_FOOD_CONSUMPTION, FOOD_YIELD, GAME_SCALE
 STOCKPILE_MAX = 20
 GROWTH_NEEDED_FOR_NEW_POP = 100
 GROWTH_FOOD_REQUIREMENT = .20
-GROWTH_RATE = 16
-GROWTH_SLOWDOWN = 0.8
+GROWTH_RATE = 20
+GROWTH_SLOWDOWN = 1.0
 POPS_PER_GROWTH_SLOWDOWN = 5*GAME_SCALE
 GROWTH_SLOWDOWN_POP_THRESHOLD = 100
-TURNS_WITH_STOCKPILE_LOSS_THRESHOLD = 5
-BASE_WOOD_EXTRACTION_MODIFIER = 1
-BASE_IRON_EXTRACTION_MODIFIER = 1
+# TURNS_WITH_STOCKPILE_LOSS_THRESHOLD = 5
+BASE_WOOD_EXTRACTION_MODIFIER = 2
+BASE_IRON_EXTRACTION_MODIFIER = 2
 FARM_YIELD = FOOD_YIELD
 WORKSHOP_WOOD_CONSUMPTION = 0.5
 WORKSHOP_PRODUCTION_MODIFIER = 1.5
@@ -54,7 +54,7 @@ class City:
         self.food_shortfall = 0.0
         self.growth_allocated = 0.0
         self.pending_pop_loss = 0
-        self.turns_with_stockpile_loss = 0.0
+        # self.turns_with_stockpile_loss = 0.0
         self.tile = None
         self.production_target = ProductionTarget()
         self.production_yield = 0.0
@@ -157,6 +157,10 @@ class City:
 
     def _stockpile_max(self):
         return 2 * self._get_population()
+
+    @property
+    def growth_progress_display(self):
+        return (self._get_population() * 100 + self.growth_progress) % 400
 
     def _stockpile_decay(self):
         pop = self._get_population()
@@ -678,16 +682,17 @@ class City:
 
         # Step 1: stockpile replenishment
         self.food_stockpile = max(min(self.food_stockpile + self.food_allocated_to_stockpile, self._stockpile_max()),0)
-        if (self.food_allocated_to_stockpile < 0) and (self.food_stockpile < .5 * self._get_population() * POP_FOOD_CONSUMPTION):
-            self.turns_with_stockpile_loss += 1
-            if self.turns_with_stockpile_loss > TURNS_WITH_STOCKPILE_LOSS_THRESHOLD:
-                self.pending_pop_loss += 1
-                self.turns_with_stockpile_loss = 0
-        else:
-            self.turns_with_stockpile_loss = 0
+        # if (self.food_allocated_to_stockpile < 0) and (self.food_stockpile < .5 * self._get_population() * POP_FOOD_CONSUMPTION):
+        #     self.turns_with_stockpile_loss += 1
+        #     if self.turns_with_stockpile_loss > TURNS_WITH_STOCKPILE_LOSS_THRESHOLD:
+        #         self.pending_pop_loss += 1
+        #         self.turns_with_stockpile_loss = 0
+        # else:
+        #     self.turns_with_stockpile_loss = 0
 
         # Step 2: growth
-        self.growth_progress += self.growth_allocated
+        if self._space_for_new_pop():
+            self.growth_progress += self.growth_allocated
         if self.growth_allocated > 0:
             log.append(f"{self.name}: {self.growth_allocated:.0f} added to growth bar")
 

@@ -685,13 +685,17 @@ class Renderer:
                     tick_x = bx + int(bar_w * min_stockpile / food_max)
                     pygame.draw.line(self.screen, (255, 255, 255), (tick_x, by - 1), (tick_x, by + bar_h), tick_w)
         elif bar_type == 'growth':
-            proj = min(city.growth_progress + city.growth_allocated, 100)
-            proj_w = max(int(bar_w * proj / 100), 0)
+            growth_display_max = 400
+            proj = min(city.growth_progress_display + city.growth_allocated, growth_display_max)
+            proj_w = max(int(bar_w * proj / growth_display_max), 0)
             if proj_w > 0:
                 pygame.draw.rect(self.screen, (120, 210, 200), (bx, by, proj_w, bar_h), border_radius=border_radius)
-            fill_w = max(int(bar_w * min(city.growth_progress, 100) / 100), 0)
+            fill_w = max(int(bar_w * min(city.growth_progress_display, growth_display_max) / growth_display_max), 0)
             if fill_w > 0:
                 pygame.draw.rect(self.screen, (40, 160, 150), (bx, by, fill_w, bar_h), border_radius=border_radius)
+            for tick_val in (100, 200, 300):
+                tick_x = bx + int(bar_w * tick_val / growth_display_max)
+                pygame.draw.line(self.screen, (30, 30, 40), (tick_x, by), (tick_x, by + bar_h - 1), tick_w)
         elif bar_type == 'construction':
             fill_w = max(int(bar_w * min(city.construction_progress, 1000) / 1000), 0)
             if fill_w > 0:
@@ -1173,18 +1177,18 @@ class Renderer:
             cx, cy = all_centers[(r, c)]
             name_y = city_name_ys.get((r, c), int(cy))
             mini_bar_w = 30
-            mini_bar_h = 2
+            mini_bar_h = 3
             mini_gap = 1
             mini_pad = 2
             block_w = mini_bar_w + mini_pad * 2
             block_h = mini_bar_h * 3 + mini_gap * 2 + mini_pad * 2
-            circle_r = block_h
+            circle_r = 12
             overlap = 1
             total_w = circle_r * 4 + block_w - overlap * 2
             start_x = int(cx) - total_w // 2
-            by = name_y
+            circle_cy = name_y + circle_r
+            by = circle_cy - block_h // 2
             left_circle_cx = start_x + circle_r
-            circle_cy = by + block_h // 2
             bx = start_x + circle_r * 2 - overlap
             right_circle_cx = bx + block_w - overlap + circle_r
             bar_pad = 1
@@ -1678,14 +1682,14 @@ class Renderer:
 
         # Food stockpile bar
         food_max = city._stockpile_max()
-        y = self._draw_labeled_bar(city, "Food", f"{int(city.food_stockpile)}/{food_max}", 'food', bar_x, y, bar_w, bar_h, gap=8, tick_w=2)
+        y = self._draw_labeled_bar(city, "Food Stockpile", f"{int(city.food_stockpile)}/{food_max}", 'food', bar_x, y, bar_w, bar_h, gap=8, tick_w=2)
 
         # Growth bar
         y = self._draw_labeled_bar(city, "Growth", f"{int(city.growth_progress)}/100", 'growth', bar_x, y, bar_w, bar_h, gap=8)
 
         # Production bar
         pt = city.production_target
-        prod_label = pt.label if pt.type else "Production"
+        prod_label = "Production"
         if city.production_complete is not None:
             prod_val = f"{int(city.production_progress)}/{int(city.production_complete)}"
         else:
@@ -1760,10 +1764,10 @@ class Renderer:
                     remaining_surf = self.font_body.render(remaining_label, True, TEXT_COLOR)
                     self.screen.blit(remaining_surf, (x + 4, y))
                     y += remaining_surf.get_height() + 4
-                    focus_widths = [52, 72, 60]
+                    focus_widths = [60, 52, 72]
                     focus_x = x + 4
                     self.city_focus_rects = {}
-                    for label, fw in zip(("Growth", "Production", "Stockpile"), focus_widths):
+                    for label, fw in zip(("Stockpile", "Growth", "Production"), focus_widths):
                         disabled = label == 'Growth' and city.growth_halted
                         rect = self._draw_button(focus_x, y, fw, 20, label,
                                                  active=(label == city.city_focus),
@@ -2648,7 +2652,7 @@ class Renderer:
 
         # Job type buttons
         y = sy + 34
-        type_labels = [('growth', 'Growth'), ('stockpile', 'Stockpile'), ('production', 'Production')]
+        type_labels = [('stockpile', 'Stockpile'), ('growth', 'Growth'), ('production', 'Production')]
         btn_w = (track_w - 8) // 3
         self.add_job_popup_type_rects = {}
         for i, (jtype, jlabel) in enumerate(type_labels):
