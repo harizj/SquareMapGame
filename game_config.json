@@ -9,6 +9,6 @@
   ],
   "unit_groups": [
     {"row": 6, "col": 2,  "faction": "Babylonians", "num_units": 3, "food": 6},
-    {"row": 6, "col": 3,  "faction": "Assyrians",   "num_units": 3, "food": 12}
+    {"row": 6, "col": 8,  "faction": "Assyrians",   "num_units": 3, "food": 12}
   ]
 }

@@ -1,7 +1,7 @@
 import json
 import os
 import pygame
-from src.game.battles import compute_battle_preview, resolve_battle
+from src.game.battles import compute_battle_preview, resolve_battle, apply_battle_result
 from src.game.city import City
 from src.game.faction import Faction, COLOR_SETS, CITY_NAME_SETS
 from src.game.director import HordeDirector
@@ -375,56 +375,20 @@ def main():
                 elif battle_popup_active:
                     if renderer.battle_popup_confirm_rect and renderer.battle_popup_confirm_rect.collidepoint(pos):
                         result = resolve_battle(pending_combat_preview)
-                        attacker_groups = pending_combat_preview['attacker_groups']
-                        defender = pending_combat_preview['defender']
-                        # Remove lowest-combat-strength units first
-                        atk_sorted = sorted(
-                            [(g, u) for g in attacker_groups for u in g.units],
-                            key=lambda x: x[1].combat_strength
-                        )
-                        atk_killed = []
-                        for g, u in atk_sorted[:result['attacker_losses']]:
-                            if u in g.units:
-                                g.units.remove(u)
-                                atk_killed.append(u)
-                        if pending_combat_tile:
-                            _drop_items_for_units(atk_killed, pending_combat_tile)
-                        for g in attacker_groups:
-                            g.max_food_stockpile = g._carry_capacity()
-                            g.food_stockpile = min(g.food_stockpile, g.max_food_stockpile)
-                        if not isinstance(defender, City):
-                            def_sorted = sorted(
-                                [(g, u) for g in defender for u in g.units],
-                                key=lambda x: x[1].combat_strength
-                            )
-                            def_killed = []
-                            for g, u in def_sorted[:result['defender_losses']]:
-                                if u in g.units:
-                                    g.units.remove(u)
-                                    def_killed.append(u)
-                            if pending_combat_tile:
-                                _drop_items_for_units(def_killed, pending_combat_tile)
-                            for g in defender:
-                                g.max_food_stockpile = g._carry_capacity()
-                                g.food_stockpile = min(g.food_stockpile, g.max_food_stockpile)
+                        survivors = apply_battle_result(pending_combat_preview, result, game_map, pending_combat_tile)
                         if result['outcome'] == 'attacker_wins':
-                            if pending_combat_tile:
-                                pending_combat_tile.unit_groups = [g for g in pending_combat_tile.unit_groups if g.units]
-                                if not pending_combat_tile.unit_groups:
-                                    survivors = [g for g in attacker_groups if g.units]
-                                    for group in survivors:
-                                        game_map.move_group(group, pending_combat_tile.row, pending_combat_tile.col, 0)
-                                    selected_tile = pending_combat_tile
-                                    renderer.selected_unit_groups = {g for g in survivors}
+                            survivors_on_combat_tile = (
+                                pending_combat_tile and
+                                any(g.row == pending_combat_tile.row and g.col == pending_combat_tile.col for g in survivors)
+                            )
+                            if survivors_on_combat_tile:
+                                selected_tile = pending_combat_tile
+                            renderer.selected_unit_groups = {g for g in survivors}
                             game_log.append(f"Battle won! Losses — us: {result['attacker_losses']}, them: {result['defender_losses']}")
                         elif result['outcome'] == 'defender_wins':
                             game_log.append(f"Battle lost! Losses — us: {result['attacker_losses']}, them: {result['defender_losses']}")
                         else:
                             game_log.append(f"Battle drawn! Losses — us: {result['attacker_losses']}, them: {result['defender_losses']}")
-                        for row in game_map.tiles:
-                            for t in row:
-                                t.unit_groups = [g for g in t.unit_groups if g.units]
-                                t.update_unit_allocations()
                         move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                         battle_result_active = True
                         pending_battle_result = result

@@ -31,7 +31,7 @@ class Faction:
 
     def do_turn(self, game_map, turn):
         if self.director is not None:
-            self.director.plan_turn(self, game_map)
+            self.director.director_moves(self, game_map)
             self.director.spawn_tick(self, game_map, turn)
 
     def take_city_name(self):

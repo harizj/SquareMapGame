@@ -291,3 +291,71 @@ def resolve_battle(preview):
         'log':             flat_log,
         'rounds':          rounds,
     }
+
+
+def apply_battle_result(preview, result, game_map, combat_tile):
+    """Apply the mechanical outcome of a resolved battle to unit groups and map state.
+
+    Removes casualties, updates food stockpiles, advances surviving attackers onto
+    the combat tile if they won and it is clear, then purges empty groups everywhere.
+    Returns the list of surviving attacker groups.
+    """
+    from src.game.city import City
+    from src.game.items import ITEM_REGISTRY
+
+    _unit_to_item = {cls.upgrades_to: cls.name for cls in ITEM_REGISTRY.values()}
+
+    def _drop_items(units, tile):
+        for unit in units:
+            item = _unit_to_item.get(unit.unit_type)
+            if item:
+                tile.item_stockpiles[item] = tile.item_stockpiles.get(item, 0) + 1
+
+    attacker_groups = preview['attacker_groups']
+    defender = preview['defender']
+
+    atk_sorted = sorted(
+        [(g, u) for g in attacker_groups for u in g.units],
+        key=lambda x: x[1].combat_strength,
+    )
+    atk_killed = []
+    for g, u in atk_sorted[:result['attacker_losses']]:
+        if u in g.units:
+            g.units.remove(u)
+            atk_killed.append(u)
+    if combat_tile:
+        _drop_items(atk_killed, combat_tile)
+    for g in attacker_groups:
+        g.max_food_stockpile = g._carry_capacity()
+        g.food_stockpile = min(g.food_stockpile, g.max_food_stockpile)
+
+    if not isinstance(defender, City):
+        def_sorted = sorted(
+            [(g, u) for g in defender for u in g.units],
+            key=lambda x: x[1].combat_strength,
+        )
+        def_killed = []
+        for g, u in def_sorted[:result['defender_losses']]:
+            if u in g.units:
+                g.units.remove(u)
+                def_killed.append(u)
+        if combat_tile:
+            _drop_items(def_killed, combat_tile)
+        for g in defender:
+            g.max_food_stockpile = g._carry_capacity()
+            g.food_stockpile = min(g.food_stockpile, g.max_food_stockpile)
+
+    survivors = [g for g in attacker_groups if g.units]
+
+    if result['outcome'] == 'attacker_wins' and combat_tile:
+        combat_tile.unit_groups = [g for g in combat_tile.unit_groups if g.units]
+        if not combat_tile.unit_groups:
+            for group in survivors:
+                game_map.move_group(group, combat_tile.row, combat_tile.col, 0)
+
+    for row in game_map.tiles:
+        for t in row:
+            t.unit_groups = [g for g in t.unit_groups if g.units]
+            t.update_unit_allocations()
+
+    return survivors
