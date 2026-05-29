@@ -1726,10 +1726,14 @@ class Renderer:
                 surf = self.font_body.render(f"{total_caravans} {_jlabel('Caravans', total_caravans)}", True, TEXT_COLOR)
                 self.screen.blit(surf, (x + 4, y))
                 y += surf.get_height() + 2
+            available_farms = city.total_farm_slots - city.total_farm_assigned
+            surf = self.font_body.render(f"{available_farms} Available {_jlabel('Farms', available_farms)}", True, TEXT_COLOR)
+            self.screen.blit(surf, (x + 4, y))
+            y += surf.get_height() + 2
             n_peasants = city.food_pops
             surf = self.font_body.render(f"{n_peasants} {_jlabel('Peasants', n_peasants)}", True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 2
+            y += surf.get_height() + 8
             _jq_labels = {'growth': 'Growth', 'stockpile': 'Stockpile', 'production': 'Production'}
             self.job_queue_up_rects = []
             self.job_queue_down_rects = []
@@ -1767,8 +1771,9 @@ class Renderer:
                     focus_widths = [60, 52, 72]
                     focus_x = x + 4
                     self.city_focus_rects = {}
+                    farm_full = city._get_population() > city.total_farm_slots
                     for label, fw in zip(("Stockpile", "Growth", "Production"), focus_widths):
-                        disabled = label == 'Growth' and city.growth_halted
+                        disabled = (label == 'Growth' and city.growth_halted) or (label in ('Growth', 'Stockpile') and farm_full)
                         rect = self._draw_button(focus_x, y, fw, 20, label,
                                                  active=(label == city.city_focus),
                                                  disabled=disabled)

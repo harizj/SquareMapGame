@@ -69,7 +69,7 @@ class City:
         self.non_food_pops = 0
         self.locked_pops = 0
         self.free_pops = 0
-        self.job_queue = []
+        self.job_queue = [JobQueue('stockpile', count=1)]
         self.pops_allocated_to_growth = 0
         self.pops_allocated_to_production = 0
         self.pops_allocated_to_stockpile = 0
@@ -547,7 +547,17 @@ class City:
                             self.pops_allocated_to_stockpile += 1
         self.focus_unassigned_pops = free_pops - focus_assigned
 
-        
+        if self.focus_unassigned_pops > 0 and self.city_focus != 'Production':
+            job_type = self.city_focus.lower()
+            existing = next((e for e in self.job_queue if e.job_type == job_type), None)
+            if existing:
+                existing.count += self.remaining_free_pops
+            else:
+                self.job_queue.append(JobQueue(job_type, count=self.remaining_free_pops))
+            self.city_focus = 'Production'
+            self.rebalance_pops()
+            return
+
         self.non_food_pops = self._get_population() - self.food_pops
 
         # Production yield
