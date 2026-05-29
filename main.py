@@ -955,6 +955,41 @@ def main():
                     if city:
                         city.gates_closed = not city.gates_closed
 
+                elif any(r.collidepoint(pos) for r in renderer.job_queue_up_rects):
+                    city = selected_tile.owning_city if selected_tile else None
+                    if city:
+                        for i, r in enumerate(renderer.job_queue_up_rects):
+                            if r.collidepoint(pos) and i > 0:
+                                city.job_queue[i], city.job_queue[i - 1] = city.job_queue[i - 1], city.job_queue[i]
+                                break
+
+                elif any(r.collidepoint(pos) for r in renderer.job_queue_down_rects):
+                    city = selected_tile.owning_city if selected_tile else None
+                    if city:
+                        for i, r in enumerate(renderer.job_queue_down_rects):
+                            if r.collidepoint(pos) and i < len(city.job_queue) - 1:
+                                city.job_queue[i], city.job_queue[i + 1] = city.job_queue[i + 1], city.job_queue[i]
+                                break
+
+                elif any(r.collidepoint(pos) for r in renderer.job_queue_minus_rects):
+                    city = selected_tile.owning_city if selected_tile else None
+                    if city:
+                        for i, r in enumerate(renderer.job_queue_minus_rects):
+                            if r.collidepoint(pos):
+                                if city.job_queue[i].count <= 1:
+                                    city.job_queue.pop(i)
+                                else:
+                                    city.job_queue[i].count -= 1
+                                break
+
+                elif any(r.collidepoint(pos) for r in renderer.job_queue_plus_rects):
+                    city = selected_tile.owning_city if selected_tile else None
+                    if city:
+                        for i, r in enumerate(renderer.job_queue_plus_rects):
+                            if r.collidepoint(pos):
+                                city.job_queue[i].count = min(city._get_population(), city.job_queue[i].count + 1)
+                                break
+
                 elif renderer.add_job_button_rect and renderer.add_job_button_rect.collidepoint(pos):
                     city = selected_tile.owning_city if selected_tile else None
                     if city:

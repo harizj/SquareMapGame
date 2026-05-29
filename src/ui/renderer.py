@@ -1286,6 +1286,7 @@ class Renderer:
         if self.add_job_popup_active and self.add_job_popup_city:
             self._draw_add_job_popup()
 
+
         if self.production_popup_active and selected_tile and selected_tile.city:
             self._draw_production_popup(selected_tile.city)
 
@@ -1698,18 +1699,6 @@ class Renderer:
         y, _city_focus_collapsed = self._draw_section_header('city_focus', 'CITY FOCUS', x, y)
         focus_btn_h = 20
         if not _city_focus_collapsed:
-            focus_widths = [52, 72, 60]
-            focus_x = pad
-            self.city_focus_rects = {}
-            for label, fw in zip(("Growth", "Production", "Stockpile"), focus_widths):
-                disabled = label == 'Growth' and city.growth_halted
-                rect = self._draw_button(focus_x, y, fw, focus_btn_h, label,
-                                         active=(label == city.city_focus),
-                                         disabled=disabled)
-                if not disabled:
-                    self.city_focus_rects[label] = rect
-                focus_x += fw + 2
-            y += focus_btn_h + 6
             half_w = (CITY_PANEL_WIDTH - pad * 2 - 4) // 2
             self.halt_growth_rect = self._draw_button(
                 pad, y, half_w, focus_btn_h, "Halt Growth", active=city.growth_halted)
@@ -1717,7 +1706,6 @@ class Renderer:
                 pad + half_w + 4, y, half_w, focus_btn_h, "Close Gates", active=city.gates_closed)
             y += focus_btn_h + 10
         else:
-            self.city_focus_rects = {}
             self.halt_growth_rect = None
             self.gates_closed_rect = None
 
@@ -1737,12 +1725,6 @@ class Renderer:
             surf = self.font_body.render(f"{n_peasants}/{city.total_farm_slots} {_jlabel('Peasants', n_peasants)}", True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
             y += surf.get_height() + 2
-            worker_capacity = city.non_food_pop_limit - city.locked_pops
-            for job in city.jobs:
-                if job.job_type == 'production':
-                    surf = self.font_body.render(f"{job.assigned}/{worker_capacity} {_jlabel(job.label, job.assigned)}", True, TEXT_COLOR)
-                    self.screen.blit(surf, (x + 4, y))
-                    y += surf.get_height() + 2
             _jq_labels = {'growth': 'Growth', 'stockpile': 'Stockpile', 'production': 'Production'}
             self.job_queue_up_rects = []
             self.job_queue_down_rects = []
@@ -1764,6 +1746,23 @@ class Renderer:
                 y += row_h + 2
             self.add_job_button_rect = self._draw_button(x + 4, y, CITY_PANEL_WIDTH - pad * 2 - 4, 18, "Add Job")
             y += 22
+            for job in city.jobs:
+                if job.job_type == 'production':
+                    remaining_surf = self.font_body.render(f"Remaining {job.assigned} To", True, TEXT_COLOR)
+                    self.screen.blit(remaining_surf, (x + 4, y))
+                    y += remaining_surf.get_height() + 4
+                    focus_widths = [52, 72, 60]
+                    focus_x = x + 4
+                    self.city_focus_rects = {}
+                    for label, fw in zip(("Growth", "Production", "Stockpile"), focus_widths):
+                        disabled = label == 'Growth' and city.growth_halted
+                        rect = self._draw_button(focus_x, y, fw, 20, label,
+                                                 active=(label == city.city_focus),
+                                                 disabled=disabled)
+                        if not disabled:
+                            self.city_focus_rects[label] = rect
+                        focus_x += fw + 2
+                    y += 24
             y += 4
         else:
             self.add_job_button_rect = None
@@ -1771,6 +1770,7 @@ class Renderer:
             self.job_queue_down_rects = []
             self.job_queue_minus_rects = []
             self.job_queue_plus_rects = []
+            self.city_focus_rects = {}
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
         y += 10
         y, _yields_collapsed = self._draw_section_header('yields', 'YIELDS', x, y)
@@ -2639,9 +2639,13 @@ class Renderer:
         self.add_job_popup_type_rects = {}
         for i, (jtype, jlabel) in enumerate(type_labels):
             bx = sx + pad + i * (btn_w + 4)
+            already_queued = city.has_job_in_queue(jtype)
+            if already_queued and self.add_job_popup_selected_type == jtype:
+                self.add_job_popup_selected_type = None
             active = self.add_job_popup_selected_type == jtype
-            rect = self._draw_button(bx, y, btn_w, 20, jlabel, active=active)
-            self.add_job_popup_type_rects[jtype] = rect
+            rect = self._draw_button(bx, y, btn_w, 20, jlabel, active=active, disabled=already_queued)
+            if not already_queued:
+                self.add_job_popup_type_rects[jtype] = rect
         y += 28
 
         # Pop count slider

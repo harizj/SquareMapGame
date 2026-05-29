@@ -151,6 +151,9 @@ class City:
     def _stockpile_max(self):
         return 2 * self._get_population()
 
+    def has_job_in_queue(self, job_type):
+        return any(entry.job_type == job_type for entry in self.job_queue)
+
     def has_resource(self, resource):
         return self.tile is not None and self.tile.resource_stockpiles.get(resource, 0) > 0
 
