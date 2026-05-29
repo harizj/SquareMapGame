@@ -1177,20 +1177,19 @@ class Renderer:
             cx, cy = all_centers[(r, c)]
             name_y = city_name_ys.get((r, c), int(cy))
             mini_bar_w = 30
-            mini_bar_h = 3
+            mini_bar_h = 3.5
             mini_gap = 1
             mini_pad = 2
             block_w = mini_bar_w + mini_pad * 2
             block_h = mini_bar_h * 3 + mini_gap * 2 + mini_pad * 2
             circle_r = 12
             overlap = 1
-            total_w = circle_r * 4 + block_w - overlap * 2
+            total_w = circle_r * 2 + block_w - overlap
             start_x = int(cx) - total_w // 2
             circle_cy = name_y + circle_r
             by = circle_cy - block_h // 2
-            left_circle_cx = start_x + circle_r
+            circle_cx = start_x + circle_r
             bx = start_x + circle_r * 2 - overlap
-            right_circle_cx = bx + block_w - overlap + circle_r
             bar_pad = 1
             city_dark  = city.get_city_color('dark')  or (35, 65, 150)
             city_light = city.get_city_color('light') or (180, 210, 255)
@@ -1207,43 +1206,38 @@ class Renderer:
             pop_fill_r = circle_r
             pop_ring_r = circle_r + 3
             pop_num_outline_r = 3
-            food_pct = min(1.0, city.food_pops / city.food_pop_limit) if city.food_pop_limit > 0 else 0.0
-            non_food_pct = min(1.0, city.non_food_pops / city.non_food_pop_limit) if city.non_food_pop_limit > 0 else 0.0
-            circle_data = (
-                (left_circle_cx,  city.food_pops,     food_pct),
-                (right_circle_cx, city.non_food_pops, non_food_pct),
-            )
-            for circle_cx, count, pct in circle_data:
-                fill_h = int(pop_fill_r * 2 * pct)
-                pop_str = str(count)
-                pop_outline = self.font_pop.render(pop_str, True, city_dark)
-                pop_white   = self.font_pop.render(pop_str, True, (255, 255, 255))
-                pygame.draw.circle(self.screen, city_dark, (circle_cx, circle_cy), pop_ring_r)
-                pygame.draw.circle(self.screen, (255, 255, 255), (circle_cx, circle_cy), pop_fill_r)
-                if fill_h > 0:
-                    old_clip = self.screen.get_clip()
-                    self.screen.set_clip(pygame.Rect(
-                        circle_cx - pop_fill_r,
-                        circle_cy + pop_fill_r - fill_h,
-                        pop_fill_r * 2,
-                        fill_h,
-                    ))
-                    pygame.draw.circle(self.screen, city_light, (circle_cx, circle_cy), pop_fill_r)
-                    self.screen.set_clip(old_clip)
-                    y_off = pop_fill_r - fill_h
-                    if abs(y_off) < pop_fill_r:
-                        chord_half = int(math.sqrt(pop_fill_r ** 2 - y_off ** 2))
-                        line_y = int(circle_cy) + y_off
-                        pygame.draw.line(self.screen, city_dark,
-                                         (int(circle_cx) - chord_half, line_y),
-                                         (int(circle_cx) + chord_half, line_y), 1)
-                tx = circle_cx - pop_white.get_width() // 2
-                ty = circle_cy - pop_white.get_height() // 2
-                for dx in range(-pop_num_outline_r, pop_num_outline_r + 1):
-                    for dy in range(-pop_num_outline_r, pop_num_outline_r + 1):
-                        if (dx, dy) != (0, 0) and dx * dx + dy * dy <= pop_num_outline_r * pop_num_outline_r:
-                            self.screen.blit(pop_outline, (tx + dx, ty + dy))
-                self.screen.blit(pop_white, (tx, ty))
+            pop = city._get_population()
+            pop_pct = min(1.0, pop / city.max_pops) if city.max_pops > 0 else 0.0
+            fill_h = int(pop_fill_r * 2 * pop_pct)
+            pop_str = str(pop)
+            pop_outline = self.font_pop.render(pop_str, True, city_dark)
+            pop_white   = self.font_pop.render(pop_str, True, (255, 255, 255))
+            pygame.draw.circle(self.screen, city_dark, (circle_cx, circle_cy), pop_ring_r)
+            pygame.draw.circle(self.screen, (255, 255, 255), (circle_cx, circle_cy), pop_fill_r)
+            if fill_h > 0:
+                old_clip = self.screen.get_clip()
+                self.screen.set_clip(pygame.Rect(
+                    circle_cx - pop_fill_r,
+                    circle_cy + pop_fill_r - fill_h,
+                    pop_fill_r * 2,
+                    fill_h,
+                ))
+                pygame.draw.circle(self.screen, city_light, (circle_cx, circle_cy), pop_fill_r)
+                self.screen.set_clip(old_clip)
+                y_off = pop_fill_r - fill_h
+                if abs(y_off) < pop_fill_r:
+                    chord_half = int(math.sqrt(pop_fill_r ** 2 - y_off ** 2))
+                    line_y = int(circle_cy) + y_off
+                    pygame.draw.line(self.screen, city_dark,
+                                     (int(circle_cx) - chord_half, line_y),
+                                     (int(circle_cx) + chord_half, line_y), 1)
+            tx = circle_cx - pop_white.get_width() // 2
+            ty = circle_cy - pop_white.get_height() // 2
+            for dx in range(-pop_num_outline_r, pop_num_outline_r + 1):
+                for dy in range(-pop_num_outline_r, pop_num_outline_r + 1):
+                    if (dx, dy) != (0, 0) and dx * dx + dy * dy <= pop_num_outline_r * pop_num_outline_r:
+                        self.screen.blit(pop_outline, (tx + dx, ty + dy))
+            self.screen.blit(pop_white, (tx, ty))
 
         # Pass 8: selected tile border (drawn over all map content)
         if self.selecting_extraction_city:
@@ -1733,7 +1727,14 @@ class Renderer:
             n_peasants = city.food_pops
             surf = self.font_body.render(f"{n_peasants} {_jlabel('Peasants', n_peasants)}", True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
+            y += surf.get_height() + 2
+            free = city.free_pops
+            surf = self.font_body.render(f"{free} Free {_jlabel('Pops', free)}", True, TEXT_COLOR)
+            self.screen.blit(surf, (x + 4, y))
             y += surf.get_height() + 8
+            alloc_surf = self.font_body.render("Allocations", True, HEADER_TEXT_COLOR)
+            self.screen.blit(alloc_surf, (x + 4, y))
+            y += alloc_surf.get_height() + 2
             _jq_labels = {'growth': 'Growth', 'stockpile': 'Stockpile', 'production': 'Production'}
             self.job_queue_up_rects = []
             self.job_queue_down_rects = []
@@ -1756,7 +1757,7 @@ class Renderer:
                 rx -= btn_s + 2
                 self.job_queue_up_rects.append(self._draw_button(rx, y, btn_s, btn_s, "^"))
                 y += row_h + 2
-            self.add_job_button_rect = self._draw_button(x + 4, y, CITY_PANEL_WIDTH - pad * 2 - 4, 18, "Add Job")
+            self.add_job_button_rect = self._draw_button(x + 4, y, CITY_PANEL_WIDTH - pad * 2 - 4, 18, "Add Priority")
             y += 22
             for job in city.jobs:
                 if job.job_type == 'production':
