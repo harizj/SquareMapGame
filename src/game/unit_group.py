@@ -136,6 +136,14 @@ class UnitGroup:
                 del item_stockpiles[item_name]
         print(f"[equip] after:  units=[{_summary(self.units)}] stockpile={dict(item_stockpiles)}")
 
+    def remove_pops(self, n):
+        """Remove up to n units from the group and return them as Unit objects."""
+        n = min(n, len(self.units))
+        removed = self.units[:n]
+        self.units = self.units[n:]
+        self.max_food_stockpile = self._carry_capacity()
+        return removed
+
     def update_tether_after_movement(self, game_map, dst_tile):
         if self.tether is not None:
             self.tether.unit_movement(game_map, dst_tile)

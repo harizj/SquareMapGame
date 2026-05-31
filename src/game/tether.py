@@ -1,3 +1,4 @@
+import math
 from src.game.trade_route import TradeRoute
 from src.game.constants import LAND_CARRY_CAPACITY, DEFAULT_MOVE_DISTANCE
 
@@ -8,11 +9,23 @@ class Tether:
         self.unit_group = unit_group
         self.food_amount = food_amount
         self.tether_pops = tether_pops or []
+        self.unit_list = []
         self.route = None
         print(f"[Tether] city={city.name} units={len(unit_group.units)} food_amount={food_amount} tether_pops={len(self.tether_pops)}")
 
     def update_supply_pops(self, distance):
-        supply_pops = self.food_amount * (LAND_CARRY_CAPACITY + 1 - 2 * distance / DEFAULT_MOVE_DISTANCE) / (LAND_CARRY_CAPACITY + 1)
+        units_in_field = math.ceil(
+            self.food_amount * (LAND_CARRY_CAPACITY + 1 - 2 * distance / DEFAULT_MOVE_DISTANCE) / (LAND_CARRY_CAPACITY + 1)
+        )
+        supply_pops = self.food_amount - units_in_field
+        needed = supply_pops - len(self.tether_pops)
+        print(f"[Tether] supply_pops={supply_pops} distance={distance} pops needed={needed}")
+        if needed > 0:
+            transferred = self.unit_group.remove_pops(needed)
+            self.unit_list.extend(transferred)
+            self.tether_pops.extend(u.pop for u in transferred)
+        elif needed < 0:
+            pass  # return excess pops handled separately
         return supply_pops
 
     def unit_movement(self, game_map, dst_tile):
