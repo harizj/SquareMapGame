@@ -4,6 +4,7 @@ import pygame
 from src.game.battles import compute_battle_preview, resolve_battle, apply_battle_result
 from src.game.city import City
 from src.game.faction import Faction, COLOR_SETS, CITY_NAME_SETS
+from src.game.tether import Tether
 from src.game.director import HordeDirector
 from src.game.line_of_sight import LineOfSight
 from src.game.pop import Pop
@@ -234,6 +235,7 @@ def main():
                 renderer._one_way_slider_dragging = False
                 renderer._recruit_slider_dragging = False
                 renderer._recruit_food_slider_dragging = False
+                renderer._recruit_supply_food_slider_dragging = False
                 renderer._separate_slider_dragging = None
                 renderer._separate_food_slider_dragging = False
                 renderer._add_job_slider_dragging = False
@@ -277,6 +279,12 @@ def main():
                     max_food_per_pop = min(MCC, int(selected_tile.city.food_stockpile / n)) if n > 0 else 0
                     t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
                     renderer.recruit_popup_food = max(0, min(max_food_per_pop, round(t * max_food_per_pop)))
+                if renderer._recruit_supply_food_slider_dragging and renderer.recruit_popup_supply_food_slider_rect:
+                    sr = renderer.recruit_popup_supply_food_slider_rect
+                    n = renderer.recruit_popup_amount
+                    max_supply_food = max(1, n * 2)
+                    t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
+                    renderer.recruit_popup_supply_food = max(1, min(max_supply_food, round(1 + t * (max_supply_food - 1))))
                 if renderer._separate_slider_dragging and renderer.separate_popup_active:
                     unit_type = renderer._separate_slider_dragging
                     sr = renderer.separate_popup_slider_rects.get(unit_type)
@@ -570,6 +578,12 @@ def main():
                             new_group.moves_remaining = 0
                             new_group.move_exhausted = True
                             new_group.add_food(food)
+                            if renderer.recruit_popup_supply_train:
+                                new_group.tether = Tether(
+                                    city=city,
+                                    unit_group=new_group,
+                                    food_amount=renderer.recruit_popup_supply_food,
+                                )
                             selected_tile.unit_groups.append(new_group)
                             selected_tile.update_after_movement()
                             city.rebalance_pops()
@@ -578,9 +592,13 @@ def main():
                             move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                         renderer.recruit_popup_active = False
                         renderer.recruit_popup_food = 0
+                        renderer.recruit_popup_supply_train = False
+                        renderer.recruit_popup_supply_food = 1
                     elif renderer.recruit_popup_cancel_rect and renderer.recruit_popup_cancel_rect.collidepoint(pos):
                         renderer.recruit_popup_active = False
                         renderer.recruit_popup_food = 0
+                        renderer.recruit_popup_supply_train = False
+                        renderer.recruit_popup_supply_food = 1
                     elif renderer.recruit_popup_slider_rect and renderer.recruit_popup_slider_rect.collidepoint(pos):
                         renderer._recruit_slider_dragging = True
                         sr = renderer.recruit_popup_slider_rect
@@ -595,6 +613,15 @@ def main():
                         max_food_per_pop = min(MCC, int(selected_tile.city.food_stockpile / n)) if (selected_tile and selected_tile.city and n > 0) else 0
                         t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
                         renderer.recruit_popup_food = max(0, min(max_food_per_pop, round(t * max_food_per_pop)))
+                    elif renderer.recruit_popup_supply_checkbox_rect and renderer.recruit_popup_supply_checkbox_rect.collidepoint(pos):
+                        renderer.recruit_popup_supply_train = not renderer.recruit_popup_supply_train
+                    elif renderer.recruit_popup_supply_food_slider_rect and renderer.recruit_popup_supply_food_slider_rect.collidepoint(pos):
+                        renderer._recruit_supply_food_slider_dragging = True
+                        sr = renderer.recruit_popup_supply_food_slider_rect
+                        n = renderer.recruit_popup_amount
+                        max_supply_food = max(1, n * 2)
+                        t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
+                        renderer.recruit_popup_supply_food = max(1, min(max_supply_food, round(1 + t * (max_supply_food - 1))))
 
                 elif renderer.trade_route_pending and renderer.trade_route_import_slider_rect and renderer.trade_route_import_slider_rect.collidepoint(pos):
                     renderer.snap_import_amount(pos[0])

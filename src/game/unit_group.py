@@ -19,6 +19,7 @@ class UnitGroup:
         self.pending_pop_loss = 0
         self.move_exhausted = False
         self.can_capture_tile = False
+        self.tether = None
 
     def get_color(self, color_type):
         if self.faction:

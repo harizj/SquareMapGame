@@ -300,6 +300,11 @@ class Renderer:
         self.section_header_rects = {}
         self._recruit_slider_dragging = False
         self._recruit_food_slider_dragging = False
+        self.recruit_popup_supply_train = False
+        self.recruit_popup_supply_food = 1
+        self.recruit_popup_supply_checkbox_rect = None
+        self.recruit_popup_supply_food_slider_rect = None
+        self._recruit_supply_food_slider_dragging = False
 
     def _make_icon_pair(self, scaled, light_rgb, dark_rgb, outline_radius, pad=0):
         """Returns (tinted, dark, selected):
@@ -2485,7 +2490,8 @@ class Renderer:
         overlay.fill((0, 0, 0, 160))
         self.screen.blit(overlay, (0, 0))
 
-        W, H = 280, 168
+        W = 280
+        H = 248 if self.recruit_popup_supply_train else 200
         sx = (self.screen.get_width() - W) // 2
         sy = (self.screen.get_height() - H) // 2
         pad = 16
@@ -2539,6 +2545,40 @@ class Renderer:
         max_f_surf = self.font_small.render(str(max_food_per_pop), True, PANEL_DIVIDER)
         self.screen.blit(max_f_surf, (track_x + track_w - max_f_surf.get_width(), f_track_y + track_h + 3))
         self.recruit_popup_food_slider_rect = pygame.Rect(track_x, f_track_y - 6, track_w, track_h + 16)
+
+        # Supply Train checkbox
+        cb_size = 14
+        cb_x, cb_y = sx + pad, sy + 130
+        cb_rect = pygame.Rect(cb_x, cb_y, cb_size, cb_size)
+        pygame.draw.rect(self.screen, (60, 60, 80), cb_rect, border_radius=2)
+        if self.recruit_popup_supply_train:
+            pygame.draw.rect(self.screen, (160, 190, 240), cb_rect.inflate(-4, -4), border_radius=1)
+        else:
+            pygame.draw.rect(self.screen, PANEL_DIVIDER, cb_rect, 1, border_radius=2)
+        self.screen.blit(self.font_body.render("Supply Train", True, TEXT_COLOR), (cb_x + cb_size + 6, cb_y - 1))
+        self.recruit_popup_supply_checkbox_rect = cb_rect
+
+        # Supply food per turn slider (only when Supply Train is checked)
+        if self.recruit_popup_supply_train:
+            max_supply_food = max(1, amount * 2)
+            supply_food = max(1, min(self.recruit_popup_supply_food, max_supply_food))
+            self.recruit_popup_supply_food = supply_food
+
+            sf_label = self.font_body.render(f"Food Per Turn: {supply_food}", True, TEXT_COLOR)
+            self.screen.blit(sf_label, (sx + pad, sy + 152))
+
+            sf_track_y = sy + 170
+            pygame.draw.rect(self.screen, (60, 60, 80), (track_x, sf_track_y, track_w, track_h), border_radius=2)
+            sfhx = track_x + int((supply_food - 1) / max(max_supply_food - 1, 1) * track_w)
+            sfhy = sf_track_y + track_h // 2
+            pygame.draw.circle(self.screen, (160, 190, 240), (sfhx, sfhy), 6)
+            pygame.draw.circle(self.screen, (100, 130, 190), (sfhx, sfhy), 6, 1)
+            self.screen.blit(self.font_small.render("1", True, PANEL_DIVIDER), (track_x, sf_track_y + track_h + 3))
+            max_sf_surf = self.font_small.render(str(max_supply_food), True, PANEL_DIVIDER)
+            self.screen.blit(max_sf_surf, (track_x + track_w - max_sf_surf.get_width(), sf_track_y + track_h + 3))
+            self.recruit_popup_supply_food_slider_rect = pygame.Rect(track_x, sf_track_y - 6, track_w, track_h + 16)
+        else:
+            self.recruit_popup_supply_food_slider_rect = None
 
         btn_y = sy + H - 36
         btn_w = (W - pad * 2 - 8) // 2
