@@ -2555,8 +2555,9 @@ class Renderer:
             pygame.draw.rect(self.screen, (160, 190, 240), cb_rect.inflate(-4, -4), border_radius=1)
         else:
             pygame.draw.rect(self.screen, PANEL_DIVIDER, cb_rect, 1, border_radius=2)
-        self.screen.blit(self.font_body.render("Supply Train", True, TEXT_COLOR), (cb_x + cb_size + 6, cb_y - 1))
-        self.recruit_popup_supply_checkbox_rect = cb_rect
+        label_surf = self.font_body.render("Supply Train", True, TEXT_COLOR)
+        self.screen.blit(label_surf, (cb_x + cb_size + 6, cb_y - 1))
+        self.recruit_popup_supply_checkbox_rect = pygame.Rect(cb_x, cb_y - 2, cb_size + 6 + label_surf.get_width(), cb_size + 4)
 
         # Supply food per turn slider (only when Supply Train is checked)
         if self.recruit_popup_supply_train:

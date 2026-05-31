@@ -615,6 +615,8 @@ def main():
                         renderer.recruit_popup_food = max(0, min(max_food_per_pop, round(t * max_food_per_pop)))
                     elif renderer.recruit_popup_supply_checkbox_rect and renderer.recruit_popup_supply_checkbox_rect.collidepoint(pos):
                         renderer.recruit_popup_supply_train = not renderer.recruit_popup_supply_train
+                        if renderer.recruit_popup_supply_train:
+                            renderer.recruit_popup_supply_food = renderer.recruit_popup_amount
                     elif renderer.recruit_popup_supply_food_slider_rect and renderer.recruit_popup_supply_food_slider_rect.collidepoint(pos):
                         renderer._recruit_supply_food_slider_dragging = True
                         sr = renderer.recruit_popup_supply_food_slider_rect

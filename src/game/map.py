@@ -238,6 +238,7 @@ class Map:
             group.move_exhausted = True
         dst_tile.unit_groups.append(group)
         group.reset_after_movement()
+        group.update_tether_after_movement(self, dst_tile)
         src_tile.update_after_movement()
         dst_tile.update_after_movement()
         # print('Calling dst tile after movement')

@@ -136,6 +136,10 @@ class UnitGroup:
                 del item_stockpiles[item_name]
         print(f"[equip] after:  units=[{_summary(self.units)}] stockpile={dict(item_stockpiles)}")
 
+    def update_tether_after_movement(self, game_map, dst_tile):
+        if self.tether is not None:
+            self.tether.unit_movement(game_map, dst_tile)
+
     def reset_after_movement(self):
         self.food_allocated_from_city = 0.0
         self.food_allocated_to_stockpile = 0.0
