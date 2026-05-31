@@ -17,9 +17,11 @@ class Tether:
         units_in_field = math.ceil(
             self.food_amount * (LAND_CARRY_CAPACITY + 1 - 2 * distance / DEFAULT_MOVE_DISTANCE) / (LAND_CARRY_CAPACITY + 1)
         )
+        travel_time = 2 * distance / DEFAULT_MOVE_DISTANCE
         supply_pops = self.food_amount - units_in_field
+        supply_pops = math.ceil((self.food_amount * travel_time)/(LAND_CARRY_CAPACITY + 1 - travel_time))
         needed = supply_pops - len(self.tether_pops)
-        print(f"[Tether] supply_pops={supply_pops} distance={distance} pops needed={needed}")
+        print(f"[Tether] supply_pops={supply_pops} distance={distance} pops needed={needed} units_in_field={units_in_field}")
         if needed > 0:
             transferred = self.unit_group.remove_pops(needed)
             self.unit_list.extend(transferred)
