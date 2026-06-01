@@ -1,6 +1,16 @@
 import random
 
 LETHALITY = 0.20
+
+
+def drop_unit_items(units, tile):
+    """Drop items carried by upgraded units onto a tile's item stockpile."""
+    from src.game.items import ITEM_REGISTRY
+    unit_to_item = {cls.upgrades_to: cls.name for cls in ITEM_REGISTRY.values()}
+    for unit in units:
+        item = unit_to_item.get(unit.unit_type)
+        if item:
+            tile.item_stockpiles[item] = tile.item_stockpiles.get(item, 0) + 1
 WOODEN_WALL_MODIFIER = .5
 STONE_WALL_MODIFIER = 1
 
@@ -301,15 +311,6 @@ def apply_battle_result(preview, result, game_map, combat_tile):
     Returns the list of surviving attacker groups.
     """
     from src.game.city import City
-    from src.game.items import ITEM_REGISTRY
-
-    _unit_to_item = {cls.upgrades_to: cls.name for cls in ITEM_REGISTRY.values()}
-
-    def _drop_items(units, tile):
-        for unit in units:
-            item = _unit_to_item.get(unit.unit_type)
-            if item:
-                tile.item_stockpiles[item] = tile.item_stockpiles.get(item, 0) + 1
 
     attacker_groups = preview['attacker_groups']
     defender = preview['defender']
@@ -324,7 +325,7 @@ def apply_battle_result(preview, result, game_map, combat_tile):
             g.units.remove(u)
             atk_killed.append(u)
     if combat_tile:
-        _drop_items(atk_killed, combat_tile)
+        drop_unit_items(atk_killed, combat_tile)
     for g in attacker_groups:
         g.max_food_stockpile = g._carry_capacity()
         g.food_stockpile = min(g.food_stockpile, g.max_food_stockpile)
@@ -340,7 +341,7 @@ def apply_battle_result(preview, result, game_map, combat_tile):
                 g.units.remove(u)
                 def_killed.append(u)
         if combat_tile:
-            _drop_items(def_killed, combat_tile)
+            drop_unit_items(def_killed, combat_tile)
         for g in defender:
             g.max_food_stockpile = g._carry_capacity()
             g.food_stockpile = min(g.food_stockpile, g.max_food_stockpile)

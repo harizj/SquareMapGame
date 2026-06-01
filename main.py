@@ -1197,9 +1197,13 @@ def main():
             game_log.append("")
             for faction in factions.values():
                 faction.do_turn(game_map, turn)
+            from src.game.battles import drop_unit_items
             for row in game_map.tiles:
                 for tile in row:
                     for group in tile.unit_groups:
+                        if group.pending_pop_loss > 0:
+                            dying = group.units[:group.pending_pop_loss]
+                            drop_unit_items(dying, tile)
                         group.end_turn()
                     tile.unit_groups = [g for g in tile.unit_groups if g.units]
             for city in game_map.cities.values():

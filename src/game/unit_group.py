@@ -151,8 +151,9 @@ class UnitGroup:
         tether = self.tether
         city = tether.city
 
-        # Return tether units to city as pops (unit type lost — permanent release)
-        # TODO: handle dropped items for upgraded units (swords, bows, spears)
+        from src.game.battles import drop_unit_items
+        city_tile = game_map.tiles[city.row][city.col]
+        drop_unit_items(tether.tether_units, city_tile)
         city.pops.extend(u.pop for u in tether.tether_units)
         tether.tether_units.clear()
 
