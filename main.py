@@ -1231,7 +1231,7 @@ def main():
 
         if not console_active and not save_popup_active:
             keys = pygame.key.get_pressed()
-            pan_speed = 6
+            pan_speed = 6 * renderer.zoom ** 2
             if keys[pygame.K_w]: renderer.offset_y += pan_speed
             if keys[pygame.K_s]: renderer.offset_y -= pan_speed
             if keys[pygame.K_a]: renderer.offset_x += pan_speed

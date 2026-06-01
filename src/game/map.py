@@ -21,11 +21,8 @@ MOVE_COSTS = {'desert': BASE_TERRAIN_COST, 'hills': DIFFICULT_TERRAIN_COST, 'for
 IMPASSABLE_TERRAINS = {'mountain'}
 TERRAIN_TYPES = ['desert', 'hills', 'forest', 'river', 'mountain']
 
-# Neighbor offsets (dr, dc) for odd-r offset hex grid, keyed by row parity.
-_NEIGHBORS = {
-    0: [(-1, -1), (-1, 0), (0, -1), (0, 1), (1, -1), (1, 0)],
-    1: [(-1,  0), (-1, 1), (0, -1), (0, 1), (1,  0), (1, 1)],
-}
+# Neighbor offsets (dr, dc) for 8-directional square grid.
+_NEIGHBORS = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
 
 _TERRAIN_MIGRATION = {'plains': 'desert'}
 
@@ -109,7 +106,7 @@ class Map:
             cost, (r, c) = heapq.heappop(queue)
             if cost > best[(r, c)]:
                 continue
-            for dr, dc in _NEIGHBORS[r % 2]:
+            for dr, dc in _NEIGHBORS:
                 nr, nc = r + dr, c + dc
                 if not (0 <= nr < self.rows and 0 <= nc < self.cols):
                     continue
@@ -144,7 +141,7 @@ class Map:
                 return path, [best[n] for n in path]
             if cost > best[(r, c)]:
                 continue
-            for dr, dc in _NEIGHBORS[r % 2]:
+            for dr, dc in _NEIGHBORS:
                 nr, nc = r + dr, c + dc
                 if not (0 <= nr < self.rows and 0 <= nc < self.cols):
                     continue
@@ -203,7 +200,7 @@ class Map:
         has_water_neighbor = any(
             'river' in self.tiles[city.row + dr][city.col + dc].terrain_features or
             'water' in self.tiles[city.row + dr][city.col + dc].terrain_features
-            for dr, dc in _NEIGHBORS[city.row % 2]
+            for dr, dc in _NEIGHBORS
             if 0 <= city.row + dr < self.rows and 0 <= city.col + dc < self.cols
         )
         if has_water_neighbor and 'water_access' not in features:

@@ -10,11 +10,12 @@ from src.game.unit import unit_list as UNIT_DISPLAY_ORDER, UNIT_REGISTRY
 
 _ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'assets')
 
-HEX_SIZE = 32
+CELL_SIZE = 64
+HEX_SIZE = CELL_SIZE  # alias — drawing code updated in Phase 3
 MARGIN = 40
 PANEL_WIDTH = 220
-DISPLAY_ROWS = 14
-DISPLAY_COLS = 14
+DISPLAY_ROWS = 10
+DISPLAY_COLS = 10
 
 COLOR_PARCHMENT = (240, 220, 185)
 
@@ -118,17 +119,16 @@ FOG_FACTOR = 0.75
 class Renderer:
     def __init__(self, game_map):
         self.map = game_map
-        w = math.sqrt(3) * HEX_SIZE
-        map_area_w = int(DISPLAY_COLS * w + w / 2 + 2 * MARGIN)
+        map_area_w = DISPLAY_COLS * CELL_SIZE + 2 * MARGIN
         self.map_w = CITY_PANEL_WIDTH + map_area_w
         self.map_start_x = CITY_PANEL_WIDTH
-        map_h = int((DISPLAY_ROWS - 1) * HEX_SIZE * 1.5 + 2 * HEX_SIZE + 2 * MARGIN)
+        map_h = DISPLAY_ROWS * CELL_SIZE + 2 * MARGIN
         self.bottom_panel_y = map_h
         screen_h = map_h + BOTTOM_PANEL_HEIGHT
-        self.offset_x = CITY_PANEL_WIDTH + MARGIN + w / 2
-        self.offset_y = MARGIN + HEX_SIZE
+        self.offset_x = CITY_PANEL_WIDTH + MARGIN
+        self.offset_y = MARGIN
         self.screen = pygame.display.set_mode((self.map_w + PANEL_WIDTH, screen_h))
-        pygame.display.set_caption("HexGame")
+        pygame.display.set_caption("SquareMapGame")
         self.font_header = pygame.font.SysFont('segoeui', 13, bold=True)
         self.font_body = pygame.font.SysFont('segoeui', 13)
         self.font_small = pygame.font.SysFont('segoeui', 10)
@@ -139,8 +139,8 @@ class Renderer:
         _font_glass_antiqua = os.path.join(_ASSETS_DIR, 'fonts', 'Glass_Antiqua', 'GlassAntiqua-Regular.ttf')
         self.font_pop = pygame.font.Font(_font_cinzel, 13)
         self.font_unit_count = pygame.font.Font(_font_cinzel, 15)
-        hex_w = int(math.sqrt(3) * HEX_SIZE)
-        hex_h = 2 * HEX_SIZE
+        hex_w = CELL_SIZE
+        hex_h = CELL_SIZE
         self._terrain_images_raw = {}
         terrain_dir = os.path.join(_ASSETS_DIR, 'terrain')
         for name in _TERRAIN_ART_NAMES:
@@ -173,7 +173,7 @@ class Renderer:
             path = os.path.join(_ASSETS_DIR, 'rivers', f'{img_file}.png')
             if os.path.exists(path):
                 self._river_imgs_raw.append((pygame.image.load(path).convert_alpha(), entries))
-        self.zoom = 1.2
+        self.zoom = 1
         self.terrain_images = {}
         self.river_imgs = {}
         self.icons = {}
@@ -367,9 +367,11 @@ class Renderer:
         return result, dark_result, selected_result
 
     def _apply_zoom(self):
-        sz = HEX_SIZE * self.zoom
-        hex_w = int(math.sqrt(3) * sz)
-        hex_h = int(2 * sz * ISO_SCALE)
+        sz = CELL_SIZE * self.zoom
+        hex_w = sz
+        hex_h = sz
+        half = sz / 2
+        self._hex_clip_offsets = [(-half, -half), (half, -half), (half, half), (-half, half)]
         self.terrain_images = {
             name: [
                 pygame.transform.scale(v, (
@@ -399,11 +401,6 @@ class Renderer:
                 black.fill((0, 0, 0, 220))
                 black.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
                 self.river_imgs[key] = (black, offset)
-        self._hex_clip_offsets = [
-            (sz * math.cos(math.radians(60 * i - 30)),
-             sz * math.sin(math.radians(60 * i - 30)) * ISO_SCALE)
-            for i in range(6)
-        ]
         castle_size = int(ICON_SIZE * 1.2 * self.zoom)
         sword_size = int(ICON_SIZE * 0.4 * self.zoom)
         self.icons = {}
@@ -525,7 +522,7 @@ class Renderer:
 
     def zoom_map(self, factor, mx, my):
         old_zoom = self.zoom
-        new_zoom = max(0.4, min(3.0, old_zoom * factor))
+        new_zoom = max(1, min(3, old_zoom + (1 if factor > 1 else -1)))
         if new_zoom == old_zoom:
             return
         self.offset_x = mx + (self.offset_x - mx) * new_zoom / old_zoom
@@ -534,10 +531,9 @@ class Renderer:
         self._apply_zoom()
 
     def _hex_to_pixel(self, row, col):
-        sz = HEX_SIZE * self.zoom
-        w = math.sqrt(3) * sz
-        x = col * w + (w / 2 if row % 2 == 1 else 0)
-        y = row * sz * 1.5 * ISO_SCALE
+        sz = CELL_SIZE * self.zoom
+        x = col * sz + sz / 2
+        y = row * sz + sz / 2
         return x, y
 
     def _hex_corners(self, cx, cy):
@@ -622,23 +618,9 @@ class Renderer:
                              (int(points[-1][0]), int(points[-1][1])), width)
 
     def _pixel_to_hex(self, px, py):
-        sz = HEX_SIZE * self.zoom
-        x = px - self.offset_x
-        y = (py - self.offset_y) / ISO_SCALE
-        q = (x * math.sqrt(3) / 3 - y / 3) / sz
-        r = (y * 2 / 3) / sz
-        rx, ry, rz = round(q), round(-q - r), round(r)
-        x_diff = abs(rx - q)
-        y_diff = abs(ry - (-q - r))
-        z_diff = abs(rz - r)
-        if x_diff > y_diff and x_diff > z_diff:
-            rx = -ry - rz
-        elif y_diff > z_diff:
-            ry = -rx - rz
-        else:
-            rz = -rx - ry
-        col = rx + (rz - (rz & 1)) // 2
-        row = rz
+        sz = CELL_SIZE * self.zoom
+        col = int((px - self.offset_x) / sz)
+        row = int((py - self.offset_y) / sz)
         return row, col
 
     def get_tile_at(self, px, py):
