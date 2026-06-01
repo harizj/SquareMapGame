@@ -11,7 +11,6 @@ from src.game.unit import unit_list as UNIT_DISPLAY_ORDER, UNIT_REGISTRY
 _ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'assets')
 
 CELL_SIZE = 64
-HEX_SIZE = CELL_SIZE  # alias — drawing code updated in Phase 3
 MARGIN = 40
 PANEL_WIDTH = 220
 DISPLAY_ROWS = 10
@@ -63,31 +62,18 @@ BUTTON_DISABLED   = (50, 50, 60)
 BUTTON_TEXT       = (200, 210, 230)
 BUTTON_TEXT_DISABLED = (90, 90, 100)
 
-# Angle (radians) from hex center to each edge midpoint, for pointy-top hexes.
-RIVER_DIR_ANGLES = {
-    'NE': math.radians(-60),
-    'E':  math.radians(0),
-    'SE': math.radians(60),
-    'SW': math.radians(120),
-    'W':  math.radians(180),
-    'NW': math.radians(240),
-}
 RIVER_DIR_GRID = [('NW', 'NE'), ('W', 'E'), ('SW', 'SE')]
 
-# Neighbor offsets per row parity (matches map.py _NEIGHBORS)
-_RENDER_NEIGHBORS = {
-    0: [(-1, -1), (-1, 0), (0, -1), (0, 1), (1, -1), (1, 0)],
-    1: [(-1,  0), (-1, 1), (0, -1), (0, 1), (1,  0), (1, 1)],
-}
-# Corner index pairs for each neighbor direction (same for both parities)
-# Corners: 0=top-right, 1=bottom-right, 2=bottom, 3=bottom-left, 4=top-left, 5=top
-_NEIGHBOR_EDGE_CORNERS = [(4, 5), (5, 0), (3, 4), (0, 1), (2, 3), (1, 2)]
+# Offset from cell center to edge midpoint for each cardinal river direction
+_RIVER_EDGE_OFFSETS = {'N': (0, -1), 'S': (0, 1), 'E': (1, 0), 'W': (-1, 0)}
 
-# Edge angle (degrees) toward each neighbor, keyed by row parity then (dr, dc)
-# Order matches _RENDER_NEIGHBORS: NW, NE, W, E, SW, SE
-_NEIGHBOR_EDGE_ANGLES = {
-    0: {(-1, -1): 240, (-1,  0): -60, (0, -1): 180, (0, 1): 0, (1, -1): 120, (1, 0): 60},
-    1: {(-1,  0): 240, (-1,  1): -60, (0, -1): 180, (0, 1): 0, (1,  0): 120, (1, 1): 60},
+# Square grid: cardinal neighbor (dr, dc) → (ci, cj) corner index pair for the shared edge
+# Corners: 0=top-left, 1=top-right, 2=bottom-right, 3=bottom-left
+_SQUARE_EDGE_CORNERS = {
+    (-1, 0): (0, 1),  # N: top edge
+    (0,  1): (1, 2),  # E: right edge
+    (1,  0): (2, 3),  # S: bottom edge
+    (0, -1): (3, 0),  # W: left edge
 }
 
 # Art names that get_terrain_art() can return — images loaded for each
@@ -158,24 +144,8 @@ class Renderer:
             path = os.path.join(icons_dir, f'{file_name}.png')
             if os.path.exists(path):
                 self._icons_raw[icon_name] = pygame.image.load(path).convert_alpha()
-        self._river_imgs_raw = []
-        for img_file, entries in (
-            ('sw2ne_2',   [(frozenset({'W',  'E'}),  -35, (0, 0)),
-                       (frozenset({'NW', 'SE'}),   -95, (0, 0)),
-                       (frozenset({'NE', 'SW'}),  25,  (0, 0))]),
-            ('nw2s',  [(frozenset({'NW', 'SW'}),  -32,  (0, 0)),
-                       (frozenset({'NE', 'W'}),   -90, (-5, -3)),
-                       (frozenset({'NW', 'E'}),   -150, (0, 0))]),
-            ('ne2s',  [(frozenset({'E',  'SW'}),  -35,  (-5, 0)),
-                       (frozenset({'SE', 'W'}),   -90,  (0, 0)),
-                       (frozenset({'NE', 'SE'}),  30,   (0, 0))]),
-        ):
-            path = os.path.join(_ASSETS_DIR, 'rivers', f'{img_file}.png')
-            if os.path.exists(path):
-                self._river_imgs_raw.append((pygame.image.load(path).convert_alpha(), entries))
         self.zoom = 1
         self.terrain_images = {}
-        self.river_imgs = {}
         self.icons = {}
         self.icons_tinted = {}
         self.icons_dark = {}
@@ -382,25 +352,6 @@ class Renderer:
             ]
             for name, variants in self._terrain_images_raw.items()
         }
-        self.river_imgs = {}
-        for raw, entries in self._river_imgs_raw:
-            base = pygame.transform.scale(
-                raw, (int(hex_w * RIVER_IMG_SCALE), int(hex_h * RIVER_IMG_SCALE))
-            )
-            for key, angle, offset in entries:
-                rotated = pygame.transform.rotate(base, angle)
-                mask = rotated.copy()
-                mask.fill((255, 255, 255), special_flags=pygame.BLEND_RGB_MAX)
-                tinted = pygame.Surface(rotated.get_size(), pygame.SRCALPHA)
-                tinted.fill(COLOR_RIVER_LINE + (255,))
-                tinted.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-                dark_blue = pygame.Surface(rotated.get_size(), pygame.SRCALPHA)
-                dark_blue.fill(COLOR_RIVER_DARK + (255,))
-                dark_blue.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-                black = pygame.Surface(rotated.get_size(), pygame.SRCALPHA)
-                black.fill((0, 0, 0, 220))
-                black.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-                self.river_imgs[key] = (black, offset)
         castle_size = int(ICON_SIZE * 1.2 * self.zoom)
         sword_size = int(ICON_SIZE * 0.4 * self.zoom)
         self.icons = {}
@@ -464,7 +415,7 @@ class Renderer:
             self.icons_selected['flag'] = sel
             self._faction_flag_icons = {}
         if 'torch' in self._icons_raw:
-            torch_size = int(HEX_SIZE * self.zoom * 0.45)
+            torch_size = int(CELL_SIZE * self.zoom * 0.45)
             scaled_torch = pygame.transform.scale(self._icons_raw['torch'], (torch_size, torch_size))
             outline_r = 4
             torch_mask = scaled_torch.copy()
@@ -489,7 +440,7 @@ class Renderer:
                     t, d, _ = self._make_icon_pair(scaled, city.get_city_color('light'), city.get_city_color('dark'), flag_outline_radius)
                     self._faction_flag_icons[city.faction.name] = {'tinted': t, 'dark': d}
 
-        resource_icon_size = int(HEX_SIZE * self.zoom * 0.35)
+        resource_icon_size = int(CELL_SIZE * self.zoom * 0.35)
         outline_r = 4
         self._faction_resource_icons = {}
         self._deposit_icons = {}
@@ -537,12 +488,13 @@ class Renderer:
         return x, y
 
     def _hex_corners(self, cx, cy):
-        sz = HEX_SIZE * self.zoom
-        corners = []
-        for i in range(6):
-            angle_rad = math.radians(60 * i - 30)
-            corners.append((cx + sz * math.cos(angle_rad), cy + sz * math.sin(angle_rad) * ISO_SCALE))
-        return corners
+        half = CELL_SIZE * self.zoom / 2
+        return [
+            (cx - half, cy - half),  # top-left
+            (cx + half, cy - half),  # top-right
+            (cx + half, cy + half),  # bottom-right
+            (cx - half, cy + half),  # bottom-left
+        ]
 
     def _draw_arrowhead(self, tip, from_pt, color, size=12):
         dx = tip[0] - from_pt[0]
@@ -742,10 +694,10 @@ class Renderer:
 
         all_corners = {}
         all_centers = {}
-        apothem = HEX_SIZE * self.zoom * math.sqrt(3) / 2
+        apothem = CELL_SIZE * self.zoom / 2
         visible = los.get_visible() if los else None
 
-        # Pass 1: hex fills
+        # Pass 1: cell fills
         for r in range(self.map.rows):
             for c in range(self.map.cols):
                 tile = self.map.tiles[r][c]
@@ -758,9 +710,9 @@ class Renderer:
                 if visible is not None and (r, c) not in visible:
                     color = tuple(int(v * FOG_FACTOR) for v in color)
                 dark_color = tuple(int(v * 0.68) for v in color)
-                pygame.draw.polygon(self.screen, dark_color, corners)
-                inner = [(cx + 1.0 * (px - cx), cy + 1.0 * (py - cy)) for px, py in corners]
-                pygame.draw.polygon(self.screen, color, inner)
+                sz = CELL_SIZE * self.zoom
+                rect = pygame.Rect(int(cx - sz / 2), int(cy - sz / 2), int(sz), int(sz))
+                pygame.draw.rect(self.screen, color, rect)
 
         # Pass 1b: terrain images over fills
         for r in range(self.map.rows):
@@ -776,44 +728,29 @@ class Renderer:
             for c in range(self.map.cols):
                 tile = self.map.tiles[r][c]
                 corners = all_corners[(r, c)]
-                for i, (dr, dc) in enumerate(_RENDER_NEIGHBORS[r % 2]):
+                for (dr, dc), (ci, cj) in _SQUARE_EDGE_CORNERS.items():
                     nr, nc = r + dr, c + dc
                     if not (0 <= nr < self.map.rows and 0 <= nc < self.map.cols):
                         continue
                     neighbor = self.map.tiles[nr][nc]
                     if tile.water != neighbor.water:
-                        ci, cj = _NEIGHBOR_EDGE_CORNERS[i]
                         pygame.draw.line(self.screen, (0, 0, 0), corners[ci], corners[cj], 2)
 
-        # Pass 2: river images (straight) / lines (bends) on top of fills
+        # Pass 2: river lines from cell center to cardinal edge midpoints
         for r in range(self.map.rows):
             for c in range(self.map.cols):
                 tile = self.map.tiles[r][c]
                 if not tile.river_edges:
                     continue
                 cx, cy = all_centers[(r, c)]
-                result = self.river_imgs.get(frozenset(tile.river_edges))
-                if result:
-                    straight_img, (ox, oy) = result
-                    iw, ih = straight_img.get_size()
-                    hcx = iw // 2 - ox
-                    hcy = ih // 2 - oy
-                    hex_pts = [(hcx + dx, hcy + dy) for dx, dy in self._hex_clip_offsets]
-                    clipped = straight_img.copy()
-                    hex_clip = pygame.Surface((iw, ih), pygame.SRCALPHA)
-                    hex_clip.fill((0, 0, 0, 0))
-                    pygame.draw.polygon(hex_clip, (255, 255, 255, 255), hex_pts)
-                    clipped.blit(hex_clip, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-                    self.screen.blit(clipped,
-                                     (int(cx) - iw // 2 + ox,
-                                      int(cy) - ih // 2 + oy))
-                else:
-                    for direction in tile.river_edges:
-                        angle = RIVER_DIR_ANGLES[direction]
-                        ex = cx + apothem * math.cos(angle)
-                        ey = cy + apothem * math.sin(angle)
-                        pygame.draw.line(self.screen, (0, 0, 0),
-                                         (int(cx), int(cy)), (int(ex), int(ey)), 3)
+                for direction in tile.river_edges:
+                    offset = _RIVER_EDGE_OFFSETS.get(direction)
+                    if offset is None:
+                        continue
+                    ox, oy = offset
+                    ex, ey = cx + ox * apothem, cy + oy * apothem
+                    pygame.draw.line(self.screen, (0, 0, 0),
+                                     (int(cx), int(cy)), (int(ex), int(ey)), 3)
 
 
         # Pass 2b: trade route dashed curves on intermediate path tiles (above rivers)
@@ -828,12 +765,11 @@ class Renderer:
                 #     continue
 
                 def _edge_pt(r, c, nr, nc):
-                    deg = _NEIGHBOR_EDGE_ANGLES[r % 2].get((nr - r, nc - c))
-                    if deg is None or (r, c) not in all_centers:
+                    if (r, c) not in all_centers:
                         return None, None
                     cx, cy = all_centers[(r, c)]
-                    return (cx + apothem * math.cos(math.radians(deg)),
-                            cy + apothem * math.sin(math.radians(deg))), (cx, cy)
+                    dr, dc = nr - r, nc - c
+                    return (cx + dc * apothem, cy + dr * apothem), (cx, cy)
 
                 _ROUTE_DARK = route.faction.colors['dark'] if route.faction else (35, 65, 150)
                 _ROUTE_LIGHT = route.faction.colors['light'] if route.faction else (180, 210, 255)
@@ -857,14 +793,10 @@ class Renderer:
                     if (r, c) not in all_centers:
                         continue
                     cx, cy = all_centers[(r, c)]
-                    from_deg = _NEIGHBOR_EDGE_ANGLES[r % 2].get((pr - r, pc - c))
-                    to_deg   = _NEIGHBOR_EDGE_ANGLES[r % 2].get((nr - r, nc - c))
-                    if from_deg is None or to_deg is None:
-                        continue
-                    from_pt = (cx + apothem * math.cos(math.radians(from_deg)),
-                               cy + apothem * math.sin(math.radians(from_deg)))
-                    to_pt   = (cx + apothem * math.cos(math.radians(to_deg)),
-                               cy + apothem * math.sin(math.radians(to_deg)))
+                    dr_from, dc_from = pr - r, pc - c
+                    dr_to,   dc_to   = nr - r, nc - c
+                    from_pt = (cx + dc_from * apothem, cy + dr_from * apothem)
+                    to_pt   = (cx + dc_to   * apothem, cy + dr_to   * apothem)
                     self._draw_dashed_curve(from_pt, (cx, cy), to_pt, _ROUTE_DARK,  width=_ROUTE_OUTLINE_W, dash_length=8, gap=6)
                     self._draw_dashed_curve(from_pt, (cx, cy), to_pt, _ROUTE_LIGHT, width=_ROUTE_INNER_W,   dash_length=8, gap=6)
 
@@ -886,23 +818,22 @@ class Renderer:
                 cx, cy = all_centers[(r, c)]
                 corners = all_corners[(r, c)]
                 border_lines = []
-                for i, (dr, dc) in enumerate(_RENDER_NEIGHBORS[r % 2]):
+                for (dr, dc), (ci, cj) in _SQUARE_EDGE_CORNERS.items():
                     nr, nc = r + dr, c + dc
                     if not (0 <= nr < self.map.rows and 0 <= nc < self.map.cols):
                         neighbor_city = None
                     else:
                         neighbor_city = self.map.tiles[nr][nc].owning_city
                     if neighbor_city is not tile.owning_city:
-                        ci, cj = _NEIGHBOR_EDGE_CORNERS[i]
                         border_lines.append((corners[ci], corners[cj]))
                 if not border_lines:
                     continue
-                sz = HEX_SIZE * self.zoom
+                sz = CELL_SIZE * self.zoom
                 border_line_w = 8
                 outline_radius = 4
                 pad = outline_radius + border_line_w
-                surf_w = int(math.sqrt(3) * sz) + pad * 2
-                surf_h = int(2 * sz * ISO_SCALE) + pad * 2
+                surf_w = int(sz) + pad * 2
+                surf_h = int(sz) + pad * 2
                 scx = surf_w // 2
                 scy = surf_h // 2
                 edge_surf = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
@@ -935,12 +866,12 @@ class Renderer:
         if move_mode and selected_tile:
             in_range = set(reachable.keys())
             in_range.add((selected_tile.row, selected_tile.col))
-            sz = HEX_SIZE * self.zoom
+            sz = CELL_SIZE * self.zoom
             border_line_w = 4
             outline_radius = 2
             pad = outline_radius + border_line_w + 1
-            surf_w = int(math.sqrt(3) * sz) + pad * 2
-            surf_h = int(2 * sz * ISO_SCALE) + pad * 2
+            surf_w = int(sz) + pad * 2
+            surf_h = int(sz) + pad * 2
             scx = surf_w // 2
             scy = surf_h // 2
             for (r, c) in in_range:
@@ -949,10 +880,9 @@ class Renderer:
                 cx, cy = all_centers[(r, c)]
                 corners = all_corners[(r, c)]
                 border_lines = []
-                for i, (dr, dc) in enumerate(_RENDER_NEIGHBORS[r % 2]):
+                for (dr, dc), (ci, cj) in _SQUARE_EDGE_CORNERS.items():
                     nr, nc = r + dr, c + dc
                     if (nr, nc) not in in_range:
-                        ci, cj = _NEIGHBOR_EDGE_CORNERS[i]
                         border_lines.append((corners[ci], corners[cj]))
                 if not border_lines:
                     continue
@@ -971,7 +901,7 @@ class Renderer:
         dot_radius = 1
         dot_spacing = 5
         dot_offset_x = int(apothem * 0.72)
-        dot_start_y_offset = int(HEX_SIZE * self.zoom * ISO_SCALE * 0.4)
+        dot_start_y_offset = int(CELL_SIZE * self.zoom * 0.4)
         dot_positions = []  # (ddx, ddy, owning_city)
         torch_icon = self.icons.get('torch')
         for r in range(self.map.rows):
@@ -1031,7 +961,7 @@ class Renderer:
                 icon = self.icons_selected.get('castle') if (r, c) == selected_city_pos else self.icons_tinted.get('castle')
             if icon:
                 ix = int(cx) - icon.get_width() // 2 + 2
-                iy = int(cy) - HEX_SIZE - 3.5
+                iy = int(cy - CELL_SIZE * self.zoom / 2)
                 self.screen.blit(icon, (ix, iy))
                 city_name_ys[(r, c)] = iy + icon.get_height() - 12
             else:

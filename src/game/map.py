@@ -1,7 +1,7 @@
 import heapq
 import random
 from src.game.city import City
-from src.game.constants import DEFAULT_MOVE_DISTANCE, BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST, MIN_TERRAIN_COST
+from src.game.constants import DEFAULT_MOVE_DISTANCE, BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST, MIN_TERRAIN_COST, DIAGONAL_BASE_COST, DIAGONAL_DIFFICULT_COST
 from src.game.tile import Tile
 from src.game.unit_group import UnitGroup
 from src.game.unit import Unit
@@ -77,6 +77,10 @@ class Map:
     def _step_cost(self, from_r, from_c, to_r, to_c):
         from_tile = self.tiles[from_r][from_c]
         to_tile = self.tiles[to_r][to_c]
+        if abs(to_r - from_r) == 1 and abs(to_c - from_c) == 1:
+            difficult = (from_tile.movement_cost > BASE_TERRAIN_COST or
+                         to_tile.movement_cost > BASE_TERRAIN_COST)
+            return DIAGONAL_DIFFICULT_COST if difficult else DIAGONAL_BASE_COST
         from_river = 'river' in from_tile.terrain_features
         to_river = 'river' in to_tile.terrain_features
         no_city = 'city' not in from_tile.terrain_features and 'city' not in to_tile.terrain_features

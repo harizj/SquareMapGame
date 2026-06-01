@@ -2,11 +2,8 @@ import random
 
 _WATER_BIOMES = {'ocean', 'coastal'}
 
-# Hex neighbor offsets for odd-r offset grid, keyed by row parity
-_HEX_NEIGHBORS = {
-    0: [(-1, -1), (-1, 0), (0, -1), (0, 1), (1, -1), (1, 0)],
-    1: [(-1,  0), (-1, 1), (0, -1), (0, 1), (1,  0), (1, 1)],
-}
+# Neighbor offsets for 8-directional square grid
+_SQUARE_NEIGHBORS = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
 
 # Features that cannot coexist with the key feature
 _INCOMPATIBLE = {
@@ -63,7 +60,7 @@ class MapBuilder:
             for t in row:
                 if t.biome not in (biome_a, biome_b):
                     continue
-                for dr, dc in _HEX_NEIGHBORS[t.row % 2]:
+                for dr, dc in _SQUARE_NEIGHBORS:
                     nr, nc = t.row + dr, t.col + dc
                     if 0 <= nr < self._map.rows and 0 <= nc < self._map.cols:
                         nb = self._map.tiles[nr][nc]
@@ -105,7 +102,7 @@ class MapBuilder:
                 if t.biome == biome:
                     continue
                 if requires_neighbor is not None:
-                    neighbors = _HEX_NEIGHBORS[t.row % 2]
+                    neighbors = _SQUARE_NEIGHBORS
                     if not any(
                         0 <= t.row + dr < self._map.rows and
                         0 <= t.col + dc < self._map.cols and
@@ -160,7 +157,7 @@ class MapBuilder:
                 if any(f in t.terrain_features for f in incompatible):
                     continue
                 if requires_neighbor is not None:
-                    neighbors = _HEX_NEIGHBORS[t.row % 2]
+                    neighbors = _SQUARE_NEIGHBORS
                     if not any(
                         0 <= t.row + dr < self._map.rows and
                         0 <= t.col + dc < self._map.cols and
@@ -183,16 +180,15 @@ class MapBuilder:
         """Generate a river west-to-east along the given row.
 
         At each step randomly chooses among available options:
-        - Straight:    W→E through the current tile, advance 1 column.
-        - Bump north:  arc through the row above, advance 3 columns.
-        - Bump south:  arc through the row below, advance 3 columns.
-        Both bumps return to the same starting row. Parity determines which
-        middle tiles are used.
+        - Straight:   W→E through the current tile, advance 1 column.
+        - Bump north: arc through the row above over 2 columns.
+        - Bump south: arc through the row below over 2 columns.
+        Both bumps return to the same starting row.
         """
         r, c = row, start_col
         while c < self._map.cols:
-            can_north = r > 0           and c + 2 < self._map.cols
-            can_south = r + 1 < self._map.rows and c + 2 < self._map.cols
+            can_north = r > 0                  and c + 2 <= self._map.cols
+            can_south = r + 1 < self._map.rows and c + 2 <= self._map.cols
 
             roll = random.random()
             if roll < 0.5 or (not can_north and not can_south):
@@ -207,25 +203,17 @@ class MapBuilder:
                 choice = 'straight'
 
             if choice == 'north':
-                self._river_tile(r, c, {'W', 'NE'})
-                if r % 2 == 0:
-                    self._river_tile(r - 1, c,     {'SW', 'E'})
-                    self._river_tile(r - 1, c + 1, {'W', 'SE'})
-                else:
-                    self._river_tile(r - 1, c + 1, {'SW', 'E'})
-                    self._river_tile(r - 1, c + 2, {'W', 'SE'})
-                self._river_tile(r, c + 2, {'NW', 'E'})
-                c += 3
+                self._river_tile(r,     c,     {'W', 'N'})
+                self._river_tile(r - 1, c,     {'S', 'E'})
+                self._river_tile(r - 1, c + 1, {'W', 'S'})
+                self._river_tile(r,     c + 1, {'N', 'E'})
+                c += 2
             elif choice == 'south':
-                self._river_tile(r, c, {'W', 'SE'})
-                if r % 2 == 0:
-                    self._river_tile(r + 1, c,     {'NW', 'E'})
-                    self._river_tile(r + 1, c + 1, {'W', 'NE'})
-                else:
-                    self._river_tile(r + 1, c + 1, {'NW', 'E'})
-                    self._river_tile(r + 1, c + 2, {'W', 'NE'})
-                self._river_tile(r, c + 2, {'SW', 'E'})
-                c += 3
+                self._river_tile(r,     c,     {'W', 'S'})
+                self._river_tile(r + 1, c,     {'N', 'E'})
+                self._river_tile(r + 1, c + 1, {'W', 'N'})
+                self._river_tile(r,     c + 1, {'S', 'E'})
+                c += 2
             else:
                 self._river_tile(r, c, {'W', 'E'})
                 c += 1
