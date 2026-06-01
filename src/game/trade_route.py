@@ -11,7 +11,8 @@ class TradeRoute:
                  export_resource, export_amount, max_amount,
                  import_resource, import_amount,
                  path=None, path_distances=None,
-                 water=False, one_way=True):
+                 water=False, one_way=True,
+                 establish_progress=None, established=None):
         self.city_a = city_a          # origin — allocates pops
         self.dest_tile = dest_tile    # destination tile (may or may not have a city)
         self.faction = city_a.faction
@@ -33,8 +34,8 @@ class TradeRoute:
         self.travel_time = self.distance / DEFAULT_MOVE_DISTANCE if self.distance > 0 else 0.0
         self.one_way = one_way
         self.missing_caravans = False
-        self.establish_progress = DEFAULT_MOVE_DISTANCE
-        self.established = self.establish_progress >= self.distance
+        self.establish_progress = establish_progress if establish_progress is not None else DEFAULT_MOVE_DISTANCE
+        self.established = established if established is not None else (self.establish_progress >= self.distance)
 
         # Register with both endpoints
         self.city_a.trade_routes.append(self)
@@ -87,6 +88,7 @@ class TradeRoute:
             dest_city.update_cumulative_farm_yield_net()
         else:
             self.dest_tile.trade_routes.remove(self)
+            self.dest_tile.update_unit_allocations()
         if rebalance:
             self.city_a.rebalance_pops()
             if dest_city is not None:

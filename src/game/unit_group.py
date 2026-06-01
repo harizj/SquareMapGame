@@ -162,6 +162,13 @@ class UnitGroup:
             tether.route = None
 
         current_tile = game_map.tiles[self.row][self.col]
+        def _print_tile_groups(label):
+            print(f"[drop_tether] {label} tile=({current_tile.row},{current_tile.col})")
+            for g in current_tile.unit_groups:
+                from_stockpile = max(0.0, -g.food_allocated_to_stockpile)
+                print(f"  group units={len(g.units)} consumption={g.consumption_per_turn()} food_from_routes={current_tile._food_from_routes():.1f} food_allocated_from_city={g.food_allocated_from_city:.1f} stockpile={g.food_stockpile:.1f} from_stockpile={from_stockpile:.1f}")
+        _print_tile_groups("before route creation")
+
         path, distances = game_map.get_path_to(city.row, city.col, self.row, self.col)
         dist = distances[-1] if distances else 0.0
 
@@ -187,10 +194,11 @@ class UnitGroup:
                 path_distances=distances,
                 water=False,
                 one_way=True,
+                establish_progress=dist,
+                established=True,
             )
-            route.established = True
-            route.establish_progress = route.distance
             tether.route = route
+        _print_tile_groups("after route creation")
         city.rebalance_pops()
         self.tether = None
 

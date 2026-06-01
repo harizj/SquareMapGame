@@ -76,8 +76,8 @@ class Tether:
             path_distances=distances,
             water=False,
             one_way=True,
+            establish_progress=distances[-1] if distances else 0.0,
+            established=True,
         )
-        route.established = True
-        route.establish_progress = route.distance
         self.route = route
         print(f"[Tether] route created city={self.city.name} -> ({dst_tile.row},{dst_tile.col}) distance={route.distance} food={self.food_amount}")
