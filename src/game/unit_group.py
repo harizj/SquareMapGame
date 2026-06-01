@@ -176,9 +176,10 @@ class UnitGroup:
         carry_capacity = LAND_CARRY_CAPACITY
         denom = carry_capacity + 1 - 2 * travel_time
         one_way_amount = len(self.units)
+        created_route = None
         if denom > 0 and travel_time > 0:
             pops_required = max(1, math.ceil((one_way_amount * 2 * travel_time) / denom))
-            route = TradeRoute(
+            created_route = TradeRoute(
                 city_a=city,
                 dest_tile=current_tile,
                 pops_a=pops_required,
@@ -197,10 +198,16 @@ class UnitGroup:
                 establish_progress=dist,
                 established=True,
             )
-            tether.route = route
+            tether.route = created_route
         _print_tile_groups("after route creation")
         city.rebalance_pops()
         self.tether = None
+        return created_route
+
+    def delete_tether(self, game_map):
+        route = self.drop_tether(game_map)
+        if route is not None:
+            route.detach(rebalance=True)
 
     def update_tether_after_movement(self, game_map, src_tile, dst_tile):
         if self.tether is not None:

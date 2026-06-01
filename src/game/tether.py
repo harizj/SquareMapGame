@@ -13,15 +13,14 @@ class Tether:
         print(f"[Tether] city={city.name} units={len(unit_group.units)} food_amount={food_amount} tether_units={len(self.tether_units)}")
 
     def update_supply_pops(self, distance):
-        units_in_field = math.ceil(
-            self.food_amount * (LAND_CARRY_CAPACITY + 1 - 2 * distance / DEFAULT_MOVE_DISTANCE) / (LAND_CARRY_CAPACITY + 1)
-        )
         travel_time = 2 * distance / DEFAULT_MOVE_DISTANCE
-        supply_pops = self.food_amount - units_in_field
-        supply_pops = math.ceil((self.food_amount * travel_time)/(LAND_CARRY_CAPACITY + 1 - travel_time))
-        supply_pops = max(1, math.ceil((travel_time*self.food_amount)/(LAND_CARRY_CAPACITY + 1)))
+        supply_pops = max(1, math.ceil((travel_time * self.food_amount) / (LAND_CARRY_CAPACITY + 1)))
+        total_units = len(self.unit_group.units) + len(self.tether_units)
+        if supply_pops >= total_units:
+            print(f"[Tether] collapse: supply_pops={supply_pops} >= total_units={total_units}, tether will be deleted")
+            return None
         needed = supply_pops - len(self.tether_units)
-        print(f"[Tether] supply_pops={supply_pops} distance={distance} pops needed={needed} units_in_field={units_in_field}")
+        print(f"[Tether] supply_pops={supply_pops} distance={distance} pops needed={needed}")
         if needed > 0:
             transferred = self.unit_group.remove_pops(needed)
             self.tether_units.extend(transferred)
@@ -59,6 +58,9 @@ class Tether:
         distance = distances[-1] if distances else 0.0
 
         supply_pops = self.update_supply_pops(distance)
+        if supply_pops is None:
+            self.unit_group.delete_tether(game_map)
+            return
 
         route = TradeRoute(
             city_a=self.city,
