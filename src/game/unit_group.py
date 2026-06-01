@@ -39,45 +39,45 @@ class UnitGroup:
             self.moves_remaining = min(u.moves_remaining for u in self.units)
 
     def consumption_per_turn(self):
-        return len(self.units) * POP_FOOD_CONSUMPTION
+        tether_count = len(self.tether.tether_units) if self.tether is not None else 0
+        return (len(self.units) + tether_count) * POP_FOOD_CONSUMPTION
 
     def allocate_food(self, food_from_routes=0.0):
-        # print('Allocate food')
-        # print(f"  food_from_city={self.food_allocated_from_city}")
+        print('Allocate food')
+        print(f"  food_from_city={self.food_allocated_from_city}")
 
         consumption = self.consumption_per_turn()
-        # print(f"  consumption={consumption}")
+        print(f"  consumption={consumption}")
         remainder = self.food_allocated_from_city - consumption
-        # print(f"  remainder (after city alloc)={remainder}")
-        # print(f"  carry capacity={self._carry_capacity()}")
-        # print(f"  food_stockpile={self.food_stockpile}")
+        print(f"  remainder (after city alloc)={remainder}")
+        print(f"  carry capacity={self._carry_capacity()}")
+        print(f"  food_stockpile={self.food_stockpile}")
 
         food_to_fill_stockpile = self._carry_capacity() - remainder - self.food_stockpile
-        # print(f"  food_to_fill_stockpile={food_to_fill_stockpile}")
+        print(f"  food_to_fill_stockpile={food_to_fill_stockpile}")
         self.food_allocated_from_routes = min(food_to_fill_stockpile, food_from_routes)
-        # print(f"  food_allocated_from_routes={self.food_allocated_from_routes}")
+        print(f"  food_allocated_from_routes={self.food_allocated_from_routes}")
         remainder += self.food_allocated_from_routes
-        # print(f"  remainder (after routes)={remainder}")
+        print(f"  remainder (after routes)={remainder}")
         remaining_route_food = food_from_routes - self.food_allocated_from_routes
-        # print(f"  remaining_route_food={remaining_route_food}")
+        print(f"  remaining_route_food={remaining_route_food}")
 
         # Separating this out for now until I'm sure the supply logic works
         if remainder >= 0:
             self.food_allocated_to_stockpile = remainder
-            # print(f"  food_allocated_to_stockpile={self.food_allocated_to_stockpile}")
+            print(f"  food_allocated_to_stockpile={self.food_allocated_to_stockpile}")
             self.pending_pop_loss = 0
         else:
             # If city can't cover food costs, -remainder will be the amount needed from stockpile
             # But can't be higher than current stockpile
             #self.food_allocated_to_stockpile = -min(-remainder, self.food_stockpile)
             #print(f"  food_allocated_to_stockpile={self.food_allocated_to_stockpile}")
-            # print(f"  food_allocated_to_stockpile={self.food_allocated_to_stockpile}")
             self.food_allocated_to_stockpile = max(remainder, -self.food_stockpile)
             remainder -= self.food_allocated_to_stockpile
-            # print(f"  remainder (after stockpile)={remainder}")
+            print(f"  remainder (after stockpile)={remainder}")
             if remainder < 0:
                 self.pending_pop_loss = math.ceil(-remainder)
-                # print(f"  pending_pop_loss={self.pending_pop_loss}")
+                print(f"  pending_pop_loss={self.pending_pop_loss}")
 
         return self.food_allocated_from_routes
 

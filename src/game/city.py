@@ -108,7 +108,7 @@ class City:
         return len(self.pops)
 
     def _get_unit_consumption(self):
-        return sum(len(g.units) for g in self.unit_groups) * POP_FOOD_CONSUMPTION
+        return sum(g.consumption_per_turn() for g in self.unit_groups)
 
     def _food_from_routes(self):
         """Net food change from all active (fully staffed) trade routes."""
@@ -298,6 +298,7 @@ class City:
 
         self.food_allocated_to_units = min(unit_consumption, max(0.0, self.food_stockpile + remaining))
         remaining -= self.food_allocated_to_units
+        print(f"[{self.name}] rebalance: food_allocated_to_units={self.food_allocated_to_units} unit_consumption={unit_consumption} groups={len(self.unit_groups)}")
         for g in self.unit_groups:
             g.food_allocated_from_city = (self.food_allocated_to_units * g.consumption_per_turn() / unit_consumption) if unit_consumption > 0 else 0.0
             g.allocate_food()
