@@ -239,6 +239,7 @@ def main():
                 renderer._separate_slider_dragging = None
                 renderer._separate_food_slider_dragging = False
                 renderer._add_job_slider_dragging = False
+                renderer._add_tether_food_slider_dragging = False
                 if city_drag_active and renderer.adding_one_way_route:
                     tile = renderer.get_tile_at(*event.pos)
                     current_city = selected_tile.city if selected_tile else None
@@ -304,6 +305,13 @@ def main():
                         food_range = max_food - min_food
                         t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
                         renderer.separate_popup_food = max(min_food, min(max_food, min_food + round(t * food_range)))
+                if renderer._add_tether_food_slider_dragging and renderer.add_tether_popup_active and renderer.add_tether_popup_group:
+                    sr = renderer.add_tether_popup_slider_rect
+                    if sr:
+                        n_units = len(renderer.add_tether_popup_group.units)
+                        max_food = max(1, n_units * 2)
+                        t = max(0.0, min(1.0, (event.pos[0] - sr.x) / sr.width))
+                        renderer.add_tether_popup_food = max(1, min(max_food, round(1 + t * (max_food - 1))))
                 if renderer._add_job_slider_dragging and renderer.add_job_popup_active and renderer.add_job_popup_city:
                     sr = renderer.add_job_popup_slider_rect
                     if sr:
@@ -563,6 +571,21 @@ def main():
                             t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
                             renderer.separate_popup_food = max(min_food, min(max_food, min_food + round(t * food_range)))
 
+                elif renderer.add_tether_popup_active and renderer.add_tether_popup_group:
+                    if renderer.add_tether_popup_confirm_rect and renderer.add_tether_popup_confirm_rect.collidepoint(pos):
+                        group = renderer.add_tether_popup_group
+                        if selected_tile and selected_tile.city and group.tether is None:
+                            city = selected_tile.city
+                            tether = Tether(city=city, unit_group=group, food_amount=renderer.add_tether_popup_food)
+                            group.tether = tether
+                            current_tile = game_map.tiles[group.row][group.col]
+                            tether.unit_movement(game_map, current_tile, current_tile)
+                        renderer.add_tether_popup_active = False
+                        renderer.add_tether_popup_group = None
+                    elif renderer.add_tether_popup_cancel_rect and renderer.add_tether_popup_cancel_rect.collidepoint(pos):
+                        renderer.add_tether_popup_active = False
+                        renderer.add_tether_popup_group = None
+
                 elif renderer.recruit_popup_active:
                     if renderer.recruit_popup_confirm_rect and renderer.recruit_popup_confirm_rect.collidepoint(pos):
                         if selected_tile and selected_tile.city:
@@ -624,6 +647,15 @@ def main():
                         max_supply_food = max(1, n * 2)
                         t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
                         renderer.recruit_popup_supply_food = max(1, min(max_supply_food, round(1 + t * (max_supply_food - 1))))
+
+                elif renderer.add_tether_popup_active and renderer.add_tether_popup_group:
+                    if renderer.add_tether_popup_slider_rect and renderer.add_tether_popup_slider_rect.collidepoint(pos):
+                        renderer._add_tether_food_slider_dragging = True
+                        sr = renderer.add_tether_popup_slider_rect
+                        n_units = len(renderer.add_tether_popup_group.units)
+                        max_food = max(1, n_units * 2)
+                        t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
+                        renderer.add_tether_popup_food = max(1, min(max_food, round(1 + t * (max_food - 1))))
 
                 elif renderer.trade_route_pending and renderer.trade_route_import_slider_rect and renderer.trade_route_import_slider_rect.collidepoint(pos):
                     renderer.snap_import_amount(pos[0])
@@ -878,6 +910,20 @@ def main():
                             if transfer > 0:
                                 group.food_stockpile -= transfer
                                 city.food_stockpile += transfer
+
+                elif renderer.add_tether_button_rect and renderer.add_tether_button_rect.collidepoint(pos):
+                    selected_on_tile = [g for g in game_map.get_unit_groups(selected_tile.row, selected_tile.col) if g in renderer.selected_unit_groups]
+                    if selected_on_tile:
+                        group = selected_on_tile[0]
+                        renderer.add_tether_popup_active = True
+                        renderer.add_tether_popup_group = group
+                        renderer.add_tether_popup_food = len(group.units)
+
+                elif renderer.drop_tether_button_rect and renderer.drop_tether_button_rect.collidepoint(pos):
+                    selected_on_tile = [g for g in game_map.get_unit_groups(selected_tile.row, selected_tile.col) if g in renderer.selected_unit_groups]
+                    for group in selected_on_tile:
+                        if group.tether is not None:
+                            group.drop_tether(game_map)
 
                 elif any(r.collidepoint(pos) for r, _ in renderer.trade_route_delete_rects):
                     for rect, route in renderer.trade_route_delete_rects:

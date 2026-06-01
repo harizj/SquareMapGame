@@ -251,6 +251,8 @@ class Renderer:
         self.separate_button_rect = None
         self.restock_button_rect = None
         self.drop_button_rect = None
+        self.add_tether_button_rect = None
+        self.drop_tether_button_rect = None
         self.settle_button_rect = None
         self.recruit_unit_button_rect = None
         self.disband_button_rect = None
@@ -305,6 +307,13 @@ class Renderer:
         self.recruit_popup_supply_checkbox_rect = None
         self.recruit_popup_supply_food_slider_rect = None
         self._recruit_supply_food_slider_dragging = False
+        self.add_tether_popup_active = False
+        self.add_tether_popup_food = 1
+        self.add_tether_popup_group = None
+        self.add_tether_popup_slider_rect = None
+        self.add_tether_popup_confirm_rect = None
+        self.add_tether_popup_cancel_rect = None
+        self._add_tether_food_slider_dragging = False
 
     def _make_icon_pair(self, scaled, light_rgb, dark_rgb, outline_radius, pad=0):
         """Returns (tinted, dark, selected):
@@ -1289,6 +1298,9 @@ class Renderer:
 
         if self.separate_popup_active and self.separate_popup_group:
             self._draw_separate_popup()
+
+        if self.add_tether_popup_active and self.add_tether_popup_group:
+            self._draw_add_tether_popup(self.add_tether_popup_group)
 
         if self.add_job_popup_active and self.add_job_popup_city:
             self._draw_add_job_popup()
@@ -2300,14 +2312,15 @@ class Renderer:
                     light = group.faction.colors['light'] if group.faction else (180, 210, 255)
                     dark = group.faction.colors['dark'] if group.faction else (35, 65, 150)
                     ww_tinted, _, _ = self._make_icon_pair(ww_scaled, light, dark, outline_r, pad=outline_r)
+                    ww_surf = ww_tinted if selected else ww_scaled
                     tether_gap = icon_type_gap + 8
                     if sorted_types:
                         last_center_x = cur_x + (count - 1) * icon_overlap + icon_w // 2
                         ww_x = last_center_x + tether_gap - ww_size // 2
                     else:
                         ww_x = cur_x
-                    ww_y = y + (row_h - ww_tinted.get_height()) // 2
-                    self.screen.blit(ww_tinted, (ww_x, ww_y))
+                    ww_y = y + (row_h - ww_surf.get_height()) // 2
+                    self.screen.blit(ww_surf, (ww_x, ww_y))
                     # Draw tether units after the wheel using same overlap/gap logic
                     tether_type_counts = collections.Counter(u.unit_type for u in group.tether.tether_units)
                     tether_sorted = sorted(tether_type_counts.items(), key=lambda kv: _order.get(kv[0], 99))
@@ -2406,6 +2419,16 @@ class Renderer:
             self.drop_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Drop", disabled=drop_disabled)
             if drop_disabled:
                 self.drop_button_rect = None
+            y += btn_h + 4
+            has_tether = bool(selected_on_tile) and any(g.tether is not None for g in selected_on_tile)
+            add_tether_disabled = not has_city or not selected_on_tile or has_tether
+            self.add_tether_button_rect = self._draw_button(x, y, half_w, btn_h, "Add Tether", disabled=add_tether_disabled)
+            if add_tether_disabled:
+                self.add_tether_button_rect = None
+            drop_tether_disabled = not selected_on_tile or not has_tether
+            self.drop_tether_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Drop Tether", disabled=drop_tether_disabled)
+            if drop_tether_disabled:
+                self.drop_tether_button_rect = None
             y += btn_h + 6
 
         # End Turn button anchored to bottom
@@ -2628,6 +2651,48 @@ class Renderer:
         btn_w = (W - pad * 2 - 8) // 2
         self.recruit_popup_confirm_rect = self._draw_button(sx + pad, btn_y, btn_w, 24, "Confirm")
         self.recruit_popup_cancel_rect = self._draw_button(sx + pad + btn_w + 8, btn_y, btn_w, 24, "Cancel")
+
+    def _draw_add_tether_popup(self, group):
+        overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        self.screen.blit(overlay, (0, 0))
+
+        W, H = 280, 150
+        sx = (self.screen.get_width() - W) // 2
+        sy = (self.screen.get_height() - H) // 2
+        pad = 16
+        track_h = 6
+        track_w = W - pad * 2
+        pygame.draw.rect(self.screen, (40, 40, 55), (sx, sy, W, H), border_radius=6)
+        pygame.draw.rect(self.screen, PANEL_DIVIDER, (sx, sy, W, H), 1, border_radius=6)
+
+        surf = self.font_header.render("ADD TETHER", True, HEADER_TEXT_COLOR)
+        self.screen.blit(surf, (sx + pad, sy + 12))
+
+        n_units = len(group.units)
+        max_food = max(1, n_units * 2)
+        food = max(1, min(self.add_tether_popup_food, max_food))
+        self.add_tether_popup_food = food
+
+        track_x = sx + pad
+        label = self.font_body.render(f"Food Per Turn: {food}", True, TEXT_COLOR)
+        self.screen.blit(label, (track_x, sy + 36))
+
+        track_y = sy + 54
+        pygame.draw.rect(self.screen, (60, 60, 80), (track_x, track_y, track_w, track_h), border_radius=2)
+        hx = track_x + int((food - 1) / max(max_food - 1, 1) * track_w)
+        hy = track_y + track_h // 2
+        pygame.draw.circle(self.screen, (160, 190, 240), (hx, hy), 6)
+        pygame.draw.circle(self.screen, (100, 130, 190), (hx, hy), 6, 1)
+        self.screen.blit(self.font_small.render("1", True, PANEL_DIVIDER), (track_x, track_y + track_h + 3))
+        max_surf = self.font_small.render(str(max_food), True, PANEL_DIVIDER)
+        self.screen.blit(max_surf, (track_x + track_w - max_surf.get_width(), track_y + track_h + 3))
+        self.add_tether_popup_slider_rect = pygame.Rect(track_x, track_y - 6, track_w, track_h + 16)
+
+        btn_y = sy + H - 36
+        btn_w = (W - pad * 2 - 8) // 2
+        self.add_tether_popup_confirm_rect = self._draw_button(sx + pad, btn_y, btn_w, 24, "Confirm")
+        self.add_tether_popup_cancel_rect = self._draw_button(sx + pad + btn_w + 8, btn_y, btn_w, 24, "Cancel")
 
     def _draw_separate_popup(self):
         import collections

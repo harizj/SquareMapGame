@@ -191,6 +191,7 @@ class UnitGroup:
             route.establish_progress = route.distance
             tether.route = route
         city.rebalance_pops()
+        self.tether = None
 
     def update_tether_after_movement(self, game_map, src_tile, dst_tile):
         if self.tether is not None:
