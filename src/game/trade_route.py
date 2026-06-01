@@ -181,7 +181,7 @@ class TradeRoute:
         carry_capacity = WATER_CARRY_CAPACITY if self.water else LAND_CARRY_CAPACITY
         denom = carry_capacity + 1 - self.travel_time if not self.one_way else carry_capacity + 1 - 2 * self.travel_time
         if denom > 0 and self.travel_time > 0:
-            total_pops = max(1, round((self.max_amount * 2 * self.travel_time) / denom))
+            total_pops = max(1, math.ceil((self.max_amount * 2 * self.travel_time) / denom))
             if not self.one_way:
                 self.pops_a = (total_pops + 1) // 2
                 self.pops_b = total_pops // 2

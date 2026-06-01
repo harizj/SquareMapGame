@@ -1603,7 +1603,7 @@ class Renderer:
             denom = carry_capacity + 1 - travel_time if two_way else carry_capacity + 1 - 2 * travel_time
             if denom > 0 and travel_time > 0:
                 raw = (self.one_way_amount * 2 * travel_time) / denom
-                pops_required = max(1, round(raw))
+                pops_required = max(1, math.ceil(raw))
                 pops_required_text = f"Pops required: {pops_required}"
                 self.one_way_pops_required_whole = pops_required
                 # partial_pops = round(math.ceil(raw) - raw, 1)

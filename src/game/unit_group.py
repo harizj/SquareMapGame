@@ -144,9 +144,9 @@ class UnitGroup:
         self.max_food_stockpile = self._carry_capacity()
         return removed
 
-    def update_tether_after_movement(self, game_map, dst_tile):
+    def update_tether_after_movement(self, game_map, src_tile, dst_tile):
         if self.tether is not None:
-            self.tether.unit_movement(game_map, dst_tile)
+            self.tether.unit_movement(game_map, src_tile, dst_tile)
 
     def reset_after_movement(self):
         self.food_allocated_from_city = 0.0
