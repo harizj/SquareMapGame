@@ -1,10 +1,10 @@
-{"map": "two_zone",
+{"map": "tutorial_temperate",
 "factions": [
     {"name": "Babylonians", "colors": "blue", "city_names": "babylon"},
     {"name": "Assyrians",   "colors": "red",  "city_names": "assyria"}
   ],
   "cities": [
-    {"row": 6, "col": 2, "faction": "Babylonians", "population": 60},
-    {"row": 6, "col": 11, "faction": "Assyrians",  "population": 60}
+    {"row": 3, "col": 2, "faction": "Babylonians", "population": 60},
+    {"row": 3, "col": 7, "faction": "Assyrians",  "population": 60}
   ]
 }

@@ -79,6 +79,19 @@ _SQUARE_EDGE_CORNERS = {
 # Art names that get_terrain_art() can return — images loaded for each
 _TERRAIN_ART_NAMES = ['river', 'mountain', 'forest', 'hills', 'water', 'floodplain', 'grass', 'desert', 'marsh']
 
+# Biome sprite sheet tile dimensions (sheet is 256x256, tiles are 64 wide x 96 tall)
+# The extra 32px height overhangs the row above, enabling 2.5D depth stacking.
+_TILE_SPRITE_W = 64
+_TILE_SPRITE_H = 96
+# Maps get_terrain_art() return value → sprite sheet filename stem within a biome folder
+_BIOME_ART_FILES = {
+    'grass':      'flat',
+    'hills':      'hills',
+    'forest':     'forests',
+    'hillforest': 'hillforest',
+    'water':      'water',
+}
+
 # Per-art scale multipliers applied on top of the hex size (1.0 = fill hex)
 _TERRAIN_ART_SCALE = {
     'grass': 0.7,
@@ -135,6 +148,17 @@ class Renderer:
                     raw_variants.append(pygame.image.load(path).convert_alpha())
             if raw_variants:
                 self._terrain_images_raw[name] = raw_variants
+        self._biome_terrain_images_raw = {}
+        for biome_folder in os.listdir(terrain_dir):
+            biome_path = os.path.join(terrain_dir, biome_folder)
+            if not os.path.isdir(biome_path):
+                continue
+            for art_name, file_stem in _BIOME_ART_FILES.items():
+                path = os.path.join(biome_path, f'{file_stem}.png')
+                if os.path.exists(path):
+                    sheet = pygame.image.load(path).convert_alpha()
+                    tile_surf = sheet.subsurface((0, 0, _TILE_SPRITE_W, _TILE_SPRITE_H)).copy()
+                    self._biome_terrain_images_raw[(biome_folder, art_name)] = tile_surf
         self._icons_raw = {}
         icons_dir = os.path.join(_ASSETS_DIR, 'icons')
         for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius'), ('flag', 'flag'), ('torch', 'restriction'), ('wood', 'wood'), ('iron', 'iron'), ('hammer', 'hammer'), ('club', 'club'), ('spear', 'spear'), ('bow', 'bow'), ('gladius', 'gladius'), ('pitchfork', 'pitchfork'), ('wagon_wheel', 'wagon-wheel')):
@@ -154,6 +178,7 @@ class Renderer:
         self._faction_torch_icons = {}
         self._faction_resource_icons = {}
         self._unit_map_icons = {}
+        self._biome_terrain_images = {}
         self._apply_zoom()
         self.move_button_rect = None
         self.capture_button_rect = None
@@ -346,6 +371,12 @@ class Renderer:
                 for v in variants
             ]
             for name, variants in self._terrain_images_raw.items()
+        }
+        tile_render_w = int(sz)
+        tile_render_h = int(sz * _TILE_SPRITE_H / _TILE_SPRITE_W)
+        self._biome_terrain_images = {
+            key: pygame.transform.scale(raw, (tile_render_w, tile_render_h))
+            for key, raw in self._biome_terrain_images_raw.items()
         }
         castle_size = int(ICON_SIZE * 1.2 * self.zoom)
         sword_size = int(ICON_SIZE * 0.4 * self.zoom)
@@ -709,27 +740,26 @@ class Renderer:
                 rect = pygame.Rect(int(cx - sz / 2), int(cy - sz / 2), int(sz), int(sz))
                 pygame.draw.rect(self.screen, color, rect)
 
-        # Pass 1b: terrain images over fills
-        for r in range(self.map.rows):
-            for c in range(self.map.cols):
-                variants = self.terrain_images.get(self.map.tiles[r][c].get_terrain_art())
-                if variants:
-                    img = variants[(r * 7 + c * 13) % len(variants)]
-                    cx, cy = all_centers[(r, c)]
-                    self.screen.blit(img, (int(cx) - img.get_width() // 2, int(cy) - img.get_height() // 2))
-
-        # Pass 1c: coastline borders between water and land tiles
+        # Pass 1b: terrain images over fills (top-to-bottom so tall sprites overlap row below)
         for r in range(self.map.rows):
             for c in range(self.map.cols):
                 tile = self.map.tiles[r][c]
-                corners = all_corners[(r, c)]
-                for (dr, dc), (ci, cj) in _SQUARE_EDGE_CORNERS.items():
-                    nr, nc = r + dr, c + dc
-                    if not (0 <= nr < self.map.rows and 0 <= nc < self.map.cols):
-                        continue
-                    neighbor = self.map.tiles[nr][nc]
-                    if tile.water != neighbor.water:
-                        pygame.draw.line(self.screen, (0, 0, 0), corners[ci], corners[cj], 2)
+                cx, cy = all_centers[(r, c)]
+                art_name = tile.get_terrain_art()
+                sz = CELL_SIZE * self.zoom
+                img = self._biome_terrain_images.get((tile.biome, art_name))
+                if img is None:
+                    variants = self.terrain_images.get(art_name)
+                    if variants:
+                        img = variants[(r * 7 + c * 13) % len(variants)]
+                if img:
+                    blit_x = int(cx - img.get_width() / 2)
+                    if img.get_height() > sz:
+                        blit_y = int(cy + sz / 2 - img.get_height())
+                    else:
+                        blit_y = int(cy - img.get_height() / 2)
+                    self.screen.blit(img, (blit_x, blit_y))
+
 
         # Pass 2: river lines from cell center to cardinal edge midpoints
         for r in range(self.map.rows):
