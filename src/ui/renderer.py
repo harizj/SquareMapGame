@@ -154,7 +154,7 @@ class Renderer:
                 self._terrain_images_raw[name] = raw_variants
         self._icons_raw = {}
         icons_dir = os.path.join(_ASSETS_DIR, 'icons')
-        for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius'), ('flag', 'flag'), ('torch', 'restriction'), ('wood', 'wood'), ('iron', 'iron'), ('hammer', 'hammer'), ('club', 'club'), ('spear', 'spear'), ('bow', 'bow'), ('gladius', 'gladius'), ('pitchfork', 'pitchfork')):
+        for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius'), ('flag', 'flag'), ('torch', 'restriction'), ('wood', 'wood'), ('iron', 'iron'), ('hammer', 'hammer'), ('club', 'club'), ('spear', 'spear'), ('bow', 'bow'), ('gladius', 'gladius'), ('pitchfork', 'pitchfork'), ('wagon_wheel', 'wagon-wheel')):
             path = os.path.join(icons_dir, f'{file_name}.png')
             if os.path.exists(path):
                 self._icons_raw[icon_name] = pygame.image.load(path).convert_alpha()
@@ -1094,16 +1094,19 @@ class Renderer:
             faction_data = icon_data.get(fname, {})
             icon = (faction_data.get('selected') or icon_data.get('selected')) if any_selected else (faction_data.get('tinted') or icon_data.get('tinted'))
             total_units = sum(len(g.units) for g in unit_groups_here)
+            total_tether = sum(len(g.tether.tether_units) for g in unit_groups_here if g.tether is not None)
             if icon:
                 icon_y = int(cy) - icon.get_height() // 2
                 icon_x = int(cx) - icon.get_width() // 2 + int(apothem * 0.3)
                 self.screen.blit(icon, (icon_x, icon_y))
-                count_str = str(total_units)
+                has_tether = any(g.tether is not None for g in unit_groups_here)
+                count_str = f"{total_units}/{total_tether}" if has_tether else str(total_units)
                 outline_color = first_faction.colors['dark'] if first_faction else (35, 65, 150)
                 count_outline = self.font_unit_count.render(count_str, True, outline_color)
                 count_white   = self.font_unit_count.render(count_str, True, (255, 255, 255))
                 pop_r = 3
-                tx = icon_x - count_white.get_width()
+                count_x_offset = 6 if has_tether else 0
+                tx = icon_x - count_white.get_width() + count_x_offset
                 ty = int(cy) - count_white.get_height() // 2
                 for dx in range(-pop_r, pop_r + 1):
                     for dy in range(-pop_r, pop_r + 1):
@@ -2289,6 +2292,46 @@ class Renderer:
                     next_icon_surf = (next_icon_data.get(fname) or next_icon_data.get('default')) if selected else next_icon_data.get('plain')
                     next_icon_w = next_icon_surf.get_width() if next_icon_surf else icon_h
                     cur_x = last_center_x + icon_type_gap - next_icon_w // 2
+            if group.tether is not None:
+                ww_raw = self._icons_raw.get('wagon_wheel')
+                if ww_raw:
+                    ww_size = int(icon_h * 1.3)
+                    ww_scaled = pygame.transform.scale(ww_raw, (ww_size, ww_size))
+                    light = group.faction.colors['light'] if group.faction else (180, 210, 255)
+                    dark = group.faction.colors['dark'] if group.faction else (35, 65, 150)
+                    ww_tinted, _, _ = self._make_icon_pair(ww_scaled, light, dark, outline_r, pad=outline_r)
+                    tether_gap = icon_type_gap + 8
+                    if sorted_types:
+                        last_center_x = cur_x + (count - 1) * icon_overlap + icon_w // 2
+                        ww_x = last_center_x + tether_gap - ww_size // 2
+                    else:
+                        ww_x = cur_x
+                    ww_y = y + (row_h - ww_tinted.get_height()) // 2
+                    self.screen.blit(ww_tinted, (ww_x, ww_y))
+                    # Draw tether units after the wheel using same overlap/gap logic
+                    tether_type_counts = collections.Counter(u.unit_type for u in group.tether.tether_units)
+                    tether_sorted = sorted(tether_type_counts.items(), key=lambda kv: _order.get(kv[0], 99))
+                    t_cur_x = ww_x + ww_size // 2 + tether_gap
+                    for ti, (t_unit_type, t_count) in enumerate(tether_sorted):
+                        t_icon_name = _unit_icon_names.get(t_unit_type)
+                        t_icon_data = small_icons.get(t_icon_name, {})
+                        t_icon_surf = (t_icon_data.get(fname) or t_icon_data.get('default')) if selected else t_icon_data.get('plain')
+                        t_icon_w = t_icon_surf.get_width() if t_icon_surf else icon_h
+                        t_icon_actual_h = t_icon_surf.get_height() if t_icon_surf else icon_h
+                        t_y_off = (row_h - t_icon_actual_h) // 2
+                        t_x_off = _unit_icon_x_offset.get(t_unit_type, 0)
+                        t_cur_x -= t_icon_w // 2
+                        for j in range(t_count):
+                            if t_icon_surf:
+                                self.screen.blit(t_icon_surf, (t_cur_x + j * icon_overlap - t_x_off, y + t_y_off))
+                        if ti < len(tether_sorted) - 1:
+                            last_t_center = t_cur_x + (t_count - 1) * icon_overlap + t_icon_w // 2
+                            next_t_type, _ = tether_sorted[ti + 1]
+                            next_t_icon_name = _unit_icon_names.get(next_t_type)
+                            next_t_data = small_icons.get(next_t_icon_name, {})
+                            next_t_surf = (next_t_data.get(fname) or next_t_data.get('default')) if selected else next_t_data.get('plain')
+                            next_t_w = next_t_surf.get_width() if next_t_surf else icon_h
+                            t_cur_x = last_t_center + icon_type_gap - next_t_w // 2
             y += row_h + 4
             icon_rect = pygame.Rect(x + 4, row_top_y, bar_w - 4, y - row_top_y)
             self.group_icon_rects.append((icon_rect, group))

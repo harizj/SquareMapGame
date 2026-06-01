@@ -1,7 +1,7 @@
 {"map": "two_zone",
 "factions": [
     {"name": "Babylonians", "colors": "blue", "city_names": "babylon"},
-    {"name": "Assyrians",   "colors": "red",  "city_names": "assyria", "director": "horde"}
+    {"name": "Assyrians",   "colors": "red",  "city_names": "assyria"}
   ],
   "cities": [
     {"row": 6, "col": 2, "faction": "Babylonians", "population": 60},

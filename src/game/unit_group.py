@@ -1,5 +1,5 @@
 import math
-from src.game.constants import DEFAULT_MOVE_DISTANCE, POP_FOOD_CONSUMPTION, MIN_TERRAIN_COST
+from src.game.constants import DEFAULT_MOVE_DISTANCE, POP_FOOD_CONSUMPTION, MIN_TERRAIN_COST, LAND_CARRY_CAPACITY, WATER_CARRY_CAPACITY
 
 
 class UnitGroup:
@@ -143,6 +143,54 @@ class UnitGroup:
         self.units = self.units[n:]
         self.max_food_stockpile = self._carry_capacity()
         return removed
+
+    def drop_tether(self, game_map):
+        from src.game.trade_route import TradeRoute
+        if self.tether is None:
+            return
+        tether = self.tether
+        city = tether.city
+
+        # Return tether units to city as pops (unit type lost — permanent release)
+        # TODO: handle dropped items for upgraded units (swords, bows, spears)
+        city.pops.extend(u.pop for u in tether.tether_units)
+        tether.tether_units.clear()
+
+        if tether.route is not None:
+            tether.route.detach()
+            tether.route = None
+
+        current_tile = game_map.tiles[self.row][self.col]
+        path, distances = game_map.get_path_to(city.row, city.col, self.row, self.col)
+        dist = distances[-1] if distances else 0.0
+
+        travel_time = dist / DEFAULT_MOVE_DISTANCE
+        carry_capacity = LAND_CARRY_CAPACITY
+        denom = carry_capacity + 1 - 2 * travel_time
+        one_way_amount = len(self.units)
+        if denom > 0 and travel_time > 0:
+            pops_required = max(1, math.ceil((one_way_amount * 2 * travel_time) / denom))
+            route = TradeRoute(
+                city_a=city,
+                dest_tile=current_tile,
+                pops_a=pops_required,
+                pops_b=0,
+                partial_pops_a=0,
+                partial_pops_b=0,
+                export_resource='food',
+                export_amount=one_way_amount,
+                max_amount=one_way_amount,
+                import_resource=None,
+                import_amount=0,
+                path=path,
+                path_distances=distances,
+                water=False,
+                one_way=True,
+            )
+            route.established = True
+            route.establish_progress = route.distance
+            tether.route = route
+        city.rebalance_pops()
 
     def update_tether_after_movement(self, game_map, src_tile, dst_tile):
         if self.tether is not None:

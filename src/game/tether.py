@@ -4,14 +4,13 @@ from src.game.constants import LAND_CARRY_CAPACITY, DEFAULT_MOVE_DISTANCE
 
 
 class Tether:
-    def __init__(self, city, unit_group, food_amount, tether_pops=None):
+    def __init__(self, city, unit_group, food_amount, tether_units=None):
         self.city = city
         self.unit_group = unit_group
         self.food_amount = food_amount
-        self.tether_pops = tether_pops or []
-        self.tether_pops_unit_types = []
+        self.tether_units = tether_units or []  # list of Unit objects
         self.route = None
-        print(f"[Tether] city={city.name} units={len(unit_group.units)} food_amount={food_amount} tether_pops={len(self.tether_pops)}")
+        print(f"[Tether] city={city.name} units={len(unit_group.units)} food_amount={food_amount} tether_units={len(self.tether_units)}")
 
     def update_supply_pops(self, distance):
         units_in_field = math.ceil(
@@ -21,21 +20,22 @@ class Tether:
         supply_pops = self.food_amount - units_in_field
         supply_pops = math.ceil((self.food_amount * travel_time)/(LAND_CARRY_CAPACITY + 1 - travel_time))
         supply_pops = max(1, math.ceil((travel_time*self.food_amount)/(LAND_CARRY_CAPACITY + 1)))
-        needed = supply_pops - len(self.tether_pops)
+        needed = supply_pops - len(self.tether_units)
         print(f"[Tether] supply_pops={supply_pops} distance={distance} pops needed={needed} units_in_field={units_in_field}")
         if needed > 0:
             transferred = self.unit_group.remove_pops(needed)
-            self.tether_pops_unit_types.extend(transferred)
-            self.tether_pops.extend(u.pop for u in transferred)
+            self.tether_units.extend(transferred)
         elif needed < 0:
-            pass  # return excess pops handled separately
+            returning = self.tether_units[:abs(needed)]
+            self.tether_units = self.tether_units[abs(needed):]
+            self.unit_group.units.extend(returning)
+            self.unit_group.max_food_stockpile = self.unit_group._carry_capacity()
         return supply_pops
 
     def _city_return(self, game_map, dst_tile):
-        self.unit_group.units.extend(self.tether_pops_unit_types)
+        self.unit_group.units.extend(self.tether_units)
         self.unit_group.max_food_stockpile = self.unit_group._carry_capacity()
-        self.tether_pops.clear()
-        self.tether_pops_unit_types.clear()
+        self.tether_units.clear()
 
     def unit_movement(self, game_map, src_tile, dst_tile):
         if self.route is not None:
