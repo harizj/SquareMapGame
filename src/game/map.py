@@ -290,7 +290,8 @@ class Map:
                 terrain_features = cell.get('terrain_features', ['water'])
                 t = Tile(r, c, '', biome=biome, terrain_features=terrain_features)
                 for edge in cell.get('river_edges', []):
-                    t.river_edges.add(edge)
+                    if edge in {'N', 'S', 'E', 'W'}:
+                        t.river_edges.add(edge)
                 t.update_terrain_properties()
                 row.append(t)
             m.tiles.append(row)

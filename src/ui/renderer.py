@@ -62,7 +62,7 @@ BUTTON_DISABLED   = (50, 50, 60)
 BUTTON_TEXT       = (200, 210, 230)
 BUTTON_TEXT_DISABLED = (90, 90, 100)
 
-RIVER_DIR_GRID = [('NW', 'NE'), ('W', 'E'), ('SW', 'SE')]
+RIVER_DIR_GRID = [('N',), ('W', 'E'), ('S',)]
 
 # Offset from cell center to edge midpoint for each cardinal river direction
 _RIVER_EDGE_OFFSETS = {'N': (0, -1), 'S': (0, 1), 'E': (1, 0), 'W': (-1, 0)}
@@ -93,9 +93,6 @@ _TERRAIN_IMG_FILES = {
 }
 
 ICON_SIZE      = 40
-ICON_OFFSET    = 10
-RIVER_IMG_SCALE = 1.2  # bleed past tile edge so adjacent river images connect
-ISO_SCALE      = 1  # vertical compression for isometric perspective
 LOG_PANEL_WIDTH = 0
 CITY_PANEL_WIDTH = 220
 BOTTOM_PANEL_HEIGHT = 36
@@ -340,8 +337,6 @@ class Renderer:
         sz = CELL_SIZE * self.zoom
         hex_w = sz
         hex_h = sz
-        half = sz / 2
-        self._hex_clip_offsets = [(-half, -half), (half, -half), (half, half), (-half, half)]
         self.terrain_images = {
             name: [
                 pygame.transform.scale(v, (
@@ -415,7 +410,7 @@ class Renderer:
             self.icons_selected['flag'] = sel
             self._faction_flag_icons = {}
         if 'torch' in self._icons_raw:
-            torch_size = int(CELL_SIZE * self.zoom * 0.45)
+            torch_size = int(CELL_SIZE * self.zoom * 0.28)
             scaled_torch = pygame.transform.scale(self._icons_raw['torch'], (torch_size, torch_size))
             outline_r = 4
             torch_mask = scaled_torch.copy()
@@ -440,7 +435,7 @@ class Renderer:
                     t, d, _ = self._make_icon_pair(scaled, city.get_city_color('light'), city.get_city_color('dark'), flag_outline_radius)
                     self._faction_flag_icons[city.faction.name] = {'tinted': t, 'dark': d}
 
-        resource_icon_size = int(CELL_SIZE * self.zoom * 0.35)
+        resource_icon_size = int(CELL_SIZE * self.zoom * 0.28)
         outline_r = 4
         self._faction_resource_icons = {}
         self._deposit_icons = {}
@@ -460,7 +455,7 @@ class Renderer:
                 outlined.blit(res_mask, (outline_r, outline_r))
                 self.icons[resource] = outlined
                 if resource == 'iron':
-                    dep_size = int(resource_icon_size * 1.1)
+                    dep_size = resource_icon_size
                     dep_raw = pygame.transform.scale(self._icons_raw['iron'], (dep_size, dep_size))
                     padded = dep_size + outline_r * 2
                     deposit_surf = pygame.Surface((padded, padded), pygame.SRCALPHA)
@@ -856,9 +851,10 @@ class Renderer:
                         if (dx, dy) != (0, 0) and dx * dx + dy * dy <= r2:
                             result.blit(lb_surf, (dx, dy))
                 result.blit(base_surf, (0, 0))
-                hex_pts = [(scx + dx, scy + dy) for dx, dy in self._hex_clip_offsets]
+                half_sz = int(sz / 2)
                 clip_mask = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
-                pygame.draw.polygon(clip_mask, (255, 255, 255, 255), hex_pts)
+                pygame.draw.rect(clip_mask, (255, 255, 255, 255),
+                                 (scx - half_sz, scy - half_sz, int(sz), int(sz)))
                 result.blit(clip_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
                 self.screen.blit(result, (int(cx) - scx, int(cy) - scy))
 
@@ -3126,13 +3122,20 @@ class Renderer:
 
         gx = sx + (W - grid_w) // 2
         gy = sy + 38
-        for row_idx, (left, right) in enumerate(RIVER_DIR_GRID):
+        for row_idx, directions in enumerate(RIVER_DIR_GRID):
             by = gy + row_idx * (btn_h + row_gap)
-            for col_idx, direction in enumerate((left, right)):
-                bx = gx + col_idx * (btn_w + col_gap)
+            if len(directions) == 1:
+                bx = gx + (btn_w + col_gap) // 2
+                direction = directions[0]
                 is_active = selected_tile and direction in selected_tile.river_edges
                 rect = self._draw_button(bx, by, btn_w, btn_h, direction, active=is_active)
                 self.river_option_rects[direction] = rect
+            else:
+                for col_idx, direction in enumerate(directions):
+                    bx = gx + col_idx * (btn_w + col_gap)
+                    is_active = selected_tile and direction in selected_tile.river_edges
+                    rect = self._draw_button(bx, by, btn_w, btn_h, direction, active=is_active)
+                    self.river_option_rects[direction] = rect
 
         hint = self.font_body.render("Esc to cancel", True, (110, 110, 130))
         self.screen.blit(hint, (sx + 16, sy + H - 18))

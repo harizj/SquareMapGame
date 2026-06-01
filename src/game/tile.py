@@ -128,7 +128,7 @@ class Tile:
         self.terrain = terrain  # 'desert', 'hills', 'river'
         self.biome = biome
         self.terrain_features = terrain_features
-        self.river_edges = set()  # subset of {'NW','NE','E','SE','SW','W'}
+        self.river_edges = set()  # subset of {'N','S','E','W'}
         self.unit_groups = []
         self.city = None
         self.owning_city = None
