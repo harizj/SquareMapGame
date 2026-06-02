@@ -1,8 +1,15 @@
+import random
 from src.game.battles import compute_battle_preview, resolve_battle, apply_battle_result
+from src.game.unit import Militia
+from src.game.pop import Pop
+from src.game.unit_group import UnitGroup
 
 _DIRS = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
 
-ATTACK_THRESHOLD = 1.2
+ATTACK_THRESHOLD     = 1.2
+SPAWN_INTERVAL       = 5  # turns between each spawn wave
+SPAWN_COUNT_START    = 1  # units in the first wave's group
+SPAWN_COUNT_INCREASE = 1  # additional units added per subsequent wave
 
 
 class Director:
@@ -16,7 +23,8 @@ class Director:
 
 
 class HordeDirector(Director):
-    """Attacks enemies in range (weakest first); otherwise advances toward nearest enemy city."""
+    """Attacks enemies in range (weakest first); otherwise advances toward nearest enemy city.
+    Spawns unit groups at faction cities on a fixed interval that grows over time."""
 
     def __init__(self, spawn_interval=5):
         self.spawn_interval = spawn_interval
@@ -134,4 +142,19 @@ class HordeDirector(Director):
                 game_map.move_group(group, target_r, target_c, target_cost)
 
     def spawn_tick(self, faction, game_map, turn):
-        pass
+        if turn == 0 or turn % SPAWN_INTERVAL != 0:
+            return
+        spawn_tiles = [
+            tile
+            for row in game_map.tiles
+            for tile in row
+            if 'spawn_point' in tile.terrain_features
+        ]
+        if not spawn_tiles:
+            return
+        wave       = turn // SPAWN_INTERVAL
+        unit_count = SPAWN_COUNT_START + (wave - 1) * SPAWN_COUNT_INCREASE
+        tile       = random.choice(spawn_tiles)
+        units      = [Militia(Pop()) for _ in range(unit_count)]
+        group      = UnitGroup(tile.row, tile.col, units=units, faction=faction)
+        tile.unit_groups.append(group)

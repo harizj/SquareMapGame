@@ -1,6 +1,10 @@
-{"map": "tutorial_temperate",
-"factions": [
+{
+  "map": "tutorial_temperate",
+  "factions": [
     {"name": "Babylonians", "colors": "blue", "city_names": "babylon"},
-    {"name": "Assyrians",   "colors": "red",  "city_names": "assyria"}
+    {"name": "Undead",      "colors": "red",  "city_names": "assyria", "director": "horde"}
+  ],
+  "cities": [
+    {"row": 4, "col": 4, "faction": "Babylonians", "population": 20}
   ]
 }
