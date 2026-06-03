@@ -1,5 +1,5 @@
 import random
-from src.game.constants import BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST, DEFAULT_MOVE_DISTANCE, FOOD_YIELD, GAME_SCALE
+from src.game.constants import BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST, VERY_DIFFICULT_TERRAIN_COST, DIAGONAL_BASE_COST, DIAGONAL_DIFFICULT_COST, DIAGONAL_VERY_DIFFICULT_COST, DEFAULT_MOVE_DISTANCE, FOOD_YIELD, GAME_SCALE
 from src.game.jobs import FarmJob
 
 # Yield per assigned pop at each distance increment (fill in from LP results later)
@@ -140,6 +140,7 @@ class Tile:
         self.restricted = False
         self._restricted_ticker = 0
         self.movement_cost = BASE_TERRAIN_COST
+        self.diagonal_movement_cost = DIAGONAL_BASE_COST
         self.passable = True
         self.water = 'water' in self.terrain_features
         self.water_access = 'water_access' in self.terrain_features
@@ -225,11 +226,17 @@ class Tile:
         difficult = {'hills', 'forest'}
         if 'city' in self.terrain_features:
             self.movement_cost = BASE_TERRAIN_COST
+            self.diagonal_movement_cost = DIAGONAL_BASE_COST
+        elif 'mountain' in self.terrain_features:
+            self.movement_cost = VERY_DIFFICULT_TERRAIN_COST
+            self.diagonal_movement_cost = DIAGONAL_VERY_DIFFICULT_COST
         elif any(f in difficult for f in self.terrain_features) or self.biome == 'wetlands':
             self.movement_cost = DIFFICULT_TERRAIN_COST
+            self.diagonal_movement_cost = DIAGONAL_DIFFICULT_COST
         else:
             self.movement_cost = BASE_TERRAIN_COST
-        self.passable = 'mountain' not in self.terrain_features
+            self.diagonal_movement_cost = DIAGONAL_BASE_COST
+        self.passable = True
         self.water = 'water' in self.terrain_features
         self.water_access = 'water_access' in self.terrain_features
         if self.raided or self.restricted:
