@@ -260,6 +260,13 @@ class Renderer:
         self.recruit_popup_food_slider_rect = None
         self.recruit_popup_confirm_rect = None
         self.recruit_popup_cancel_rect = None
+        self.recruit_dec2_rect = None
+        self.recruit_dec1_rect = None
+        self.recruit_inc1_rect = None
+        self.recruit_inc2_rect = None
+        self.recruit_all_free_rect = None
+        self.recruit_food_dec_rect = None
+        self.recruit_food_inc_rect = None
         self.separate_popup_active = False
         self.separate_popup_group = None
         self.separate_popup_counts = {}
@@ -2495,7 +2502,7 @@ class Renderer:
         self.screen.blit(overlay, (0, 0))
 
         W = 280
-        H = 248 if self.recruit_popup_supply_train else 200
+        H = 284 if self.recruit_popup_supply_train else 236
         sx = (self.screen.get_width() - W) // 2
         sy = (self.screen.get_height() - H) // 2
         pad = 16
@@ -2507,52 +2514,58 @@ class Renderer:
         surf = self.font_header.render("RECRUIT UNITS", True, HEADER_TEXT_COLOR)
         self.screen.blit(surf, (sx + pad, sy + 12))
 
-        max_recruit = min(8, len(city.pops) - 1)
-        amount = max(1, min(self.recruit_popup_amount, max_recruit))
+        from src.game.constants import SELECTION_INCREMENT as _SEL_INC
+        max_recruit = len(city.pops) - 1
+        amount = max(0, min(self.recruit_popup_amount, max_recruit))
         self.recruit_popup_amount = amount
 
-        amt_surf = self.font_body.render(f"{amount} unit{'s' if amount != 1 else ''}", True, TEXT_COLOR)
-        self.screen.blit(amt_surf, (sx + pad, sy + 36))
+        lbl_surf = self.font_body.render("Unit Count", True, TEXT_COLOR)
+        self.screen.blit(lbl_surf, (sx + pad, sy + 36))
+        all_free_w = 80
+        self.recruit_all_free_rect = self._draw_button(sx + W - pad - all_free_w, sy + 32, all_free_w, 20, "All Free Pops")
 
         track_x = sx + pad
-        track_y = sy + 54
-        pygame.draw.rect(self.screen, (60, 60, 80), (track_x, track_y, track_w, track_h), border_radius=2)
-        for i in range(1, max_recruit + 1):
-            tx = track_x + int((i - 1) / max(max_recruit - 1, 1) * track_w)
-            pygame.draw.line(self.screen, PANEL_DIVIDER, (tx, track_y - 2), (tx, track_y + track_h + 2), 1)
-        hx = track_x + int((amount - 1) / max(max_recruit - 1, 1) * track_w)
-        hy = track_y + track_h // 2
-        pygame.draw.circle(self.screen, (160, 190, 240), (hx, hy), 6)
-        pygame.draw.circle(self.screen, (100, 130, 190), (hx, hy), 6, 1)
-        self.screen.blit(self.font_small.render("1", True, PANEL_DIVIDER), (track_x, track_y + track_h + 3))
-        max_r_surf = self.font_small.render(str(max_recruit), True, PANEL_DIVIDER)
-        self.screen.blit(max_r_surf, (track_x + track_w - max_r_surf.get_width(), track_y + track_h + 3))
-        self.recruit_popup_slider_rect = pygame.Rect(track_x, track_y - 6, track_w, track_h + 16)
+        btn_y   = sy + 54
+        btn_h   = 22
+        btn_w   = 30
+        gap_sm  = 4
+        self.recruit_popup_slider_rect = None
+        self.recruit_dec2_rect = self._draw_button(track_x,                         btn_y, btn_w, btn_h, "--")
+        self.recruit_dec1_rect = self._draw_button(track_x + btn_w + gap_sm,        btn_y, btn_w, btn_h, "-")
+        self.recruit_inc2_rect = self._draw_button(track_x + track_w - btn_w,       btn_y, btn_w, btn_h, "++")
+        self.recruit_inc1_rect = self._draw_button(track_x + track_w - btn_w*2 - gap_sm, btn_y, btn_w, btn_h, "+")
+        count_surf = self.font_header.render(str(amount), True, TEXT_COLOR)
+        cx = sx + W // 2
+        self.screen.blit(count_surf, (cx - count_surf.get_width() // 2, btn_y + (btn_h - count_surf.get_height()) // 2))
 
-        max_food_per_pop = min(MILITARY_CARRY_CAPACITY, int(city.food_stockpile / amount)) if amount > 0 else 0
+        max_food_per_pop = MILITARY_CARRY_CAPACITY
         food_per_pop = max(0, min(self.recruit_popup_food, max_food_per_pop))
         self.recruit_popup_food = food_per_pop
 
-        food_surf = self.font_body.render(f"{food_per_pop} food/pop ({food_per_pop * amount} total)", True, TEXT_COLOR)
-        self.screen.blit(food_surf, (sx + pad, sy + 88))
+        food_lbl_surf = self.font_body.render("Stockpile Per Unit", True, TEXT_COLOR)
+        self.screen.blit(food_lbl_surf, (sx + pad, sy + 88))
 
-        f_track_y = sy + 106
-        pygame.draw.rect(self.screen, (60, 60, 80), (track_x, f_track_y, track_w, track_h), border_radius=2)
-        if max_food_per_pop > 0:
-            fhx = track_x + int(food_per_pop / max_food_per_pop * track_w)
-        else:
-            fhx = track_x
-        fhy = f_track_y + track_h // 2
-        pygame.draw.circle(self.screen, (160, 190, 240), (fhx, fhy), 6)
-        pygame.draw.circle(self.screen, (100, 130, 190), (fhx, fhy), 6, 1)
-        self.screen.blit(self.font_small.render("0", True, PANEL_DIVIDER), (track_x, f_track_y + track_h + 3))
-        max_f_surf = self.font_small.render(str(max_food_per_pop), True, PANEL_DIVIDER)
-        self.screen.blit(max_f_surf, (track_x + track_w - max_f_surf.get_width(), f_track_y + track_h + 3))
-        self.recruit_popup_food_slider_rect = pygame.Rect(track_x, f_track_y - 6, track_w, track_h + 16)
+        food_btn_y = sy + 106
+        self.recruit_popup_food_slider_rect = None
+        self.recruit_food_dec_rect = self._draw_button(track_x,                   food_btn_y, btn_w, btn_h, "-")
+        self.recruit_food_inc_rect = self._draw_button(track_x + track_w - btn_w, food_btn_y, btn_w, btn_h, "+")
+        food_count_surf = self.font_header.render(str(food_per_pop), True, TEXT_COLOR)
+        self.screen.blit(food_count_surf, (cx - food_count_surf.get_width() // 2, food_btn_y + (btn_h - food_count_surf.get_height()) // 2))
+
+        # Food cost summary
+        recruitment_cost = amount
+        stockpile_food   = food_per_pop * amount
+        total_food       = recruitment_cost + stockpile_food
+        can_afford       = amount > 0 and total_food <= city.food_stockpile
+        cost_color       = TEXT_COLOR if can_afford else (220, 60, 60)
+        total_surf  = self.font_body.render(f"Total Food Cost: {total_food}", True, cost_color)
+        detail_surf = self.font_small.render(f"= {recruitment_cost} (Recruitment) + {stockpile_food} (Stockpile)", True, cost_color)
+        self.screen.blit(total_surf,  (sx + pad, sy + 130))
+        self.screen.blit(detail_surf, (sx + pad, sy + 146))
 
         # Supply Train checkbox
         cb_size = 14
-        cb_x, cb_y = sx + pad, sy + 130
+        cb_x, cb_y = sx + pad, sy + 170
         cb_rect = pygame.Rect(cb_x, cb_y, cb_size, cb_size)
         pygame.draw.rect(self.screen, (60, 60, 80), cb_rect, border_radius=2)
         if self.recruit_popup_supply_train:
@@ -2570,9 +2583,9 @@ class Renderer:
             self.recruit_popup_supply_food = supply_food
 
             sf_label = self.font_body.render(f"Food Per Turn: {supply_food}", True, TEXT_COLOR)
-            self.screen.blit(sf_label, (sx + pad, sy + 152))
+            self.screen.blit(sf_label, (sx + pad, sy + 192))
 
-            sf_track_y = sy + 170
+            sf_track_y = sy + 210
             pygame.draw.rect(self.screen, (60, 60, 80), (track_x, sf_track_y, track_w, track_h), border_radius=2)
             sfhx = track_x + int((supply_food - 1) / max(max_supply_food - 1, 1) * track_w)
             sfhy = sf_track_y + track_h // 2
@@ -2587,8 +2600,8 @@ class Renderer:
 
         btn_y = sy + H - 36
         btn_w = (W - pad * 2 - 8) // 2
-        self.recruit_popup_confirm_rect = self._draw_button(sx + pad, btn_y, btn_w, 24, "Confirm")
-        self.recruit_popup_cancel_rect = self._draw_button(sx + pad + btn_w + 8, btn_y, btn_w, 24, "Cancel")
+        self.recruit_popup_confirm_rect = self._draw_button(sx + pad, btn_y, btn_w, 24, "Confirm", disabled=not can_afford)
+        self.recruit_popup_cancel_rect  = self._draw_button(sx + pad + btn_w + 8, btn_y, btn_w, 24, "Cancel")
 
     def _draw_add_tether_popup(self, group):
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
