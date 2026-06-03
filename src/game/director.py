@@ -111,9 +111,19 @@ class HordeDirector(Director):
                 enemy_groups  = [g for g in defender_tile.unit_groups if g.faction is not faction]
                 if not enemy_groups:
                     continue
-                preview = compute_battle_preview([group], enemy_groups, attacker_tile, defender_tile)
-                result  = resolve_battle(preview)
-                apply_battle_result(preview, result, game_map, defender_tile)
+                preview  = compute_battle_preview([group], enemy_groups, attacker_tile, defender_tile)
+                result   = resolve_battle(preview)
+                survivors = apply_battle_result(preview, result, game_map, defender_tile)
+                kills = result['defender_losses']
+                if kills > 0 and survivors:
+                    raised_group = survivors[0]
+                    moves = raised_group.units[0].moves_remaining if raised_group.units else 0
+                    for _ in range(kills):
+                        new_unit = Skeleton(Pop())
+                        new_unit.moves_remaining = moves
+                        raised_group.units.append(new_unit)
+                    raised_group.max_food_stockpile = raised_group._carry_capacity()
+                    raised_group.food_stockpile = raised_group.max_food_stockpile
                 continue
 
             # --- Condition 2: no enemies in range — advance toward nearest enemy city ---
