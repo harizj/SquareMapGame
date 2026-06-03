@@ -51,5 +51,12 @@ class Spearmen(Unit):
     icon_x_offset = 0
 
 
-UNIT_REGISTRY = {cls.unit_type: cls for cls in [Swordsmen, Archers, Spearmen, Militia]}
-unit_list = list(UNIT_REGISTRY.keys())  # display order: Swordsmen, Archers, Spearmen, Militia
+class Skeleton(Unit):
+    unit_type = 'Skeleton'
+    combat_strength = 10
+    icon = 'human-skull'
+    icon_scale = 1.0
+
+
+UNIT_REGISTRY = {cls.unit_type: cls for cls in [Swordsmen, Archers, Spearmen, Militia, Skeleton]}
+unit_list = list(UNIT_REGISTRY.keys())

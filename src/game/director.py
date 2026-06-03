@@ -1,6 +1,6 @@
 import random
 from src.game.battles import compute_battle_preview, resolve_battle, apply_battle_result
-from src.game.unit import Militia
+from src.game.unit import Skeleton
 from src.game.pop import Pop
 from src.game.unit_group import UnitGroup
 
@@ -156,7 +156,7 @@ class HordeDirector(Director):
         wave       = turn // SPAWN_INTERVAL
         unit_count = SPAWN_COUNT_START + (wave - 1) * SPAWN_COUNT_INCREASE
         tile       = random.choice(spawn_tiles)
-        units      = [Militia(Pop()) for _ in range(unit_count)]
+        units      = [Skeleton(Pop()) for _ in range(unit_count)]
         group      = UnitGroup(tile.row, tile.col, units=units, faction=faction)
         group.max_food_stockpile = group._carry_capacity()
         group.food_stockpile     = group.max_food_stockpile

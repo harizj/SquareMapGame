@@ -161,7 +161,7 @@ class Renderer:
                     self._biome_terrain_images_raw[(biome_folder, art_name)] = tile_surf
         self._icons_raw = {}
         icons_dir = os.path.join(_ASSETS_DIR, 'icons')
-        for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius'), ('flag', 'flag'), ('torch', 'restriction'), ('wood', 'wood'), ('iron', 'iron'), ('hammer', 'hammer'), ('club', 'club'), ('spear', 'spear'), ('bow', 'bow'), ('gladius', 'gladius'), ('pitchfork', 'pitchfork'), ('wagon_wheel', 'wagon-wheel')):
+        for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius'), ('flag', 'flag'), ('torch', 'restriction'), ('wood', 'wood'), ('iron', 'iron'), ('hammer', 'hammer'), ('club', 'club'), ('spear', 'spear'), ('bow', 'bow'), ('gladius', 'gladius'), ('pitchfork', 'pitchfork'), ('wagon_wheel', 'wagon-wheel'), ('human-skull', 'human-skull')):
             path = os.path.join(icons_dir, f'{file_name}.png')
             if os.path.exists(path):
                 self._icons_raw[icon_name] = pygame.image.load(path).convert_alpha()
@@ -1045,6 +1045,16 @@ class Renderer:
             top_unit = all_units[0] if all_units else None
             icon_name = _utype_to_icon.get(top_unit.unit_type) if top_unit else None
             icon_data = self._unit_map_icons.get(icon_name, {})
+            if fname and fname not in icon_data and first_faction and icon_name in self._unit_map_icons:
+                _unit_icon_r = 5
+                raw = self._icons_raw.get(icon_name)
+                if raw:
+                    cls_scale = next((cls.icon_scale for cls in UNIT_REGISTRY.values() if getattr(cls, 'icon', None) == icon_name), 1.0)
+                    sword_size = int(ICON_SIZE * 0.4 * self.zoom)
+                    size = int(sword_size * cls_scale)
+                    scaled = pygame.transform.scale(raw, (size, size))
+                    t, _, s = self._make_icon_pair(scaled, first_faction.colors['light'], first_faction.colors['dark'], _unit_icon_r, pad=_unit_icon_r)
+                    self._unit_map_icons[icon_name][fname] = {'tinted': t, 'selected': s}
             faction_data = icon_data.get(fname, {})
             icon = (faction_data.get('selected') or icon_data.get('selected')) if any_selected else (faction_data.get('tinted') or icon_data.get('tinted'))
             total_units = sum(len(g.units) for g in unit_groups_here)
