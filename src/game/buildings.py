@@ -24,8 +24,8 @@ class Workshop(Building):
 
 class WoodenWalls(Building):
     name = 'wooden walls'
-    production_needed = 15
-    resource_cost = {'wood': 10}
+    production_needed = 5
+    resource_cost = {'wood': 5}
     multiple = True
 
 

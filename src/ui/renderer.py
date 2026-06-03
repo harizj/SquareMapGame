@@ -2502,7 +2502,7 @@ class Renderer:
         self.screen.blit(overlay, (0, 0))
 
         W = 280
-        H = 284 if self.recruit_popup_supply_train else 236
+        H = 294 if self.recruit_popup_supply_train else 246
         sx = (self.screen.get_width() - W) // 2
         sy = (self.screen.get_height() - H) // 2
         pad = 16
@@ -2556,16 +2556,17 @@ class Renderer:
         recruitment_cost = amount
         stockpile_food   = food_per_pop * amount
         total_food       = recruitment_cost + stockpile_food
+        food_ok          = amount == 0 or total_food <= city.food_stockpile
         can_afford       = amount > 0 and total_food <= city.food_stockpile
-        cost_color       = TEXT_COLOR if can_afford else (220, 60, 60)
+        cost_color       = TEXT_COLOR if food_ok else (220, 60, 60)
         total_surf  = self.font_body.render(f"Total Food Cost: {total_food}", True, cost_color)
         detail_surf = self.font_small.render(f"= {recruitment_cost} (Recruitment) + {stockpile_food} (Stockpile)", True, cost_color)
-        self.screen.blit(total_surf,  (sx + pad, sy + 130))
-        self.screen.blit(detail_surf, (sx + pad, sy + 146))
+        self.screen.blit(total_surf,  (sx + pad, sy + 140))
+        self.screen.blit(detail_surf, (sx + pad, sy + 156))
 
         # Supply Train checkbox
         cb_size = 14
-        cb_x, cb_y = sx + pad, sy + 170
+        cb_x, cb_y = sx + pad, sy + 180
         cb_rect = pygame.Rect(cb_x, cb_y, cb_size, cb_size)
         pygame.draw.rect(self.screen, (60, 60, 80), cb_rect, border_radius=2)
         if self.recruit_popup_supply_train:
@@ -2583,9 +2584,9 @@ class Renderer:
             self.recruit_popup_supply_food = supply_food
 
             sf_label = self.font_body.render(f"Food Per Turn: {supply_food}", True, TEXT_COLOR)
-            self.screen.blit(sf_label, (sx + pad, sy + 192))
+            self.screen.blit(sf_label, (sx + pad, sy + 202))
 
-            sf_track_y = sy + 210
+            sf_track_y = sy + 220
             pygame.draw.rect(self.screen, (60, 60, 80), (track_x, sf_track_y, track_w, track_h), border_radius=2)
             sfhx = track_x + int((supply_food - 1) / max(max_supply_food - 1, 1) * track_w)
             sfhy = sf_track_y + track_h // 2
