@@ -2124,7 +2124,7 @@ class Renderer:
                 selected_on_tile = [g for g in unit_groups if g in self.selected_unit_groups]
                 half_w = (PANEL_WIDTH - pad * 2 - 4) // 2
                 recruit_disabled = not has_city
-                disband_disabled = not has_city or len(selected_on_tile) == 0
+                disband_disabled = not has_city or len(selected_on_tile) == 0 or any(g.move_exhausted for g in selected_on_tile)
                 self.recruit_unit_button_rect = self._draw_button(panel_x + pad, y, half_w, btn_h, "Recruit", disabled=recruit_disabled)
                 self.disband_button_rect = self._draw_button(panel_x + pad + half_w + 4, y, half_w, btn_h, "Disband", disabled=disband_disabled)
                 if recruit_disabled:
