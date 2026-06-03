@@ -83,13 +83,16 @@ _TERRAIN_ART_NAMES = ['river', 'mountain', 'forest', 'hills', 'water', 'floodpla
 # The extra 32px height overhangs the row above, enabling 2.5D depth stacking.
 _TILE_SPRITE_W = 64
 _TILE_SPRITE_H = 96
-# Maps get_terrain_art() return value → sprite sheet filename stem within a biome folder
+# Maps get_terrain_art() return value → (file_stem, tile_col, tile_row) within a biome folder
+# tile_col/tile_row are 0-indexed positions in the sprite sheet grid
 _BIOME_ART_FILES = {
-    'grass':      'flat',
-    'hills':      'hills',
-    'forest':     'forests',
-    'hillforest': 'hillforest',
-    'water':      'water',
+    'grass':           ('flat',        0, 0),
+    'hills':           ('hills',       0, 0),
+    'forest':          ('forests',     0, 0),
+    'hillforest':      ('hillforest',  0, 0),
+    'water':           ('water',       0, 0),
+    'iron_hills':      ('iron',        0, 0),
+    'iron_hillforest': ('iron',        1, 0),
 }
 
 # Per-art scale multipliers applied on top of the hex size (1.0 = fill hex)
@@ -153,11 +156,13 @@ class Renderer:
             biome_path = os.path.join(terrain_dir, biome_folder)
             if not os.path.isdir(biome_path):
                 continue
-            for art_name, file_stem in _BIOME_ART_FILES.items():
+            for art_name, (file_stem, tile_col, tile_row) in _BIOME_ART_FILES.items():
                 path = os.path.join(biome_path, f'{file_stem}.png')
                 if os.path.exists(path):
                     sheet = pygame.image.load(path).convert_alpha()
-                    tile_surf = sheet.subsurface((0, 0, _TILE_SPRITE_W, _TILE_SPRITE_H)).copy()
+                    x = tile_col * _TILE_SPRITE_W
+                    y = tile_row * _TILE_SPRITE_H
+                    tile_surf = sheet.subsurface((x, y, _TILE_SPRITE_W, _TILE_SPRITE_H)).copy()
                     self._biome_terrain_images_raw[(biome_folder, art_name)] = tile_surf
         self._icons_raw = {}
         icons_dir = os.path.join(_ASSETS_DIR, 'icons')
@@ -951,10 +956,6 @@ class Renderer:
                     faction_torch = self._faction_torch_icons.get(faction.name, {}).get('dark') if faction else None
                     icon = faction_torch or torch_icon
                     self.screen.blit(icon, (dx - int(apothem * 0.4), icon_y))
-                if 'iron' in tile.terrain_features and 'iron' in tile.resource_deposits:
-                    deposit_icon = self._deposit_icons.get('iron')
-                    if deposit_icon:
-                        self.screen.blit(deposit_icon, (int(cx) + dot_offset_x - deposit_icon.get_width() + int(apothem * 0.4), icon_y))
                 if tile.current_extraction_job is not None:
                     icon = self._get_tile_job_icon(tile.current_extraction_job, tile)
                     if icon:

@@ -213,7 +213,14 @@ class Tile:
     def get_terrain_art(self):
         if self.biome == 'wetlands':
             return 'marsh'
-        if 'forest' in self.terrain_features and 'hills' in self.terrain_features:
+        has_iron = 'iron' in self.terrain_features
+        has_hills = 'hills' in self.terrain_features
+        has_forest = 'forest' in self.terrain_features
+        if has_iron and has_hills and has_forest:
+            return 'iron_hillforest'
+        if has_iron and has_hills:
+            return 'iron_hills'
+        if has_hills and has_forest:
             return 'hillforest'
         for feature in self._ART_PRIORITY:
             if feature in self.terrain_features:
