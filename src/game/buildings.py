@@ -12,20 +12,20 @@ class Building:
 
 class Workcamp(Building):
     name = 'workcamp'
-    production_needed = 15
-    resource_cost = {'wood': 10, 'iron': 5}
+    production_needed = 6
+    resource_cost = {'wood': 10, 'iron': 6}
 
 
 class Workshop(Building):
     name = 'workshop'
-    production_needed = 15
-    resource_cost = {'wood': 10, 'iron': 5}
+    production_needed = 8
+    resource_cost = {'wood': 10, 'iron': 4}
 
 
 class WoodenWalls(Building):
     name = 'wooden walls'
     production_needed = 15
-    resource_cost = {'wood': 30}
+    resource_cost = {'wood': 10}
     multiple = True
 
 

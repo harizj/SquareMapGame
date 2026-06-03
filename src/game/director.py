@@ -7,9 +7,9 @@ from src.game.unit_group import UnitGroup
 _DIRS = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
 
 ATTACK_THRESHOLD     = 1.2
-SPAWN_INTERVAL       = 5  # turns between each spawn wave
-SPAWN_COUNT_START    = 1  # units in the first wave's group
-SPAWN_COUNT_INCREASE = 1  # additional units added per subsequent wave
+SPAWN_INTERVAL       = 20  # turns between each spawn wave
+SPAWN_COUNT_START    = 5  # units in the first wave's group
+SPAWN_COUNT_INCREASE = 5  # additional units added per subsequent wave
 
 
 class Director:
@@ -35,6 +35,12 @@ class HordeDirector(Director):
             for g in groups
             if g.faction is faction and not g.move_exhausted and g.moves_remaining > 0
         ]
+
+        # Horde doesn't consume food — top up every group before moving
+        for g in friendly_groups:
+            g.max_food_stockpile = g._carry_capacity()
+            g.food_stockpile     = g.max_food_stockpile
+
         if not friendly_groups:
             return
 
@@ -59,59 +65,54 @@ class HordeDirector(Director):
             gr, gc = group.row, group.col
             reachable = game_map.get_reachable_from(gr, gc, group.moves_remaining)
 
-            # --- Condition 1: attack weakest enemy tile reachable this turn ---
+            # --- Condition 1: act on enemy tiles reachable this turn ---
+            # city_targets: undefended enemy city tiles — move directly onto to capture
+            # group_targets: tiles with enemy unit groups — approach adjacent and fight
             group_strength = sum(u.combat_strength for u in group.units)
-            city_targets = []   # (strength, cost, er, ec, approach)
-            group_targets = []
-            for (er, ec), strength in enemy_tile_strength.items():
-                best_approach = None
-                best_cost = float('inf')
-                # Already adjacent — no move needed
-                if max(abs(er - gr), abs(ec - gc)) == 1:
-                    best_approach = (gr, gc)
-                    best_cost = 0
-                # Find lowest-cost reachable neighbor of the enemy tile
-                for dr, dc in _DIRS:
-                    nr, nc = er + dr, ec + dc
-                    if (nr, nc) in reachable and reachable[(nr, nc)] < best_cost:
-                        best_approach = (nr, nc)
-                        best_cost = reachable[(nr, nc)]
-                if best_approach is None:
-                    continue
-                tile = game_map.tiles[er][ec]
-                is_city = tile.city is not None and tile.city.faction is not faction
-                if is_city:
-                    city_targets.append((strength, best_cost, er, ec, best_approach))
-                else:
-                    group_targets.append((strength, best_cost, er, ec, best_approach))
+            city_targets  = []  # (strength, cost, er, ec)
+            group_targets = []  # (strength, cost, er, ec, approach)
 
-            # Prefer weakest city tile below the attack threshold; fall back to weakest unit group
+            for (er, ec), strength in enemy_tile_strength.items():
+                tile = game_map.tiles[er][ec]
+                has_enemy_groups = any(g.faction is not faction for g in tile.unit_groups)
+                has_enemy_city   = tile.city is not None and tile.city.faction is not faction
+
+                if has_enemy_groups:
+                    best_approach = None
+                    best_cost = float('inf')
+                    if max(abs(er - gr), abs(ec - gc)) == 1:
+                        best_approach = (gr, gc)
+                        best_cost = 0
+                    for dr, dc in _DIRS:
+                        nr, nc = er + dr, ec + dc
+                        if (nr, nc) in reachable and reachable[(nr, nc)] < best_cost:
+                            best_approach = (nr, nc)
+                            best_cost = reachable[(nr, nc)]
+                    if best_approach is not None:
+                        group_targets.append((strength, best_cost, er, ec, best_approach))
+                elif has_enemy_city and (er, ec) in reachable:
+                    city_targets.append((strength, reachable[(er, ec)], er, ec))
+
+            # Prefer weakest undefended city below threshold; fall back to weakest enemy group
             viable_cities = [t for t in city_targets if t[0] < group_strength * ATTACK_THRESHOLD]
             if viable_cities:
                 viable_cities.sort(key=lambda x: x[0])
-                chosen = viable_cities[0]
+                _, move_cost, er, ec = viable_cities[0]
+                if (er, ec) != (gr, gc):
+                    game_map.move_group(group, er, ec, move_cost)
+                continue
             elif group_targets:
                 group_targets.sort(key=lambda x: x[0])
-                chosen = group_targets[0]
-            else:
-                chosen = None
-
-            if chosen is not None:
-                _, approach_cost, er, ec, (ar, ac) = chosen
+                _, approach_cost, er, ec, (ar, ac) = group_targets[0]
                 if (ar, ac) != (gr, gc):
                     game_map.move_group(group, ar, ac, approach_cost)
                 attacker_tile = game_map.tiles[group.row][group.col]
                 defender_tile = game_map.tiles[er][ec]
-                enemy_groups = [g for g in defender_tile.unit_groups if g.faction is not faction]
-                city = defender_tile.city if defender_tile.city and defender_tile.city.faction is not faction else None
-                if enemy_groups:
-                    defender = enemy_groups
-                elif city:
-                    defender = city
-                else:
+                enemy_groups  = [g for g in defender_tile.unit_groups if g.faction is not faction]
+                if not enemy_groups:
                     continue
-                preview = compute_battle_preview([group], defender, attacker_tile, defender_tile)
-                result = resolve_battle(preview)
+                preview = compute_battle_preview([group], enemy_groups, attacker_tile, defender_tile)
+                result  = resolve_battle(preview)
                 apply_battle_result(preview, result, game_map, defender_tile)
                 continue
 
@@ -157,4 +158,6 @@ class HordeDirector(Director):
         tile       = random.choice(spawn_tiles)
         units      = [Militia(Pop()) for _ in range(unit_count)]
         group      = UnitGroup(tile.row, tile.col, units=units, faction=faction)
+        group.max_food_stockpile = group._carry_capacity()
+        group.food_stockpile     = group.max_food_stockpile
         tile.unit_groups.append(group)
