@@ -102,9 +102,9 @@ _RIVER_TILE_MAP = {
     frozenset({'N', 'S'}): (0, 0),
     frozenset({'W', 'E'}): (1, 0),
     frozenset({'N', 'E'}): (2, 0),
-    frozenset({'N', 'W'}): (0, 1),
-    frozenset({'S', 'E'}): (1, 1),
-    frozenset({'S', 'W'}): (2, 1),
+    frozenset({'N', 'W'}): (3, 0),
+    frozenset({'S', 'E'}): (0, 1),
+    frozenset({'S', 'W'}): (1, 1),
 }
 
 # Per-art scale multipliers applied on top of the hex size (1.0 = fill hex)

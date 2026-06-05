@@ -9,6 +9,10 @@ def generate(game_map):
 
     b.zone(range(0, 11), biome='temperate')
 
+    # Rivers along the left and right edges
+    b.generate_river(0, 0, lanes=range(0, 3), direction='S')
+    b.generate_river(10, 10, lanes=range(8, 11), direction='N')
+
     # Place a mountain at the map center
     center = b._map.tiles[5][5]
     center.terrain_features = list(center.terrain_features) + ['mountain']

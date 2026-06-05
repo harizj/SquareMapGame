@@ -17,6 +17,27 @@ _INCOMPATIBLE = {
 # Features that require a land (non-water) tile
 _REQUIRES_LAND = {'forest', 'hills', 'mountain', 'iron', 'floodplain'}
 
+# River flow config per direction.
+# advance: (dr, dc) step each iteration
+# straight: edges for a straight tile
+# left / right: (current_edges, neighbor_dr, neighbor_dc, neighbor_edges)
+#   "left" = decreasing lane index (col for N/S flow, row for E/W flow)
+#   "right" = increasing lane index
+_RIVER_FLOW = {
+    'S': dict(advance=( 1,  0), straight={'N', 'S'},
+              left=({'N', 'W'},  0, -1, {'S', 'E'}),
+              right=({'N', 'E'}, 0,  1, {'S', 'W'})),
+    'N': dict(advance=(-1,  0), straight={'N', 'S'},
+              left=({'S', 'W'},  0, -1, {'N', 'E'}),
+              right=({'S', 'E'}, 0,  1, {'N', 'W'})),
+    'E': dict(advance=( 0,  1), straight={'W', 'E'},
+              left=({'N', 'W'}, -1,  0, {'S', 'E'}),
+              right=({'S', 'W'}, 1,  0, {'N', 'E'})),
+    'W': dict(advance=( 0, -1), straight={'W', 'E'},
+              left=({'N', 'E'}, -1,  0, {'S', 'W'}),
+              right=({'S', 'E'}, 1,  0, {'N', 'W'})),
+}
+
 
 class MapBuilder:
     def __init__(self, game_map):
@@ -178,47 +199,53 @@ class MapBuilder:
             t.update_terrain_properties()
             t.build_deposits()
 
-    def generate_river(self, row, start_col=0):
-        """Generate a river west-to-east along the given row.
+    def generate_river(self, start_row, start_col, lanes, direction='S'):
+        """Generate a river flowing in `direction` within the designated lanes.
 
-        At each step randomly chooses among available options:
-        - Straight:   W→E through the current tile, advance 1 column.
-        - Bump north: arc through the row above over 2 columns.
-        - Bump south: arc through the row below over 2 columns.
-        Both bumps return to the same starting row.
+        start_row, start_col: position of the first tile (gets a straight tile).
+        lanes: list/range of valid lane values — columns for N/S flow, rows for E/W flow.
+        direction: primary flow direction, one of 'N', 'S', 'E', 'W'.
+
+        Each step the river either continues straight or turns one lane left/right.
+        Turns are not available at the lane boundaries.
         """
-        r, c = row, start_col
-        while c < self._map.cols:
-            can_north = r > 0                  and c + 2 <= self._map.cols
-            can_south = r + 1 < self._map.rows and c + 2 <= self._map.cols
+        cfg = _RIVER_FLOW[direction]
+        adv_r, adv_c = cfg['advance']
+        straight = cfg['straight']
+        l_tile, l_dr, l_dc, l_nb = cfg['left']
+        r_tile, r_dr, r_dc, r_nb = cfg['right']
 
-            roll = random.random()
-            if roll < 0.5 or (not can_north and not can_south):
-                choice = 'straight'
-            elif roll < 0.75 and can_north:
-                choice = 'north'
-            elif can_south:
-                choice = 'south'
-            elif can_north:
-                choice = 'north'
-            else:
-                choice = 'straight'
+        min_lane = min(lanes)
+        max_lane = max(lanes)
+        use_col = direction in ('N', 'S')
 
-            if choice == 'north':
-                self._river_tile(r,     c,     {'W', 'N'})
-                self._river_tile(r - 1, c,     {'S', 'E'})
-                self._river_tile(r - 1, c + 1, {'W', 'S'})
-                self._river_tile(r,     c + 1, {'N', 'E'})
-                c += 2
-            elif choice == 'south':
-                self._river_tile(r,     c,     {'W', 'S'})
-                self._river_tile(r + 1, c,     {'N', 'E'})
-                self._river_tile(r + 1, c + 1, {'W', 'N'})
-                self._river_tile(r,     c + 1, {'S', 'E'})
-                c += 2
+        r, c = start_row, start_col
+        self._river_tile(r, c, straight)
+        r, c = r + adv_r, c + adv_c
+
+        while 0 <= r < self._map.rows and 0 <= c < self._map.cols:
+            lane = c if use_col else r
+            options = ['straight']
+            if lane > min_lane:
+                options.append('left')
+            if lane < max_lane:
+                options.append('right')
+
+            choice = random.choice(options)
+
+            if choice == 'straight':
+                self._river_tile(r, c, straight)
+                r, c = r + adv_r, c + adv_c
+            elif choice == 'left':
+                self._river_tile(r, c, l_tile)
+                nr, nc = r + l_dr, c + l_dc
+                self._river_tile(nr, nc, l_nb)
+                r, c = nr + adv_r, nc + adv_c
             else:
-                self._river_tile(r, c, {'W', 'E'})
-                c += 1
+                self._river_tile(r, c, r_tile)
+                nr, nc = r + r_dr, c + r_dc
+                self._river_tile(nr, nc, r_nb)
+                r, c = nr + adv_r, nc + adv_c
 
     def _river_tile(self, r, c, edges):
         if not (0 <= r < self._map.rows and 0 <= c < self._map.cols):
