@@ -96,6 +96,17 @@ _BIOME_ART_FILES = {
     'iron_hillforest': ('iron',        1, 0),
 }
 
+# Maps frozenset of river edge directions → (col, row) in the river sprite sheet
+# Sheet layout (64×96 tiles, 3 cols × 2 rows): NS WE NE / NW SE SW
+_RIVER_TILE_MAP = {
+    frozenset({'N', 'S'}): (0, 0),
+    frozenset({'W', 'E'}): (1, 0),
+    frozenset({'N', 'E'}): (2, 0),
+    frozenset({'N', 'W'}): (0, 1),
+    frozenset({'S', 'E'}): (1, 1),
+    frozenset({'S', 'W'}): (2, 1),
+}
+
 # Per-art scale multipliers applied on top of the hex size (1.0 = fill hex)
 _TERRAIN_ART_SCALE = {
     'grass': 0.7,
@@ -153,6 +164,7 @@ class Renderer:
             if raw_variants:
                 self._terrain_images_raw[name] = raw_variants
         self._biome_terrain_images_raw = {}
+        self._river_images_raw = {}
         for biome_folder in os.listdir(terrain_dir):
             biome_path = os.path.join(terrain_dir, biome_folder)
             if not os.path.isdir(biome_path):
@@ -165,6 +177,14 @@ class Renderer:
                     y = tile_row * _TILE_SPRITE_H
                     tile_surf = sheet.subsurface((x, y, _TILE_SPRITE_W, _TILE_SPRITE_H)).copy()
                     self._biome_terrain_images_raw[(biome_folder, art_name)] = tile_surf
+            river_path = os.path.join(biome_path, 'river.png')
+            if os.path.exists(river_path):
+                sheet = pygame.image.load(river_path).convert_alpha()
+                for edge_key, (col, row) in _RIVER_TILE_MAP.items():
+                    x = col * _TILE_SPRITE_W
+                    y = row * _TILE_SPRITE_H
+                    tile_surf = sheet.subsurface((x, y, _TILE_SPRITE_W, _TILE_SPRITE_H)).copy()
+                    self._river_images_raw[(biome_folder, edge_key)] = tile_surf
         self._icons_raw = {}
         icons_dir = os.path.join(_ASSETS_DIR, 'icons')
         for icon_name, file_name in (('castle', 'city'), ('sword', 'gladius'), ('flag', 'flag'), ('torch', 'restriction'), ('wood', 'wood'), ('iron', 'iron'), ('hammer', 'hammer'), ('club', 'club'), ('spear', 'spear'), ('bow', 'bow'), ('gladius', 'gladius'), ('pitchfork', 'pitchfork'), ('wagon_wheel', 'wagon-wheel'), ('human-skull', 'human-skull')):
@@ -185,6 +205,8 @@ class Renderer:
         self._faction_resource_icons = {}
         self._unit_map_icons = {}
         self._biome_terrain_images = {}
+        self._river_images = {}
+        self._river_images_fog = {}
         self._fog_overlay_cache = {}
         self._apply_zoom()
         self.move_button_rect = None
@@ -418,6 +440,14 @@ class Renderer:
         self._biome_terrain_images_fog = {
             key: self._make_fog_surf(surf)
             for key, surf in self._biome_terrain_images.items()
+        }
+        self._river_images = {
+            key: pygame.transform.scale(raw, (tile_render_w, tile_render_h))
+            for key, raw in self._river_images_raw.items()
+        }
+        self._river_images_fog = {
+            key: self._make_fog_surf(surf)
+            for key, surf in self._river_images.items()
         }
         castle_size = int(ICON_SIZE * 1.2 * self.zoom)
         sword_size = int(ICON_SIZE * 0.4 * self.zoom)
@@ -803,21 +833,31 @@ class Renderer:
                     self.screen.blit(img, (blit_x, blit_y))
 
 
-        # Pass 2: river lines from cell center to cardinal edge midpoints
+        # Pass 2: river sprites (fallback to lines for biomes without river.png)
         for r in range(self.map.rows):
             for c in range(self.map.cols):
                 tile = self.map.tiles[r][c]
                 if not tile.river_edges:
                     continue
                 cx, cy = all_centers[(r, c)]
-                for direction in tile.river_edges:
-                    offset = _RIVER_EDGE_OFFSETS.get(direction)
-                    if offset is None:
-                        continue
-                    ox, oy = offset
-                    ex, ey = cx + ox * apothem, cy + oy * apothem
-                    pygame.draw.line(self.screen, (0, 0, 0),
-                                     (int(cx), int(cy)), (int(ex), int(ey)), 3)
+                sz = CELL_SIZE * self.zoom
+                edge_key = frozenset(tile.river_edges)
+                fogged = visible is not None and (r, c) not in visible
+                river_dict = self._river_images_fog if fogged else self._river_images
+                img = river_dict.get((tile.biome, edge_key))
+                if img:
+                    blit_x = int(cx - img.get_width() / 2)
+                    blit_y = int(cy + sz / 2 - img.get_height())
+                    self.screen.blit(img, (blit_x, blit_y))
+                else:
+                    for direction in tile.river_edges:
+                        offset = _RIVER_EDGE_OFFSETS.get(direction)
+                        if offset is None:
+                            continue
+                        ox, oy = offset
+                        ex, ey = cx + ox * apothem, cy + oy * apothem
+                        pygame.draw.line(self.screen, (0, 0, 0),
+                                         (int(cx), int(cy)), (int(ex), int(ey)), 3)
 
 
         # Pass 2b: trade route dashed curves on intermediate path tiles (above rivers)
