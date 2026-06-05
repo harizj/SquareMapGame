@@ -1263,7 +1263,7 @@ def main():
             for row in game_map.tiles:
                 for tile in row:
                     for group in tile.unit_groups:
-                        group.end_turn(tile)
+                        group.end_turn(tile, game_map)
                     tile.unit_groups = [g for g in tile.unit_groups if g.units]
             for city in game_map.cities.values():
                 for msg in city.end_turn():

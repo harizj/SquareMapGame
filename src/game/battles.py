@@ -324,7 +324,7 @@ def apply_battle_result(preview, result, game_map, combat_tile):
         if u in g.units:
             atk_deaths.setdefault(g, []).append(u)
     for g, dying in atk_deaths.items():
-        g.unit_deaths(dying, combat_tile)
+        g.unit_deaths(dying, combat_tile, game_map)
     for g in attacker_groups:
         g.food_stockpile = min(g.food_stockpile, g.max_food_stockpile)
 
@@ -338,7 +338,7 @@ def apply_battle_result(preview, result, game_map, combat_tile):
             if u in g.units:
                 def_deaths.setdefault(g, []).append(u)
         for g, dying in def_deaths.items():
-            g.unit_deaths(dying, combat_tile)
+            g.unit_deaths(dying, combat_tile, game_map)
         for g in defender:
             g.food_stockpile = min(g.food_stockpile, g.max_food_stockpile)
 

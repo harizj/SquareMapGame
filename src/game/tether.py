@@ -16,9 +16,12 @@ class Tether:
         self.pending_distances = None
         print(f"[Tether] city={city.name} units={len(unit_group.units)} food_amount={food_amount} tether_units={len(self.tether_units)}")
 
-    def update_supply_pops(self, distance):
+    def calculate_supply_pops(self, distance):
         travel_time = 2 * distance / DEFAULT_MOVE_DISTANCE
-        supply_pops = max(1, math.ceil((travel_time * self.food_amount) / (LAND_CARRY_CAPACITY + 1)))
+        return max(1, math.ceil((travel_time * self.food_amount) / (LAND_CARRY_CAPACITY + 1)))
+
+    def update_supply_pops(self, distance):
+        supply_pops = self.calculate_supply_pops(distance)
         total_units = len(self.unit_group.units) + len(self.tether_units)
         if supply_pops >= total_units:
             print(f"[Tether] collapse: supply_pops={supply_pops} >= total_units={total_units}, tether will be deleted")
@@ -39,6 +42,46 @@ class Tether:
         self.unit_group.units.extend(self.tether_units)
         self.unit_group.max_food_stockpile = self.unit_group._carry_capacity()
         self.tether_units.clear()
+
+    def transfer_tether_units_to_city(self, n, game_map):
+        from src.game.battles import drop_unit_items
+        city_tile = game_map.tiles[self.city.row][self.city.col]
+        returning = self.tether_units[:n]
+        self.tether_units = self.tether_units[n:]
+        drop_unit_items(returning, city_tile)
+        self.city.pops.extend(u.pop for u in returning)
+        self.city.update_cumulative_farm_yield_net()
+        self.city.rebalance_pops()
+
+    def update_with_unit_deaths(self, game_map):
+        if not self.unit_group.units:
+            self.unit_group.delete_tether(game_map)
+            return
+        if self.unit_group.levy:
+            self.food_amount = len(self.unit_group.units)
+        distance = self.route.distance if self.route is not None else 0.0
+        supply_pops = self.calculate_supply_pops(distance)
+        if self.unit_group.levy:
+            total_units = len(self.unit_group.units) + len(self.tether_units)
+            if supply_pops >= total_units:
+                # Move combat units into tether first so the full levy returns to
+                # the city rather than stranding them on the battlefield
+                self.tether_units.extend(self.unit_group.units)
+                self.unit_group.units = []
+                self.unit_group.max_food_stockpile = self.unit_group._carry_capacity()
+                self.unit_group.delete_tether(game_map)
+                return
+            reduction = len(self.tether_units) - supply_pops
+            if reduction > 0:
+                self.transfer_tether_units_to_city(reduction, game_map)
+            if not self.catchup:
+                if self.route is not None:
+                    self.route.export_amount = self.food_amount
+                    self.route.max_amount = self.food_amount
+                    self.route.dest_tile.update_unit_allocations()
+                    self.city.update_cumulative_farm_yield_net()
+                    self.city.rebalance_pops()
+            # else: tether_catchup will create the new route using self.food_amount automatically
 
     def tether_catchup(self):
         if not self.catchup:
