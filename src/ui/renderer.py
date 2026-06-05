@@ -185,6 +185,7 @@ class Renderer:
         self._faction_resource_icons = {}
         self._unit_map_icons = {}
         self._biome_terrain_images = {}
+        self._fog_overlay_cache = {}
         self._apply_zoom()
         self.move_button_rect = None
         self.capture_button_rect = None
@@ -373,7 +374,24 @@ class Renderer:
         #             selected_result.blit(db, (pad + dx, pad + dy))
         return result, dark_result, selected_result
 
+    def _get_fog_overlay(self, w, h):
+        key = (w, h)
+        if key not in self._fog_overlay_cache:
+            surf = pygame.Surface((w, h), pygame.SRCALPHA)
+            surf.fill((0, 0, 0, 64))
+            self._fog_overlay_cache[key] = surf
+        return self._fog_overlay_cache[key]
+
+    @staticmethod
+    def _make_fog_surf(surf):
+        fogged = surf.copy()
+        dark = pygame.Surface(surf.get_size(), pygame.SRCALPHA)
+        dark.fill((192, 192, 192, 255))
+        fogged.blit(dark, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+        return fogged
+
     def _apply_zoom(self):
+        self._fog_overlay_cache = {}
         sz = CELL_SIZE * self.zoom
         hex_w = sz
         hex_h = sz
@@ -387,11 +405,19 @@ class Renderer:
             ]
             for name, variants in self._terrain_images_raw.items()
         }
+        self.terrain_images_fog = {
+            name: [self._make_fog_surf(v) for v in variants]
+            for name, variants in self.terrain_images.items()
+        }
         tile_render_w = int(sz)
         tile_render_h = int(sz * _TILE_SPRITE_H / _TILE_SPRITE_W)
         self._biome_terrain_images = {
             key: pygame.transform.scale(raw, (tile_render_w, tile_render_h))
             for key, raw in self._biome_terrain_images_raw.items()
+        }
+        self._biome_terrain_images_fog = {
+            key: self._make_fog_surf(surf)
+            for key, surf in self._biome_terrain_images.items()
         }
         castle_size = int(ICON_SIZE * 1.2 * self.zoom)
         sword_size = int(ICON_SIZE * 0.4 * self.zoom)
@@ -762,9 +788,10 @@ class Renderer:
                 cx, cy = all_centers[(r, c)]
                 art_name = tile.get_terrain_art()
                 sz = CELL_SIZE * self.zoom
-                img = self._biome_terrain_images.get((tile.biome, art_name))
+                fogged = visible is not None and (r, c) not in visible
+                img = self._biome_terrain_images_fog.get((tile.biome, art_name)) if fogged else self._biome_terrain_images.get((tile.biome, art_name))
                 if img is None:
-                    variants = self.terrain_images.get(art_name)
+                    variants = self.terrain_images_fog.get(art_name) if fogged else self.terrain_images.get(art_name)
                     if variants:
                         img = variants[(r * 7 + c * 13) % len(variants)]
                 if img:
