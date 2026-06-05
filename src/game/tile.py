@@ -94,7 +94,7 @@ _TERRAIN_FEATURE_FARM_SLOTS_BASE = {
     'forest': -2,
     'floodplain': 1,
     'river': -1,
-    'mountains': -5
+    'mountain': -5
 }
 TERRAIN_FEATURE_FARM_SLOTS = {k: v * GAME_SCALE for k, v in _TERRAIN_FEATURE_FARM_SLOTS_BASE.items()}
 
@@ -265,6 +265,13 @@ class Tile:
                 self.owning_city.selected_extraction_tile = None
             if resource == 'wood' and 'forest' in self.terrain_features:
                 self.terrain_features = [f for f in self.terrain_features if f != 'forest']
+                self.update_terrain_properties()
+                if self.owning_city:
+                    self.owning_city._build_cumulative_farm_yield()
+                    self.owning_city.update_cumulative_farm_yield_net()
+                    self.owning_city.rebalance_pops()
+            elif resource == 'iron' and 'iron' in self.terrain_features:
+                self.terrain_features = [f for f in self.terrain_features if f != 'iron']
                 self.update_terrain_properties()
                 if self.owning_city:
                     self.owning_city._build_cumulative_farm_yield()

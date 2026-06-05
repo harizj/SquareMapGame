@@ -811,7 +811,7 @@ class Renderer:
                 rect = pygame.Rect(int(cx - sz / 2), int(cy - sz / 2), int(sz), int(sz))
                 pygame.draw.rect(self.screen, color, rect)
 
-        # Pass 1b: terrain images over fills (top-to-bottom so tall sprites overlap row below)
+        # Pass 1b: terrain and river images top-to-bottom so tall sprites overlap the row above
         for r in range(self.map.rows):
             for c in range(self.map.cols):
                 tile = self.map.tiles[r][c]
@@ -831,33 +831,23 @@ class Renderer:
                     else:
                         blit_y = int(cy - img.get_height() / 2)
                     self.screen.blit(img, (blit_x, blit_y))
-
-
-        # Pass 2: river sprites (fallback to lines for biomes without river.png)
-        for r in range(self.map.rows):
-            for c in range(self.map.cols):
-                tile = self.map.tiles[r][c]
-                if not tile.river_edges:
-                    continue
-                cx, cy = all_centers[(r, c)]
-                sz = CELL_SIZE * self.zoom
-                edge_key = frozenset(tile.river_edges)
-                fogged = visible is not None and (r, c) not in visible
-                river_dict = self._river_images_fog if fogged else self._river_images
-                img = river_dict.get((tile.biome, edge_key))
-                if img:
-                    blit_x = int(cx - img.get_width() / 2)
-                    blit_y = int(cy + sz / 2 - img.get_height())
-                    self.screen.blit(img, (blit_x, blit_y))
-                else:
-                    for direction in tile.river_edges:
-                        offset = _RIVER_EDGE_OFFSETS.get(direction)
-                        if offset is None:
-                            continue
-                        ox, oy = offset
-                        ex, ey = cx + ox * apothem, cy + oy * apothem
-                        pygame.draw.line(self.screen, (0, 0, 0),
-                                         (int(cx), int(cy)), (int(ex), int(ey)), 3)
+                if tile.river_edges:
+                    edge_key = frozenset(tile.river_edges)
+                    river_dict = self._river_images_fog if fogged else self._river_images
+                    river_img = river_dict.get((tile.biome, edge_key))
+                    if river_img:
+                        blit_x = int(cx - river_img.get_width() / 2)
+                        blit_y = int(cy + sz / 2 - river_img.get_height())
+                        self.screen.blit(river_img, (blit_x, blit_y))
+                    else:
+                        for direction in tile.river_edges:
+                            offset = _RIVER_EDGE_OFFSETS.get(direction)
+                            if offset is None:
+                                continue
+                            ox, oy = offset
+                            ex, ey = cx + ox * apothem, cy + oy * apothem
+                            pygame.draw.line(self.screen, (0, 0, 0),
+                                             (int(cx), int(cy)), (int(ex), int(ey)), 3)
 
 
         # Pass 2b: trade route dashed curves on intermediate path tiles (above rivers)

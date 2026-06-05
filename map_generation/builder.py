@@ -9,9 +9,9 @@ _SQUARE_NEIGHBORS = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1
 _INCOMPATIBLE = {
     'mountain':   {'forest', 'hills', 'river', 'floodplain'},
     'forest':     {'mountain', 'river'},
-    'hills':      {'mountain'},
-    'river':      {'mountain', 'forest'},
-    'floodplain': {'mountain'},
+    'hills':      {'mountain', 'river'},
+    'river':      {'mountain', 'forest', 'hills'},
+    'floodplain': {'mountain', 'hills'},
 }
 
 # Features that require a land (non-water) tile

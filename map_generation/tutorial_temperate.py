@@ -29,7 +29,7 @@ def generate(game_map):
     b.scatter('forest', biome='temperate', density=0.5, requires_neighbor='forest', neighbor_dirs=_CARDINAL)
 
     # Iron on some hill tiles
-    b.scatter('iron', density=0.40, requires='hills')
+    b.scatter('iron', density=0.5, requires='hills')
 
     # Spawn points at the four corners
     # rows, cols = b._map.rows, b._map.cols
