@@ -5,7 +5,7 @@
     {"name": "Assyrians",      "colors": "red",  "city_names": "assyria"}
   ],
   "cities": [
-    {"row": 2, "col": 2, "faction": "Babylonians", "population": 60},
-    {"row": 8, "col": 8, "faction": "Assyrians", "population": 60}
+    {"row": 2, "col": 2, "faction": "Babylonians", "population": 40},
+    {"row": 8, "col": 8, "faction": "Assyrians", "population": 40}
   ]
 }

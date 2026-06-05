@@ -58,7 +58,7 @@ class Tether:
             self.unit_group.delete_tether(game_map)
             return
         if self.unit_group.levy:
-            self.food_amount = len(self.unit_group.units)
+            self.food_amount = len(self.unit_group.units) + len(self.tether_units)
         distance = self.route.distance if self.route is not None else 0.0
         supply_pops = self.calculate_supply_pops(distance)
         if self.unit_group.levy:
@@ -73,7 +73,11 @@ class Tether:
                 return
             reduction = len(self.tether_units) - supply_pops
             if reduction > 0:
-                self.transfer_tether_units_to_city(reduction, game_map)
+                # self.transfer_tether_units_to_city(reduction, game_map)
+                returning = self.tether_units[:reduction]
+                self.tether_units = self.tether_units[reduction:]
+                self.unit_group.units.extend(returning)
+                self.unit_group.max_food_stockpile = self.unit_group._carry_capacity()
             if not self.catchup:
                 if self.route is not None:
                     self.route.export_amount = self.food_amount
