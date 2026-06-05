@@ -2139,7 +2139,12 @@ class Renderer:
                 selected_on_tile = [g for g in unit_groups if g in self.selected_unit_groups]
                 half_w = (PANEL_WIDTH - pad * 2 - 4) // 2
                 recruit_disabled = not has_city or (has_city and len(tile.city.pops) <= tile.city.total_farm_slots)
-                disband_disabled = not has_city or len(selected_on_tile) == 0 or any(g.move_exhausted for g in selected_on_tile)
+                any_levy_away = any(
+                    g.levy and g.tether is not None
+                    and not (g.row == g.tether.city.row and g.col == g.tether.city.col)
+                    for g in selected_on_tile
+                )
+                disband_disabled = not has_city or len(selected_on_tile) == 0 or any(g.move_exhausted for g in selected_on_tile) or any_levy_away
                 recruit_label = "Recruit"
                 if has_city:
                     _cur = max(0, len(tile.city.pops) - tile.city.total_farm_slots)
@@ -2374,8 +2379,12 @@ class Renderer:
             if equip_disabled:
                 self.equip_button_rect = None
             y += btn_h + 4
-            self.merge_button_rect = self._draw_button(x, y, half_w, btn_h, "Merge", disabled=len(selected_on_tile) < 2)
-            separate_disabled = len(selected_on_tile) != 1 or len(selected_on_tile[0].units) < 2
+            any_levy = any(g.levy for g in selected_on_tile)
+            merge_disabled = len(selected_on_tile) < 2 or any_levy
+            self.merge_button_rect = self._draw_button(x, y, half_w, btn_h, "Merge", disabled=merge_disabled)
+            if merge_disabled:
+                self.merge_button_rect = None
+            separate_disabled = len(selected_on_tile) != 1 or len(selected_on_tile[0].units) < 2 or any_levy
             self.separate_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Separate", disabled=separate_disabled)
             if separate_disabled:
                 self.separate_button_rect = None
@@ -2390,11 +2399,11 @@ class Renderer:
                 self.drop_button_rect = None
             y += btn_h + 4
             has_tether = bool(selected_on_tile) and any(g.tether is not None for g in selected_on_tile)
-            add_tether_disabled = not has_city or not selected_on_tile or has_tether
+            add_tether_disabled = not has_city or not selected_on_tile or has_tether or any_levy
             self.add_tether_button_rect = self._draw_button(x, y, half_w, btn_h, "Add Tether", disabled=add_tether_disabled)
             if add_tether_disabled:
                 self.add_tether_button_rect = None
-            drop_tether_disabled = not selected_on_tile or not has_tether
+            drop_tether_disabled = not selected_on_tile or not has_tether or any_levy
             self.drop_tether_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Drop Tether", disabled=drop_tether_disabled)
             if drop_tether_disabled:
                 self.drop_tether_button_rect = None
@@ -2526,7 +2535,7 @@ class Renderer:
         self.screen.blit(overlay, (0, 0))
 
         W = 280
-        H = 270 if levy_mode else (294 if self.recruit_popup_supply_train else 246)
+        H = 140 if levy_mode else (294 if self.recruit_popup_supply_train else 246)
         sx = (self.screen.get_width() - W) // 2
         sy = (self.screen.get_height() - H) // 2
         pad = 16
@@ -2563,51 +2572,43 @@ class Renderer:
         cx = sx + W // 2
         self.screen.blit(count_surf, (cx - count_surf.get_width() // 2, btn_y + (btn_h - count_surf.get_height()) // 2))
 
-        max_food_per_pop = MILITARY_CARRY_CAPACITY
-        food_per_pop = max(0, min(self.recruit_popup_food, max_food_per_pop))
-        self.recruit_popup_food = food_per_pop
-
-        food_lbl_surf = self.font_body.render("Stockpile Per Unit", True, TEXT_COLOR)
-        self.screen.blit(food_lbl_surf, (sx + pad, sy + 88))
-
-        food_btn_y = sy + 106
-        self.recruit_popup_food_slider_rect = None
-        self.recruit_food_dec_rect = self._draw_button(track_x,                   food_btn_y, btn_w, btn_h, "-")
-        self.recruit_food_inc_rect = self._draw_button(track_x + track_w - btn_w, food_btn_y, btn_w, btn_h, "+")
-        food_count_surf = self.font_header.render(str(food_per_pop), True, TEXT_COLOR)
-        self.screen.blit(food_count_surf, (cx - food_count_surf.get_width() // 2, food_btn_y + (btn_h - food_count_surf.get_height()) // 2))
-
-        # Food cost summary
-        recruitment_cost = amount
-        stockpile_food   = food_per_pop * amount
-        total_food       = recruitment_cost + stockpile_food
-        food_ok          = amount == 0 or total_food <= city.food_stockpile
-        can_afford       = amount > 0 and total_food <= city.food_stockpile
-        cost_color       = TEXT_COLOR if food_ok else (220, 60, 60)
-        total_surf  = self.font_body.render(f"Total Food Cost: {total_food}", True, cost_color)
-        detail_surf = self.font_small.render(f"= {recruitment_cost} (Recruitment) + {stockpile_food} (Stockpile)", True, cost_color)
-        self.screen.blit(total_surf,  (sx + pad, sy + 140))
-        self.screen.blit(detail_surf, (sx + pad, sy + 156))
-
         if levy_mode:
-            # Always show supply food slider, no checkbox
-            max_supply_food = max(1, amount * 2)
-            supply_food = max(1, min(self.recruit_popup_supply_food, max_supply_food))
-            self.recruit_popup_supply_food = supply_food
-            sf_label = self.font_body.render(f"Food Per Turn: {supply_food}", True, TEXT_COLOR)
-            self.screen.blit(sf_label, (sx + pad, sy + 178))
-            sf_track_y = sy + 196
-            pygame.draw.rect(self.screen, (60, 60, 80), (track_x, sf_track_y, track_w, track_h), border_radius=2)
-            sfhx = track_x + int((supply_food - 1) / max(max_supply_food - 1, 1) * track_w)
-            sfhy = sf_track_y + track_h // 2
-            pygame.draw.circle(self.screen, (160, 190, 240), (sfhx, sfhy), 6)
-            pygame.draw.circle(self.screen, (100, 130, 190), (sfhx, sfhy), 6, 1)
-            self.screen.blit(self.font_small.render("1", True, PANEL_DIVIDER), (track_x, sf_track_y + track_h + 3))
-            max_sf_surf = self.font_small.render(str(max_supply_food), True, PANEL_DIVIDER)
-            self.screen.blit(max_sf_surf, (track_x + track_w - max_sf_surf.get_width(), sf_track_y + track_h + 3))
-            self.recruit_popup_supply_food_slider_rect = pygame.Rect(track_x, sf_track_y - 6, track_w, track_h + 16)
+            # Stockpile fixed at 0, supply food = unit count — hidden from player
+            self.recruit_popup_food = 0
+            self.recruit_popup_food_slider_rect = None
+            self.recruit_food_dec_rect = None
+            self.recruit_food_inc_rect = None
+            self.recruit_popup_supply_food = amount
+            self.recruit_popup_supply_food_slider_rect = None
             self.recruit_popup_supply_checkbox_rect = None
+            can_afford = amount > 0
         else:
+            max_food_per_pop = MILITARY_CARRY_CAPACITY
+            food_per_pop = max(0, min(self.recruit_popup_food, max_food_per_pop))
+            self.recruit_popup_food = food_per_pop
+
+            food_lbl_surf = self.font_body.render("Stockpile Per Unit", True, TEXT_COLOR)
+            self.screen.blit(food_lbl_surf, (sx + pad, sy + 88))
+
+            food_btn_y = sy + 106
+            self.recruit_popup_food_slider_rect = None
+            self.recruit_food_dec_rect = self._draw_button(track_x,                   food_btn_y, btn_w, btn_h, "-")
+            self.recruit_food_inc_rect = self._draw_button(track_x + track_w - btn_w, food_btn_y, btn_w, btn_h, "+")
+            food_count_surf = self.font_header.render(str(food_per_pop), True, TEXT_COLOR)
+            self.screen.blit(food_count_surf, (cx - food_count_surf.get_width() // 2, food_btn_y + (btn_h - food_count_surf.get_height()) // 2))
+
+            # Food cost summary
+            recruitment_cost = amount
+            stockpile_food   = food_per_pop * amount
+            total_food       = recruitment_cost + stockpile_food
+            food_ok          = amount == 0 or total_food <= city.food_stockpile
+            can_afford       = amount > 0 and total_food <= city.food_stockpile
+            cost_color       = TEXT_COLOR if food_ok else (220, 60, 60)
+            total_surf  = self.font_body.render(f"Total Food Cost: {total_food}", True, cost_color)
+            detail_surf = self.font_small.render(f"= {recruitment_cost} (Recruitment) + {stockpile_food} (Stockpile)", True, cost_color)
+            self.screen.blit(total_surf,  (sx + pad, sy + 140))
+            self.screen.blit(detail_surf, (sx + pad, sy + 156))
+
             # Supply Train checkbox
             cb_size = 14
             cb_x, cb_y = sx + pad, sy + 180

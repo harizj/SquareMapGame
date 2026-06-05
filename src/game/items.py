@@ -25,7 +25,7 @@ class Spear(Item):
 class Bow(Item):
     name = 'bows'
     production_needed = 6
-    resource_cost = {'wood': 8}
+    resource_cost = {'wood': 6, 'iron': 2}
     upgrades_to = 'Archers'
 
 

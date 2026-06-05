@@ -20,6 +20,7 @@ class UnitGroup:
         self.move_exhausted = False
         self.can_capture_tile = False
         self.tether = None
+        self.levy = False
 
     def get_color(self, color_type):
         if self.faction:

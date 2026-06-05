@@ -650,22 +650,19 @@ def main():
                         if selected_tile and selected_tile.city:
                             city = selected_tile.city
                             n = renderer.recruit_popup_amount
-                            # recruitment_cost = n  # upfront food cost per levy (disabled)
-                            stockpile_food   = renderer.recruit_popup_food * n
-                            total_food       = stockpile_food
-                            if total_food <= city.food_stockpile and n > 0:
+                            if n > 0:
                                 recruited_pops = city.pops[:n]
                                 city.pops = city.pops[n:]
-                                city.food_stockpile -= total_food
                                 city.rebalance_pops()
                                 new_group = UnitGroup(selected_tile.row, selected_tile.col, units=[Militia(p) for p in recruited_pops], faction=city.faction)
                                 new_group.moves_remaining = 0
                                 new_group.move_exhausted = True
-                                new_group.add_food(stockpile_food)
+                                new_group.levy = True
+                                # stockpile fixed at 0; supply food = unit count
                                 new_group.tether = Tether(
                                     city=city,
                                     unit_group=new_group,
-                                    food_amount=renderer.recruit_popup_supply_food,
+                                    food_amount=n,
                                 )
                                 selected_tile.unit_groups.append(new_group)
                                 selected_tile.update_after_movement()
