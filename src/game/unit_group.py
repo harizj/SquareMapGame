@@ -82,13 +82,20 @@ class UnitGroup:
 
         return self.food_allocated_from_routes
 
-    def end_turn(self):
+    def unit_deaths(self, dying, tile):
+        from src.game.battles import drop_unit_items
+        drop_unit_items(dying, tile)
+        for u in dying:
+            self.units.remove(u)
+        self.max_food_stockpile = self._carry_capacity()
+
+    def end_turn(self, tile):
         # print(f"UnitGroup end_turn @ ({self.row},{self.col}): units={len(self.units)}, food_stockpile={self.food_stockpile}, food_allocated_from_city={self.food_allocated_from_city}, food_allocated_from_routes={self.food_allocated_from_routes}, food_allocated_to_stockpile={self.food_allocated_to_stockpile}, pending_pop_loss={self.pending_pop_loss}, moves_remaining={self.moves_remaining}, move_exhausted={self.move_exhausted}")
         # print('End turn, food allocated to stockpile is', self.food_allocated_to_stockpile)
         self.food_stockpile += self.food_allocated_to_stockpile
         if self.pending_pop_loss > 0:
-            self.units = self.units[self.pending_pop_loss:]
-            self.max_food_stockpile = self._carry_capacity()
+            dying = sorted(self.units, key=lambda u: u.combat_strength)[:self.pending_pop_loss]
+            self.unit_deaths(dying, tile)
         self._reset_moves()
         # self.food_allocated_from_routes = 0.0
         # self.food_allocated_to_stockpile = 0.0

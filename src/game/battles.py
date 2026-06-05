@@ -319,15 +319,13 @@ def apply_battle_result(preview, result, game_map, combat_tile):
         [(g, u) for g in attacker_groups for u in g.units],
         key=lambda x: x[1].combat_strength,
     )
-    atk_killed = []
+    atk_deaths = {}
     for g, u in atk_sorted[:result['attacker_losses']]:
         if u in g.units:
-            g.units.remove(u)
-            atk_killed.append(u)
-    if combat_tile:
-        drop_unit_items(atk_killed, combat_tile)
+            atk_deaths.setdefault(g, []).append(u)
+    for g, dying in atk_deaths.items():
+        g.unit_deaths(dying, combat_tile)
     for g in attacker_groups:
-        g.max_food_stockpile = g._carry_capacity()
         g.food_stockpile = min(g.food_stockpile, g.max_food_stockpile)
 
     if not isinstance(defender, City):
@@ -335,15 +333,13 @@ def apply_battle_result(preview, result, game_map, combat_tile):
             [(g, u) for g in defender for u in g.units],
             key=lambda x: x[1].combat_strength,
         )
-        def_killed = []
+        def_deaths = {}
         for g, u in def_sorted[:result['defender_losses']]:
             if u in g.units:
-                g.units.remove(u)
-                def_killed.append(u)
-        if combat_tile:
-            drop_unit_items(def_killed, combat_tile)
+                def_deaths.setdefault(g, []).append(u)
+        for g, dying in def_deaths.items():
+            g.unit_deaths(dying, combat_tile)
         for g in defender:
-            g.max_food_stockpile = g._carry_capacity()
             g.food_stockpile = min(g.food_stockpile, g.max_food_stockpile)
 
     survivors = [g for g in attacker_groups if g.units]
