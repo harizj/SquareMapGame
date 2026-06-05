@@ -179,6 +179,10 @@ class Map:
         city.rebalance_pops()
 
     def remove_city(self, city):
+        # Detach routes before clearing city_tile.city so detach() can still
+        # resolve dest_tile.city correctly for routes where this is the destination.
+        for route in list(city.trade_routes):
+            route.detach()
         for tile in city.owned_tiles:
             tile.owning_city = None
             tile.city_distance = None

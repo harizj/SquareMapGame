@@ -580,9 +580,9 @@ def main():
                             from src.game.constants import MILITARY_CARRY_CAPACITY as MCC
                             city = selected_tile.city
                             n = renderer.recruit_popup_amount
-                            recruitment_cost = n
+                            # recruitment_cost = n  # upfront food cost per recruit (disabled)
                             stockpile_food   = renderer.recruit_popup_food * n
-                            total_food       = recruitment_cost + stockpile_food
+                            total_food       = stockpile_food
                             if total_food <= city.food_stockpile:
                                 recruited_pops = city.pops[:n]
                                 city.pops = city.pops[n:]
@@ -650,9 +650,9 @@ def main():
                         if selected_tile and selected_tile.city:
                             city = selected_tile.city
                             n = renderer.recruit_popup_amount
-                            recruitment_cost = n
+                            # recruitment_cost = n  # upfront food cost per levy (disabled)
                             stockpile_food   = renderer.recruit_popup_food * n
-                            total_food       = recruitment_cost + stockpile_food
+                            total_food       = stockpile_food
                             if total_food <= city.food_stockpile and n > 0:
                                 recruited_pops = city.pops[:n]
                                 city.pops = city.pops[n:]
