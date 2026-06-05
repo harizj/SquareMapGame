@@ -1,5 +1,6 @@
 import math
 from src.game.constants import DEFAULT_MOVE_DISTANCE, POP_FOOD_CONSUMPTION, MIN_TERRAIN_COST, LAND_CARRY_CAPACITY, WATER_CARRY_CAPACITY
+from src.game.unit import TETHER_PRIORITY
 
 
 class UnitGroup:
@@ -149,8 +150,9 @@ class UnitGroup:
     def remove_pops(self, n):
         """Remove up to n units from the group and return them as Unit objects."""
         n = min(n, len(self.units))
-        removed = self.units[:n]
-        self.units = self.units[n:]
+        sorted_units = sorted(self.units, key=lambda u: TETHER_PRIORITY.index(u.unit_type) if u.unit_type in TETHER_PRIORITY else len(TETHER_PRIORITY))
+        removed = sorted_units[:n]
+        self.units = sorted_units[n:]
         self.max_food_stockpile = self._carry_capacity()
         return removed
 

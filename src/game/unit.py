@@ -60,3 +60,6 @@ class Skeleton(Unit):
 
 UNIT_REGISTRY = {cls.unit_type: cls for cls in [Swordsmen, Archers, Spearmen, Militia, Skeleton]}
 unit_list = list(UNIT_REGISTRY.keys())
+
+# Weakest-first order for tether assignment (militia goes to supply first, swordsmen last)
+TETHER_PRIORITY = ['Militia', 'Skeleton', 'Spearmen', 'Archers', 'Swordsmen']
