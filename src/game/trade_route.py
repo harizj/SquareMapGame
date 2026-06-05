@@ -12,9 +12,11 @@ class TradeRoute:
                  import_resource, import_amount,
                  path=None, path_distances=None,
                  water=False, one_way=True,
-                 establish_progress=None, established=None):
+                 establish_progress=None, established=None,
+                 tether=False):
         self.city_a = city_a          # origin — allocates pops
         self.dest_tile = dest_tile    # destination tile (may or may not have a city)
+        self.tether = tether
         self.faction = city_a.faction
         self.pops_a = pops_a
         self.pops_b = pops_b

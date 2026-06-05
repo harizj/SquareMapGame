@@ -1632,16 +1632,19 @@ class Renderer:
             self.trade_route_reduce_rects = []
             btn_s = 16
             for route in dest_routes:
-                name_line = route.city_a.name
+                base_name = f"Tether From {route.city_a.name}" if route.tether else route.city_a.name
                 if not route.established:
                     t = route.turns_until_established()
-                    name_line = f"{name_line} ({t} {'turn' if t == 1 else 'turns'})"
+                    name_line = f"{base_name} ({t} {'turn' if t == 1 else 'turns'})"
+                else:
+                    name_line = base_name
                 name_surf = self.font_body.render(name_line, True, TEXT_COLOR)
                 self.screen.blit(name_surf, (x + 4, y))
-                del_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "x")
-                self.trade_route_delete_rects.append((del_rect, route))
-                red_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s * 2 - 3, y, btn_s, btn_s, "-")
-                self.trade_route_reduce_rects.append((red_rect, route))
+                if not route.tether:
+                    del_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "x")
+                    self.trade_route_delete_rects.append((del_rect, route))
+                    red_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s * 2 - 3, y, btn_s, btn_s, "-")
+                    self.trade_route_reduce_rects.append((red_rect, route))
                 y += name_surf.get_height() + 2
                 net_food = route.max_amount if route.export_resource == 'food' else 0
                 food_str = f"+{_fmt_amt(net_food)}" if net_food >= 0 else _fmt_amt(net_food)
@@ -1912,10 +1915,11 @@ class Renderer:
                 name_line = f"{other_name} ({t} {'turn' if t == 1 else 'turns'})"
             surf = self.font_body.render(name_line, True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
-            del_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "x")
-            self.trade_route_delete_rects.append((del_rect, route))
-            red_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s * 2 - 3, y, btn_s, btn_s, "-")
-            self.trade_route_reduce_rects.append((red_rect, route))
+            if not route.tether:
+                del_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s, y, btn_s, btn_s, "x")
+                self.trade_route_delete_rects.append((del_rect, route))
+                red_rect = self._draw_button(CITY_PANEL_WIDTH - pad - btn_s * 2 - 3, y, btn_s, btn_s, "-")
+                self.trade_route_reduce_rects.append((red_rect, route))
             y += surf.get_height() + 2
             pops = route.get_pops_from_city(city)
 

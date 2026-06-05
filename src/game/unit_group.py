@@ -198,6 +198,7 @@ class UnitGroup:
                 one_way=True,
                 establish_progress=dist,
                 established=True,
+                tether=True,
             )
             tether.route = created_route
         _print_tile_groups("after route creation")
