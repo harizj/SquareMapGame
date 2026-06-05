@@ -2140,7 +2140,12 @@ class Renderer:
                 half_w = (PANEL_WIDTH - pad * 2 - 4) // 2
                 recruit_disabled = not has_city or (has_city and len(tile.city.pops) <= tile.city.total_farm_slots)
                 disband_disabled = not has_city or len(selected_on_tile) == 0 or any(g.move_exhausted for g in selected_on_tile)
-                self.recruit_unit_button_rect = self._draw_button(panel_x + pad, y, half_w, btn_h, "Recruit", disabled=recruit_disabled)
+                recruit_label = "Recruit"
+                if has_city:
+                    _cur = max(0, len(tile.city.pops) - tile.city.total_farm_slots)
+                    _max = tile.city.non_food_pop_limit
+                    recruit_label = f"Recruit {_cur}/{_max}"
+                self.recruit_unit_button_rect = self._draw_button(panel_x + pad, y, half_w, btn_h, recruit_label, disabled=recruit_disabled)
                 self.disband_button_rect = self._draw_button(panel_x + pad + half_w + 4, y, half_w, btn_h, "Disband", disabled=disband_disabled)
                 if recruit_disabled:
                     self.recruit_unit_button_rect = None
