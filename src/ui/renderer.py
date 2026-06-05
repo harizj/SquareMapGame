@@ -253,7 +253,9 @@ class Renderer:
         self.settle_button_rect = None
         self.recruit_unit_button_rect = None
         self.disband_button_rect = None
+        self.raise_levies_button_rect = None
         self.recruit_popup_active = False
+        self.raise_levies_popup_active = False
         self.recruit_popup_amount = 1
         self.production_popup_active = False
         self.production_target_button_rect = None
@@ -1251,6 +1253,8 @@ class Renderer:
 
         if self.recruit_popup_active and selected_tile and selected_tile.city:
             self._draw_recruit_popup(selected_tile.city)
+        elif self.raise_levies_popup_active and selected_tile and selected_tile.city:
+            self._draw_recruit_popup(selected_tile.city, levy_mode=True)
 
         if self.separate_popup_active and self.separate_popup_group:
             self._draw_separate_popup()
@@ -2134,7 +2138,7 @@ class Renderer:
             if not _units_collapsed:
                 selected_on_tile = [g for g in unit_groups if g in self.selected_unit_groups]
                 half_w = (PANEL_WIDTH - pad * 2 - 4) // 2
-                recruit_disabled = not has_city
+                recruit_disabled = not has_city or (has_city and len(tile.city.pops) <= tile.city.total_farm_slots)
                 disband_disabled = not has_city or len(selected_on_tile) == 0 or any(g.move_exhausted for g in selected_on_tile)
                 self.recruit_unit_button_rect = self._draw_button(panel_x + pad, y, half_w, btn_h, "Recruit", disabled=recruit_disabled)
                 self.disband_button_rect = self._draw_button(panel_x + pad + half_w + 4, y, half_w, btn_h, "Disband", disabled=disband_disabled)
@@ -2142,6 +2146,10 @@ class Renderer:
                     self.recruit_unit_button_rect = None
                 if disband_disabled:
                     self.disband_button_rect = None
+                y += btn_h + 6
+                self.raise_levies_button_rect = self._draw_button(panel_x + pad, y, PANEL_WIDTH - pad * 2, btn_h, "Raise Levies", disabled=not has_city)
+                if not has_city:
+                    self.raise_levies_button_rect = None
                 y += btn_h + 6
 
         first_group = unit_groups[0] if unit_groups else None
@@ -2507,13 +2515,13 @@ class Renderer:
                 y += row_h
             y += category_gap
 
-    def _draw_recruit_popup(self, city):
+    def _draw_recruit_popup(self, city, levy_mode=False):
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 160))
         self.screen.blit(overlay, (0, 0))
 
         W = 280
-        H = 294 if self.recruit_popup_supply_train else 246
+        H = 270 if levy_mode else (294 if self.recruit_popup_supply_train else 246)
         sx = (self.screen.get_width() - W) // 2
         sy = (self.screen.get_height() - H) // 2
         pad = 16
@@ -2522,11 +2530,12 @@ class Renderer:
         pygame.draw.rect(self.screen, (40, 40, 55), (sx, sy, W, H), border_radius=6)
         pygame.draw.rect(self.screen, PANEL_DIVIDER, (sx, sy, W, H), 1, border_radius=6)
 
-        surf = self.font_header.render("RECRUIT UNITS", True, HEADER_TEXT_COLOR)
+        title = "RAISE LEVIES" if levy_mode else "RECRUIT UNITS"
+        surf = self.font_header.render(title, True, HEADER_TEXT_COLOR)
         self.screen.blit(surf, (sx + pad, sy + 12))
 
         from src.game.constants import SELECTION_INCREMENT as _SEL_INC
-        max_recruit = len(city.pops) - 1
+        max_recruit = len(city.pops) - 1 if levy_mode else max(0, len(city.pops) - city.total_farm_slots)
         amount = max(0, min(self.recruit_popup_amount, max_recruit))
         self.recruit_popup_amount = amount
 
@@ -2575,29 +2584,14 @@ class Renderer:
         self.screen.blit(total_surf,  (sx + pad, sy + 140))
         self.screen.blit(detail_surf, (sx + pad, sy + 156))
 
-        # Supply Train checkbox
-        cb_size = 14
-        cb_x, cb_y = sx + pad, sy + 180
-        cb_rect = pygame.Rect(cb_x, cb_y, cb_size, cb_size)
-        pygame.draw.rect(self.screen, (60, 60, 80), cb_rect, border_radius=2)
-        if self.recruit_popup_supply_train:
-            pygame.draw.rect(self.screen, (160, 190, 240), cb_rect.inflate(-4, -4), border_radius=1)
-        else:
-            pygame.draw.rect(self.screen, PANEL_DIVIDER, cb_rect, 1, border_radius=2)
-        label_surf = self.font_body.render("Supply Train", True, TEXT_COLOR)
-        self.screen.blit(label_surf, (cb_x + cb_size + 6, cb_y - 1))
-        self.recruit_popup_supply_checkbox_rect = pygame.Rect(cb_x, cb_y - 2, cb_size + 6 + label_surf.get_width(), cb_size + 4)
-
-        # Supply food per turn slider (only when Supply Train is checked)
-        if self.recruit_popup_supply_train:
+        if levy_mode:
+            # Always show supply food slider, no checkbox
             max_supply_food = max(1, amount * 2)
             supply_food = max(1, min(self.recruit_popup_supply_food, max_supply_food))
             self.recruit_popup_supply_food = supply_food
-
             sf_label = self.font_body.render(f"Food Per Turn: {supply_food}", True, TEXT_COLOR)
-            self.screen.blit(sf_label, (sx + pad, sy + 202))
-
-            sf_track_y = sy + 220
+            self.screen.blit(sf_label, (sx + pad, sy + 178))
+            sf_track_y = sy + 196
             pygame.draw.rect(self.screen, (60, 60, 80), (track_x, sf_track_y, track_w, track_h), border_radius=2)
             sfhx = track_x + int((supply_food - 1) / max(max_supply_food - 1, 1) * track_w)
             sfhy = sf_track_y + track_h // 2
@@ -2607,8 +2601,39 @@ class Renderer:
             max_sf_surf = self.font_small.render(str(max_supply_food), True, PANEL_DIVIDER)
             self.screen.blit(max_sf_surf, (track_x + track_w - max_sf_surf.get_width(), sf_track_y + track_h + 3))
             self.recruit_popup_supply_food_slider_rect = pygame.Rect(track_x, sf_track_y - 6, track_w, track_h + 16)
+            self.recruit_popup_supply_checkbox_rect = None
         else:
-            self.recruit_popup_supply_food_slider_rect = None
+            # Supply Train checkbox
+            cb_size = 14
+            cb_x, cb_y = sx + pad, sy + 180
+            cb_rect = pygame.Rect(cb_x, cb_y, cb_size, cb_size)
+            pygame.draw.rect(self.screen, (60, 60, 80), cb_rect, border_radius=2)
+            if self.recruit_popup_supply_train:
+                pygame.draw.rect(self.screen, (160, 190, 240), cb_rect.inflate(-4, -4), border_radius=1)
+            else:
+                pygame.draw.rect(self.screen, PANEL_DIVIDER, cb_rect, 1, border_radius=2)
+            label_surf = self.font_body.render("Supply Train", True, TEXT_COLOR)
+            self.screen.blit(label_surf, (cb_x + cb_size + 6, cb_y - 1))
+            self.recruit_popup_supply_checkbox_rect = pygame.Rect(cb_x, cb_y - 2, cb_size + 6 + label_surf.get_width(), cb_size + 4)
+
+            if self.recruit_popup_supply_train:
+                max_supply_food = max(1, amount * 2)
+                supply_food = max(1, min(self.recruit_popup_supply_food, max_supply_food))
+                self.recruit_popup_supply_food = supply_food
+                sf_label = self.font_body.render(f"Food Per Turn: {supply_food}", True, TEXT_COLOR)
+                self.screen.blit(sf_label, (sx + pad, sy + 202))
+                sf_track_y = sy + 220
+                pygame.draw.rect(self.screen, (60, 60, 80), (track_x, sf_track_y, track_w, track_h), border_radius=2)
+                sfhx = track_x + int((supply_food - 1) / max(max_supply_food - 1, 1) * track_w)
+                sfhy = sf_track_y + track_h // 2
+                pygame.draw.circle(self.screen, (160, 190, 240), (sfhx, sfhy), 6)
+                pygame.draw.circle(self.screen, (100, 130, 190), (sfhx, sfhy), 6, 1)
+                self.screen.blit(self.font_small.render("1", True, PANEL_DIVIDER), (track_x, sf_track_y + track_h + 3))
+                max_sf_surf = self.font_small.render(str(max_supply_food), True, PANEL_DIVIDER)
+                self.screen.blit(max_sf_surf, (track_x + track_w - max_sf_surf.get_width(), sf_track_y + track_h + 3))
+                self.recruit_popup_supply_food_slider_rect = pygame.Rect(track_x, sf_track_y - 6, track_w, track_h + 16)
+            else:
+                self.recruit_popup_supply_food_slider_rect = None
 
         btn_y = sy + H - 36
         btn_w = (W - pad * 2 - 8) // 2

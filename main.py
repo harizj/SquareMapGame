@@ -622,6 +622,73 @@ def main():
                     elif renderer.recruit_dec1_rect and renderer.recruit_dec1_rect.collidepoint(pos):
                         renderer.recruit_popup_amount = max(0, renderer.recruit_popup_amount - 1)
                     elif renderer.recruit_inc1_rect and renderer.recruit_inc1_rect.collidepoint(pos):
+                        max_recruit = max(0, len(selected_tile.city.pops) - selected_tile.city.total_farm_slots) if selected_tile and selected_tile.city else 0
+                        renderer.recruit_popup_amount = min(max_recruit, renderer.recruit_popup_amount + 1)
+                    elif renderer.recruit_inc2_rect and renderer.recruit_inc2_rect.collidepoint(pos):
+                        from src.game.constants import SELECTION_INCREMENT as _SI
+                        max_recruit = max(0, len(selected_tile.city.pops) - selected_tile.city.total_farm_slots) if selected_tile and selected_tile.city else 0
+                        renderer.recruit_popup_amount = min(max_recruit, renderer.recruit_popup_amount + _SI)
+                    elif renderer.recruit_food_dec_rect and renderer.recruit_food_dec_rect.collidepoint(pos):
+                        renderer.recruit_popup_food = max(0, renderer.recruit_popup_food - 1)
+                    elif renderer.recruit_food_inc_rect and renderer.recruit_food_inc_rect.collidepoint(pos):
+                        from src.game.constants import MILITARY_CARRY_CAPACITY as MCC
+                        renderer.recruit_popup_food = min(MCC, renderer.recruit_popup_food + 1)
+                    elif renderer.recruit_popup_supply_checkbox_rect and renderer.recruit_popup_supply_checkbox_rect.collidepoint(pos):
+                        renderer.recruit_popup_supply_train = not renderer.recruit_popup_supply_train
+                        if renderer.recruit_popup_supply_train:
+                            renderer.recruit_popup_supply_food = renderer.recruit_popup_amount
+                    elif renderer.recruit_popup_supply_food_slider_rect and renderer.recruit_popup_supply_food_slider_rect.collidepoint(pos):
+                        renderer._recruit_supply_food_slider_dragging = True
+                        sr = renderer.recruit_popup_supply_food_slider_rect
+                        n = renderer.recruit_popup_amount
+                        max_supply_food = max(1, n * 2)
+                        t = max(0.0, min(1.0, (pos[0] - sr.x) / sr.width))
+                        renderer.recruit_popup_supply_food = max(1, min(max_supply_food, round(1 + t * (max_supply_food - 1))))
+
+                elif renderer.raise_levies_popup_active:
+                    if renderer.recruit_popup_confirm_rect and renderer.recruit_popup_confirm_rect.collidepoint(pos):
+                        if selected_tile and selected_tile.city:
+                            city = selected_tile.city
+                            n = renderer.recruit_popup_amount
+                            recruitment_cost = n
+                            stockpile_food   = renderer.recruit_popup_food * n
+                            total_food       = recruitment_cost + stockpile_food
+                            if total_food <= city.food_stockpile and n > 0:
+                                recruited_pops = city.pops[:n]
+                                city.pops = city.pops[n:]
+                                city.food_stockpile -= total_food
+                                city.rebalance_pops()
+                                new_group = UnitGroup(selected_tile.row, selected_tile.col, units=[Militia(p) for p in recruited_pops], faction=city.faction)
+                                new_group.moves_remaining = 0
+                                new_group.move_exhausted = True
+                                new_group.add_food(stockpile_food)
+                                new_group.tether = Tether(
+                                    city=city,
+                                    unit_group=new_group,
+                                    food_amount=renderer.recruit_popup_supply_food,
+                                )
+                                selected_tile.unit_groups.append(new_group)
+                                selected_tile.update_after_movement()
+                                city.rebalance_pops()
+                                new_group.allocate_food()
+                                renderer.selected_unit_groups.add(new_group)
+                                move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
+                        renderer.raise_levies_popup_active = False
+                        renderer.recruit_popup_food = 0
+                        renderer.recruit_popup_supply_food = 1
+                    elif renderer.recruit_popup_cancel_rect and renderer.recruit_popup_cancel_rect.collidepoint(pos):
+                        renderer.raise_levies_popup_active = False
+                        renderer.recruit_popup_food = 0
+                        renderer.recruit_popup_supply_food = 1
+                    elif renderer.recruit_all_free_rect and renderer.recruit_all_free_rect.collidepoint(pos):
+                        if selected_tile and selected_tile.city:
+                            renderer.recruit_popup_amount = max(0, selected_tile.city.free_pops)
+                    elif renderer.recruit_dec2_rect and renderer.recruit_dec2_rect.collidepoint(pos):
+                        from src.game.constants import SELECTION_INCREMENT as _SI
+                        renderer.recruit_popup_amount = max(0, renderer.recruit_popup_amount - _SI)
+                    elif renderer.recruit_dec1_rect and renderer.recruit_dec1_rect.collidepoint(pos):
+                        renderer.recruit_popup_amount = max(0, renderer.recruit_popup_amount - 1)
+                    elif renderer.recruit_inc1_rect and renderer.recruit_inc1_rect.collidepoint(pos):
                         max_recruit = len(selected_tile.city.pops) - 1 if selected_tile and selected_tile.city else 0
                         renderer.recruit_popup_amount = min(max_recruit, renderer.recruit_popup_amount + 1)
                     elif renderer.recruit_inc2_rect and renderer.recruit_inc2_rect.collidepoint(pos):
@@ -633,10 +700,6 @@ def main():
                     elif renderer.recruit_food_inc_rect and renderer.recruit_food_inc_rect.collidepoint(pos):
                         from src.game.constants import MILITARY_CARRY_CAPACITY as MCC
                         renderer.recruit_popup_food = min(MCC, renderer.recruit_popup_food + 1)
-                    elif renderer.recruit_popup_supply_checkbox_rect and renderer.recruit_popup_supply_checkbox_rect.collidepoint(pos):
-                        renderer.recruit_popup_supply_train = not renderer.recruit_popup_supply_train
-                        if renderer.recruit_popup_supply_train:
-                            renderer.recruit_popup_supply_food = renderer.recruit_popup_amount
                     elif renderer.recruit_popup_supply_food_slider_rect and renderer.recruit_popup_supply_food_slider_rect.collidepoint(pos):
                         renderer._recruit_supply_food_slider_dragging = True
                         sr = renderer.recruit_popup_supply_food_slider_rect
@@ -797,9 +860,15 @@ def main():
                         renderer.selecting_extraction_city = None if renderer.selecting_extraction_city is city else city
 
                 elif renderer.recruit_unit_button_rect and renderer.recruit_unit_button_rect.collidepoint(pos):
-                    if selected_tile and selected_tile.city and len(selected_tile.city.pops) > 1:
+                    if selected_tile and selected_tile.city and len(selected_tile.city.pops) > selected_tile.city.total_farm_slots:
                         renderer.recruit_popup_active = True
                         renderer.recruit_popup_amount = 0
+
+                elif renderer.raise_levies_button_rect and renderer.raise_levies_button_rect.collidepoint(pos):
+                    if selected_tile and selected_tile.city and len(selected_tile.city.pops) > 1:
+                        renderer.raise_levies_popup_active = True
+                        renderer.recruit_popup_amount = max(0, selected_tile.city.free_pops)
+                        renderer.recruit_popup_supply_food = renderer.recruit_popup_amount
 
                 elif renderer.disband_button_rect and renderer.disband_button_rect.collidepoint(pos):
                     if selected_tile and selected_tile.city:
