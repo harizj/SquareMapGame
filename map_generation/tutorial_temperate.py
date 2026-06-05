@@ -7,12 +7,17 @@ def generate(game_map):
 
     b.zone(range(0, 11), biome='temperate')
 
-    # Light scatter of forest and hills
-    b.scatter('forest', biome='temperate', density=0.25)
-    b.scatter('hills',  biome='temperate', density=0.15)
+    # Light scatter of forest, hills, and mountains
+    b.scatter('mountain', biome='temperate', density=0.03)
+    b.scatter('mountain', biome='temperate', density=0.2, requires_neighbor='mountain')
+    b.scatter('hills', biome='temperate', density=0.4, requires_neighbor='mountain')
+    b.scatter('hills', biome='temperate', density=0.1)
+    b.scatter('forest', biome='temperate', density=0.1)
+    b.scatter('forest', biome='temperate', density=0.25, requires_neighbor='forest')
+    #b.scatter('hills',    biome='temperate', density=0.15)
 
     # Iron on some hill tiles
-    b.scatter('iron', density=0.30, requires='hills')
+    b.scatter('iron', density=0.40, requires='hills')
 
     # Spawn points at the four corners
     # rows, cols = b._map.rows, b._map.cols

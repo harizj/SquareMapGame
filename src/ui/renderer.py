@@ -90,6 +90,7 @@ _BIOME_ART_FILES = {
     'hills':           ('hills',       0, 0),
     'forest':          ('forests',     0, 0),
     'hillforest':      ('hillforest',  0, 0),
+    'mountain':        ('mountains',   0, 0),
     'water':           ('water',       0, 0),
     'iron_hills':      ('iron',        0, 0),
     'iron_hillforest': ('iron',        1, 0),

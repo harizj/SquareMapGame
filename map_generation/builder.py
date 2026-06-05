@@ -124,7 +124,7 @@ class MapBuilder:
             t.update_terrain_properties()
             t.build_deposits()
 
-    def scatter(self, feature, biome=None, density=0.5, rows=None, cols=None, requires=None, requires_neighbor=None):
+    def scatter(self, feature, biome=None, density=0.5, rows=None, cols=None, requires=None, requires_neighbor=None, neighbor_dirs=None):
         """Randomly add a terrain feature to matching tiles at the given probability (0-1).
 
         biome:            if set, only tiles with that biome are eligible.
@@ -133,11 +133,14 @@ class MapBuilder:
         cols:             optional range/list to restrict which columns are eligible.
         requires:         terrain feature that must already be present on the tile.
         requires_neighbor: terrain feature that must be present on at least one neighbor.
+        neighbor_dirs:    list of (dr, dc) offsets to check for requires_neighbor;
+                          defaults to all 8 directions if not specified.
         """
         incompatible = _INCOMPATIBLE.get(feature, set())
         requires_land = feature in _REQUIRES_LAND
         row_set = set(rows) if rows is not None else None
         col_set = set(cols) if cols is not None else None
+        dirs = neighbor_dirs if neighbor_dirs is not None else _SQUARE_NEIGHBORS
 
         candidates = []
         for row in self._map.tiles:
@@ -157,12 +160,11 @@ class MapBuilder:
                 if any(f in t.terrain_features for f in incompatible):
                     continue
                 if requires_neighbor is not None:
-                    neighbors = _SQUARE_NEIGHBORS
                     if not any(
                         0 <= t.row + dr < self._map.rows and
                         0 <= t.col + dc < self._map.cols and
                         requires_neighbor in self._map.tiles[t.row + dr][t.col + dc].terrain_features
-                        for dr, dc in neighbors
+                        for dr, dc in dirs
                     ):
                         continue
                 candidates.append(t)
