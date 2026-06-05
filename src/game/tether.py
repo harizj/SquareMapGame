@@ -10,6 +10,10 @@ class Tether:
         self.food_amount = food_amount
         self.tether_units = tether_units or []  # list of Unit objects
         self.route = None
+        self.catchup = False
+        self.pending_dst_tile = None
+        self.pending_path = None
+        self.pending_distances = None
         print(f"[Tether] city={city.name} units={len(unit_group.units)} food_amount={food_amount} tether_units={len(self.tether_units)}")
 
     def update_supply_pops(self, distance):
@@ -36,12 +40,47 @@ class Tether:
         self.unit_group.max_food_stockpile = self.unit_group._carry_capacity()
         self.tether_units.clear()
 
-    def unit_movement(self, game_map, src_tile, dst_tile):
+    def tether_catchup(self):
+        if not self.catchup:
+            return
+        self.catchup = False
+        dst_tile = self.pending_dst_tile
+        path = self.pending_path
+        distances = self.pending_distances
+        self.pending_dst_tile = None
+        self.pending_path = None
+        self.pending_distances = None
+        if dst_tile is None or not distances:
+            return
         if self.route is not None:
             self.route.detach()
             self.route = None
+        self.route = TradeRoute(
+            city_a=self.city,
+            dest_tile=dst_tile,
+            pops_a=0,
+            pops_b=0,
+            partial_pops_a=0,
+            partial_pops_b=0,
+            export_resource='food',
+            export_amount=self.food_amount,
+            max_amount=self.food_amount,
+            import_resource=None,
+            import_amount=0,
+            path=path,
+            path_distances=distances,
+            water=False,
+            one_way=True,
+            establish_progress=distances[-1],
+            established=True,
+            tether=True,
+        )
 
+    def unit_movement(self, game_map, src_tile, dst_tile):
         if dst_tile.city is self.city:
+            if self.route is not None:
+                self.route.detach()
+                self.route = None
             self._city_return(game_map, dst_tile)
             return
 
@@ -62,25 +101,34 @@ class Tether:
             self.unit_group.delete_tether(game_map)
             return
 
-        route = TradeRoute(
-            city_a=self.city,
-            dest_tile=dst_tile,
-            pops_a=0,
-            pops_b=0,
-            partial_pops_a=0,
-            partial_pops_b=0,
-            export_resource='food',
-            export_amount=self.food_amount,
-            max_amount=self.food_amount,
-            import_resource=None,
-            import_amount=0,
-            path=path,
-            path_distances=distances,
-            water=False,
-            one_way=True,
-            establish_progress=distances[-1] if distances else 0.0,
-            established=True,
-            tether=True,
-        )
-        self.route = route
-        print(f"[Tether] route created city={self.city.name} -> ({dst_tile.row},{dst_tile.col}) distance={route.distance} food={self.food_amount}")
+        if distance < prev_distance or src_tile.city is self.city:
+            if self.route is not None:
+                self.route.detach()
+                self.route = None
+            route = TradeRoute(
+                city_a=self.city,
+                dest_tile=dst_tile,
+                pops_a=0,
+                pops_b=0,
+                partial_pops_a=0,
+                partial_pops_b=0,
+                export_resource='food',
+                export_amount=self.food_amount,
+                max_amount=self.food_amount,
+                import_resource=None,
+                import_amount=0,
+                path=path,
+                path_distances=distances,
+                water=False,
+                one_way=True,
+                establish_progress=distances[-1] if distances else 0.0,
+                established=True,
+                tether=True,
+            )
+            self.route = route
+            print(f"[Tether] route created city={self.city.name} -> ({dst_tile.row},{dst_tile.col}) distance={route.distance} food={self.food_amount}")
+        else:
+            self.catchup = True
+            self.pending_dst_tile = dst_tile
+            self.pending_path = path
+            self.pending_distances = distances

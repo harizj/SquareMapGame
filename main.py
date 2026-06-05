@@ -1284,6 +1284,11 @@ def main():
                         route.end_turn()
             for row in game_map.tiles:
                 for tile in row:
+                    for group in tile.unit_groups:
+                        if group.tether is not None:
+                            group.tether.tether_catchup()
+            for row in game_map.tiles:
+                for tile in row:
                     if tile.has_active_tickers():
                         tile.update_tickers()
             for (r, c) in game_map.unit_groups:
