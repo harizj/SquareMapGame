@@ -1,5 +1,5 @@
 import math
-from src.game.trade_route import TradeRoute
+from src.game.trade_route import TradeRoute, calculate_supply_pops
 from src.game.constants import LAND_CARRY_CAPACITY, DEFAULT_MOVE_DISTANCE
 
 
@@ -57,9 +57,11 @@ class Tether:
         if not self.unit_group.units:
             self.unit_group.delete_tether(game_map)
             return
-        if self.unit_group.levy:
-            self.food_amount = len(self.unit_group.units) + len(self.tether_units)
         distance = self.route.distance if self.route is not None else 0.0
+        travel_time = distance / DEFAULT_MOVE_DISTANCE
+        if self.unit_group.levy:
+            # self.food_amount = len(self.unit_group.units) + len(self.tether_units)  # old: used tether headcount
+            self.food_amount = len(self.unit_group.units) + calculate_supply_pops(len(self.unit_group.units), travel_time)
         supply_pops = self.calculate_supply_pops(distance)
         if self.unit_group.levy:
             total_units = len(self.unit_group.units) + len(self.tether_units)
@@ -73,11 +75,12 @@ class Tether:
                 return
             reduction = len(self.tether_units) - supply_pops
             if reduction > 0:
-                # self.transfer_tether_units_to_city(reduction, game_map)
-                returning = self.tether_units[:reduction]
-                self.tether_units = self.tether_units[reduction:]
-                self.unit_group.units.extend(returning)
-                self.unit_group.max_food_stockpile = self.unit_group._carry_capacity()
+                # Excess supply pops return to city (not back into the combat group)
+                self.transfer_tether_units_to_city(reduction, game_map)
+                # returning = self.tether_units[:reduction]
+                # self.tether_units = self.tether_units[reduction:]
+                # self.unit_group.units.extend(returning)
+                # self.unit_group.max_food_stockpile = self.unit_group._carry_capacity()
             if not self.catchup:
                 if self.route is not None:
                     self.route.export_amount = self.food_amount

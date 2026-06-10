@@ -39,7 +39,7 @@ class City:
         self.owned_tiles = []
         self.cumulative_farm_yield = [0.0]
         self.cumulative_farm_yield_net = [0.0]
-        self.food_stockpile = 20.0
+        self.food_stockpile = population
         self.growth_progress = 0.0
         self.construction_progress = 0.0
         self.city_focus = 'Growth'

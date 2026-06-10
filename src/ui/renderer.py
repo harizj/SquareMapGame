@@ -15,6 +15,7 @@ MARGIN = 40
 PANEL_WIDTH = 220
 DISPLAY_ROWS = 8
 DISPLAY_COLS = 10
+DISPLAY_FULL_BATTLE = False
 
 COLOR_PARCHMENT = (240, 220, 185)
 
@@ -3075,13 +3076,13 @@ class Renderer:
         line_h = 18
         pad = 16
         per_round_h = line_h + stat_rows * line_h + 2 * line_h + 8 + 1 + 6  # label + stats + 2 log lines + gap + divider
-        H = (40                          # title + divider
-             + line_h                    # faction headers
-             + len(rounds) * per_round_h # one block per round
-             + 1 + 6                     # divider before losses
-             + line_h + 8               # losses
-             + 1 + 8                     # button divider
-             + 24 + pad)                 # close button + bottom pad
+        H = (40                                                          # title + divider
+             + line_h                                                    # faction headers
+             + (len(rounds) * per_round_h if DISPLAY_FULL_BATTLE else 0) # per-round blocks (full mode only)
+             + 1 + 6                                                     # divider before losses
+             + line_h + 8                                                # losses
+             + 1 + 8                                                     # button divider
+             + 24 + pad)                                                 # close button + bottom pad
         W = 380
         sx = (self.screen.get_width()  - W) // 2
         sy = (self.screen.get_height() - H) // 2
@@ -3114,37 +3115,38 @@ class Renderer:
         stat_color = (200, 200, 220)
         log_color  = (180, 180, 200)
 
-        for round_i, rnd in enumerate(rounds):
-            round_top_y = y
+        if DISPLAY_FULL_BATTLE:
+            for round_i, rnd in enumerate(rounds):
+                round_top_y = y
 
-            # Round label (left-aligned)
-            lbl = self.font_body.render(f"Round {round_i + 1}", True, HEADER_TEXT_COLOR)
-            self.screen.blit(lbl, (left_x, y))
-            y += line_h
-
-            # Stats in two columns
-            for side, col_x in [('attacker', left_x), ('defender', right_x)]:
-                s = rnd.get(side, {})
-                for row_i, (label, val) in enumerate([
-                    ('Units',     f"{s.get('units', '—')}"),
-                    ('Strength',  f"{s.get('strength', '—')}"),
-                    ('Advantage', f"{s.get('advantage', 0):.2f}"),
-                    ('λ',         f"{s.get('lam', 0):.2f}"),
-                ]):
-                    self.screen.blit(
-                        self.font_body.render(f"{label}: {val}", True, stat_color),
-                        (col_x, y + row_i * line_h)
-                    )
-            y += stat_rows * line_h
-
-            # Round log
-            for line in rnd.get('log', []):
-                self.screen.blit(self.font_body.render(line, True, log_color), (sx + pad, y))
+                # Round label (left-aligned)
+                lbl = self.font_body.render(f"Round {round_i + 1}", True, HEADER_TEXT_COLOR)
+                self.screen.blit(lbl, (left_x, y))
                 y += line_h
-            y += 8
 
-            pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, y), (sx + W - pad, y))
-            y += 6
+                # Stats in two columns
+                for side, col_x in [('attacker', left_x), ('defender', right_x)]:
+                    s = rnd.get(side, {})
+                    for row_i, (label, val) in enumerate([
+                        ('Units',     f"{s.get('units', '—')}"),
+                        ('Strength',  f"{s.get('strength', '—')}"),
+                        ('Advantage', f"{s.get('advantage', 0):.2f}"),
+                        ('λ',         f"{s.get('lam', 0):.2f}"),
+                    ]):
+                        self.screen.blit(
+                            self.font_body.render(f"{label}: {val}", True, stat_color),
+                            (col_x, y + row_i * line_h)
+                        )
+                y += stat_rows * line_h
+
+                # Round log
+                for line in rnd.get('log', []):
+                    self.screen.blit(self.font_body.render(line, True, log_color), (sx + pad, y))
+                    y += line_h
+                y += 8
+
+                pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, y), (sx + W - pad, y))
+                y += 6
 
         # Losses
         self.screen.blit(self.font_body.render(f"Losses: {result['attacker_losses']}", True, TEXT_COLOR), (left_x, y))
