@@ -14,7 +14,7 @@ class Tether:
         self.pending_dst_tile = None
         self.pending_path = None
         self.pending_distances = None
-        print(f"[Tether] city={city.name} units={len(unit_group.units)} food_amount={food_amount} tether_units={len(self.tether_units)}")
+        # print(f"[Tether] city={city.name} units={len(unit_group.units)} food_amount={food_amount} tether_units={len(self.tether_units)}")
 
     def calculate_supply_pops(self, distance):
         travel_time = 2 * distance / DEFAULT_MOVE_DISTANCE
@@ -24,10 +24,10 @@ class Tether:
         supply_pops = self.calculate_supply_pops(distance)
         total_units = len(self.unit_group.units) + len(self.tether_units)
         if supply_pops >= total_units:
-            print(f"[Tether] collapse: supply_pops={supply_pops} >= total_units={total_units}, tether will be deleted")
+            # print(f"[Tether] collapse: supply_pops={supply_pops} >= total_units={total_units}, tether will be deleted")
             return None
         needed = supply_pops - len(self.tether_units)
-        print(f"[Tether] supply_pops={supply_pops} distance={distance} pops needed={needed}")
+        # print(f"[Tether] supply_pops={supply_pops} distance={distance} pops needed={needed}")
         if needed > 0:
             transferred = self.unit_group.remove_pops(needed)
             self.tether_units.extend(transferred)
@@ -176,7 +176,7 @@ class Tether:
                 tether=True,
             )
             self.route = route
-            print(f"[Tether] route created city={self.city.name} -> ({dst_tile.row},{dst_tile.col}) distance={route.distance} food={self.food_amount}")
+            # print(f"[Tether] route created city={self.city.name} -> ({dst_tile.row},{dst_tile.col}) distance={route.distance} food={self.food_amount}")
         else:
             self.catchup = True
             self.pending_dst_tile = dst_tile

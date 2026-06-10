@@ -41,33 +41,36 @@ class UnitGroup:
             self.moves_remaining = min(u.moves_remaining for u in self.units)
 
     def consumption_per_turn(self):
-        tether_count = len(self.tether.tether_units) if self.tether is not None else 0
+        if self.tether is not None and not self.tether.catchup:
+            tether_count = len(self.tether.tether_units)
+        else:
+            tether_count = 0
         return (len(self.units) + tether_count) * POP_FOOD_CONSUMPTION
 
     def allocate_food(self, food_from_routes=0.0):
-        print('Allocate food')
-        print(f"  food_from_city={self.food_allocated_from_city}")
+        # print('Allocate food')
+        # print(f"  food_from_city={self.food_allocated_from_city}")
 
         consumption = self.consumption_per_turn()
-        print(f"  consumption={consumption}")
+        # print(f"  consumption={consumption}")
         remainder = self.food_allocated_from_city - consumption
-        print(f"  remainder (after city alloc)={remainder}")
-        print(f"  carry capacity={self._carry_capacity()}")
-        print(f"  food_stockpile={self.food_stockpile}")
+        # print(f"  remainder (after city alloc)={remainder}")
+        # print(f"  carry capacity={self._carry_capacity()}")
+        # print(f"  food_stockpile={self.food_stockpile}")
 
         food_to_fill_stockpile = self._carry_capacity() - remainder - self.food_stockpile
-        print(f"  food_to_fill_stockpile={food_to_fill_stockpile}")
+        # print(f"  food_to_fill_stockpile={food_to_fill_stockpile}")
         self.food_allocated_from_routes = min(food_to_fill_stockpile, food_from_routes)
-        print(f"  food_allocated_from_routes={self.food_allocated_from_routes}")
+        # print(f"  food_allocated_from_routes={self.food_allocated_from_routes}")
         remainder += self.food_allocated_from_routes
-        print(f"  remainder (after routes)={remainder}")
+        # print(f"  remainder (after routes)={remainder}")
         remaining_route_food = food_from_routes - self.food_allocated_from_routes
-        print(f"  remaining_route_food={remaining_route_food}")
+        # print(f"  remaining_route_food={remaining_route_food}")
 
         # Separating this out for now until I'm sure the supply logic works
         if remainder >= 0:
             self.food_allocated_to_stockpile = remainder
-            print(f"  food_allocated_to_stockpile={self.food_allocated_to_stockpile}")
+            # print(f"  food_allocated_to_stockpile={self.food_allocated_to_stockpile}")
             self.pending_pop_loss = 0
         else:
             # If city can't cover food costs, -remainder will be the amount needed from stockpile
@@ -76,11 +79,12 @@ class UnitGroup:
             #print(f"  food_allocated_to_stockpile={self.food_allocated_to_stockpile}")
             self.food_allocated_to_stockpile = max(remainder, -self.food_stockpile)
             remainder -= self.food_allocated_to_stockpile
-            print(f"  remainder (after stockpile)={remainder}")
+            # print(f"  remainder (after stockpile)={remainder}")
             if remainder < 0:
                 self.pending_pop_loss = math.ceil(-remainder)
-                print(f"  pending_pop_loss={self.pending_pop_loss}")
+                # print(f"  pending_pop_loss={self.pending_pop_loss}")
 
+        print(f"[allocate_food] units={len(self.units)} stockpile={self.food_stockpile:.1f}/{self.max_food_stockpile:.1f} food_allocated_to_stockpile={self.food_allocated_to_stockpile:.1f} pending_pop_loss={self.pending_pop_loss}")
         return self.food_allocated_from_routes
 
     def unit_deaths(self, dying, tile, game_map):
@@ -122,7 +126,7 @@ class UnitGroup:
         def _summary(units):
             counts = collections.Counter(u.unit_type for u in units)
             return ', '.join(f"{v} {t}" for t, v in counts.items())
-        print(f"[equip] before: units=[{_summary(self.units)}] stockpile={dict(item_stockpiles)}")
+        # print(f"[equip] before: units=[{_summary(self.units)}] stockpile={dict(item_stockpiles)}")
         militia = [u for u in self.units if u.is_militia]
         for item_name in ['swords', 'bows', 'spears']:
             if not militia:
@@ -145,7 +149,7 @@ class UnitGroup:
                 item_stockpiles[item_name] = count
             else:
                 del item_stockpiles[item_name]
-        print(f"[equip] after:  units=[{_summary(self.units)}] stockpile={dict(item_stockpiles)}")
+        # print(f"[equip] after:  units=[{_summary(self.units)}] stockpile={dict(item_stockpiles)}")
 
     def remove_pops(self, n):
         """Remove up to n units from the group and return them as Unit objects."""
@@ -154,6 +158,7 @@ class UnitGroup:
         removed = sorted_units[:n]
         self.units = sorted_units[n:]
         self.max_food_stockpile = self._carry_capacity()
+        self.food_stockpile = min(self.food_stockpile, self.max_food_stockpile)
         return removed
 
     def drop_tether(self, game_map):
@@ -174,12 +179,12 @@ class UnitGroup:
             tether.route = None
 
         current_tile = game_map.tiles[self.row][self.col]
-        def _print_tile_groups(label):
-            print(f"[drop_tether] {label} tile=({current_tile.row},{current_tile.col})")
-            for g in current_tile.unit_groups:
-                from_stockpile = max(0.0, -g.food_allocated_to_stockpile)
-                print(f"  group units={len(g.units)} consumption={g.consumption_per_turn()} food_from_routes={current_tile._food_from_routes():.1f} food_allocated_from_city={g.food_allocated_from_city:.1f} stockpile={g.food_stockpile:.1f} from_stockpile={from_stockpile:.1f}")
-        _print_tile_groups("before route creation")
+        # def _print_tile_groups(label):
+        #     print(f"[drop_tether] {label} tile=({current_tile.row},{current_tile.col})")
+        #     for g in current_tile.unit_groups:
+        #         from_stockpile = max(0.0, -g.food_allocated_to_stockpile)
+        #         print(f"  group units={len(g.units)} consumption={g.consumption_per_turn()} food_from_routes={current_tile._food_from_routes():.1f} food_allocated_from_city={g.food_allocated_from_city:.1f} stockpile={g.food_stockpile:.1f} from_stockpile={from_stockpile:.1f}")
+        # _print_tile_groups("before route creation")
 
         path, distances = game_map.get_path_to(city.row, city.col, self.row, self.col)
         dist = distances[-1] if distances else 0.0
@@ -210,7 +215,7 @@ class UnitGroup:
                 tether=True,
             )
             tether.route = created_route
-        _print_tile_groups("after route creation")
+        # _print_tile_groups("after route creation")
         city.rebalance_pops()
         self.tether = None
         return created_route
@@ -228,3 +233,5 @@ class UnitGroup:
         self.food_allocated_from_city = 0.0
         self.food_allocated_to_stockpile = 0.0
         self.food_allocated_from_routes = 0.0
+        self.max_food_stockpile = self._carry_capacity()
+        self.food_stockpile = min(self.food_stockpile, self.max_food_stockpile)

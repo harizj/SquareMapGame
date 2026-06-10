@@ -3,7 +3,7 @@ import math
 import os
 import pygame
 from src.game.city import STOCKPILE_MAX
-from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, MILITARY_CARRY_CAPACITY, WATER_CARRY_CAPACITY, MOVE_CARRY_OVER, GAME_SCALE
+from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, MILITARY_CARRY_CAPACITY, WATER_CARRY_CAPACITY, MOVE_CARRY_OVER, GAME_SCALE, POP_FOOD_CONSUMPTION
 from src.game.map import TERRAIN_TYPES
 from src.game.tile import BIOMES, TERRAIN_FEATURES, BIOME_COLORS
 from src.game.unit import unit_list as UNIT_DISPLAY_ORDER, UNIT_REGISTRY
@@ -1188,7 +1188,7 @@ class Renderer:
                 else:
                     if fill_w > 0:
                         pygame.draw.rect(self.screen, (120, 190, 80), (bar_x, bar_y, fill_w, bar_h))
-                total_consumption = sum(g.consumption_per_turn() for g in unit_groups_here)
+                total_consumption = sum(len(g.units) * POP_FOOD_CONSUMPTION for g in unit_groups_here)
                 if total_consumption > 0:
                     tick = total_consumption
                     while tick < total_max:
@@ -2408,7 +2408,7 @@ class Renderer:
                         pygame.draw.rect(self.screen, (200, 240, 165), (x, y, proj_w, bar_h), border_radius=2)
                     if fill_w > 0:
                         pygame.draw.rect(self.screen, (120, 190, 80), (x, y, fill_w, bar_h), border_radius=2)
-                tick_interval = group.consumption_per_turn()
+                tick_interval = len(group.units) * POP_FOOD_CONSUMPTION
                 if tick_interval > 0:
                     tick = tick_interval
                     while tick < group.max_food_stockpile:

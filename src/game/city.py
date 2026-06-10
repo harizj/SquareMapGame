@@ -306,7 +306,7 @@ class City:
 
         self.food_allocated_to_units = min(unit_consumption, max(0.0, self.food_stockpile + remaining))
         remaining -= self.food_allocated_to_units
-        print(f"[{self.name}] rebalance: food_allocated_to_units={self.food_allocated_to_units} unit_consumption={unit_consumption} groups={len(self.unit_groups)}")
+        # print(f"[{self.name}] rebalance: food_allocated_to_units={self.food_allocated_to_units} unit_consumption={unit_consumption} groups={len(self.unit_groups)}")
         for g in self.unit_groups:
             g.food_allocated_from_city = (self.food_allocated_to_units * g.consumption_per_turn() / unit_consumption) if unit_consumption > 0 else 0.0
             g.allocate_food()
@@ -425,7 +425,7 @@ class City:
         while food_pop_slots > 0 and self._pop_loss_from_locked_jobs(total_caravan_slots):
             route_to_drop = next(
                 (r for r in reversed(self.trade_routes)
-                 if r.city_a is self and r.caravan_job_a is not None and r.export_resource == 'food'),
+                 if r.city_a is self and r.caravan_job_a is not None and r.export_resource == 'food' and not r.tether),
                 None
             )
 
