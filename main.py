@@ -373,6 +373,13 @@ def main():
                 elif renderer.notification_popup_active:
                     if renderer.notification_close_rect and renderer.notification_close_rect.collidepoint(pos):
                         renderer.notification_popup_active = False
+                    else:
+                        faction = renderer._active_faction(los, factions)
+                        if faction:
+                            for rect, notif in renderer.notification_dismiss_rects:
+                                if rect.collidepoint(pos):
+                                    faction.notification_log.remove_notification(notif)
+                                    break
 
                 elif renderer.notification_bell_rect and renderer.notification_bell_rect.collidepoint(pos):
                     renderer.notification_popup_active = not renderer.notification_popup_active

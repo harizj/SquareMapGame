@@ -559,7 +559,7 @@ class City:
         _notif_key = ('not_enough_farm_slots', self.name)
         if self.focus_unassigned_pops > 0 and self.city_focus != 'Production':
             if self.faction:
-                self.faction.notification_log.add(f"Not enough farm slots in {self.name}!", key=_notif_key)
+                self.faction.notification_log.add(f"Not enough farm slots in {self.name}!", key=_notif_key, priority='High')
         else:
             if self.faction:
                 self.faction.notification_log.remove(_notif_key)
@@ -583,7 +583,7 @@ class City:
         _prod_notif_key = ('no_workers_for_production', self.name)
         if self.faction:
             if self.production_target.type and self.production_workers == 0:
-                self.faction.notification_log.add(f"No workers assigned to production job in {self.name}!", key=_prod_notif_key)
+                self.faction.notification_log.add(f"No workers assigned to production job in {self.name}!", key=_prod_notif_key, priority='High')
             else:
                 self.faction.notification_log.remove(_prod_notif_key)
         self.resources_allocated_to_production = {}
@@ -678,6 +678,7 @@ class City:
                 self.faction.notification_log.add(
                     f"Production in {self.name} limited by {self.production_limited_by}!",
                     key=_limited_key,
+                    priority='High',
                 )
             else:
                 self.faction.notification_log.remove(_limited_key)

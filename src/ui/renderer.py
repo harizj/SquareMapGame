@@ -332,6 +332,7 @@ class Renderer:
         self.notification_popup_active = False
         self.notification_bell_rect = None
         self.notification_close_rect = None
+        self.notification_dismiss_rects = []
         self.collapsed_sections = set()
         self.section_header_rects = {}
         self._recruit_slider_dragging = False
@@ -3186,14 +3187,15 @@ class Renderer:
 
     def _draw_notification_popup(self, faction):
         messages = faction.notification_log.messages
-        line_h = 18
+        row_h = 22
         pad = 14
-        W = 340
-        H = (30                              # title + divider
-             + max(1, len(messages)) * line_h  # one line per notification
-             + 16                            # spacing
-             + 1 + 8                         # divider + gap
-             + 24 + pad)                     # close button + bottom pad
+        dismiss_w = 58
+        W = 380
+        H = (30                               # title + divider
+             + max(1, len(messages)) * row_h  # one row per notification
+             + 16                             # spacing
+             + 1 + 8                          # divider + gap
+             + 24 + pad)                      # close button + bottom pad
         H = max(H, 80)
 
         indicator_h = 26
@@ -3207,15 +3209,20 @@ class Renderer:
         pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, sy + 26), (sx + W - pad, sy + 26))
 
         y = sy + 30
+        self.notification_dismiss_rects = []
         if messages:
             for notif in messages:
-                surf = self.font_body.render(notif.text, True, TEXT_COLOR)
-                self.screen.blit(surf, (sx + pad, y))
-                y += line_h
+                row_y = y
+                dismiss_x = sx + W - pad - dismiss_w
+                dismiss_rect = self._draw_button(dismiss_x, row_y + 2, dismiss_w, row_h - 4, "Dismiss")
+                self.notification_dismiss_rects.append((dismiss_rect, notif))
+                text_surf = self.font_body.render(notif.text, True, TEXT_COLOR)
+                self.screen.blit(text_surf, (sx + pad, row_y + (row_h - text_surf.get_height()) // 2))
+                y += row_h
         else:
             surf = self.font_body.render("No notifications", True, PANEL_DIVIDER)
             self.screen.blit(surf, (sx + pad, y))
-            y += line_h
+            y += row_h
 
         y += 8
         pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, y), (sx + W - pad, y))
