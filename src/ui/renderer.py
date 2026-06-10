@@ -13,7 +13,7 @@ _ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.pa
 CELL_SIZE = 64
 MARGIN = 40
 PANEL_WIDTH = 220
-DISPLAY_ROWS = 10
+DISPLAY_ROWS = 8
 DISPLAY_COLS = 10
 
 COLOR_PARCHMENT = (240, 220, 185)

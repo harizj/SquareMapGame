@@ -1,5 +1,5 @@
 import math
-from src.game.constants import DEFAULT_MOVE_DISTANCE, POP_FOOD_CONSUMPTION, MIN_TERRAIN_COST, LAND_CARRY_CAPACITY, WATER_CARRY_CAPACITY
+from src.game.constants import DEFAULT_MOVE_DISTANCE, POP_FOOD_CONSUMPTION, MIN_TERRAIN_COST
 from src.game.unit import TETHER_PRIORITY
 
 
@@ -157,7 +157,7 @@ class UnitGroup:
         return removed
 
     def drop_tether(self, game_map):
-        from src.game.trade_route import TradeRoute
+        from src.game.trade_route import TradeRoute, calculate_supply_pops
         if self.tether is None:
             return
         tether = self.tether
@@ -185,12 +185,10 @@ class UnitGroup:
         dist = distances[-1] if distances else 0.0
 
         travel_time = dist / DEFAULT_MOVE_DISTANCE
-        carry_capacity = LAND_CARRY_CAPACITY
-        denom = carry_capacity + 1 - 2 * travel_time
         one_way_amount = len(self.units)
+        pops_required = calculate_supply_pops(one_way_amount, travel_time)
         created_route = None
-        if denom > 0 and travel_time > 0:
-            pops_required = max(1, math.ceil((one_way_amount * 2 * travel_time) / denom))
+        if pops_required > 0:
             created_route = TradeRoute(
                 city_a=city,
                 dest_tile=current_tile,
