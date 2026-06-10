@@ -68,10 +68,13 @@ class UnitGroup:
         # print(f"  remaining_route_food={remaining_route_food}")
 
         # Separating this out for now until I'm sure the supply logic works
+        _pop_loss_key = ('pending_pop_loss_unit', id(self))
         if remainder >= 0:
             self.food_allocated_to_stockpile = remainder
             # print(f"  food_allocated_to_stockpile={self.food_allocated_to_stockpile}")
             self.pending_pop_loss = 0
+            if self.faction:
+                self.faction.notification_log.remove(_pop_loss_key)
         else:
             # If city can't cover food costs, -remainder will be the amount needed from stockpile
             # But can't be higher than current stockpile
@@ -83,6 +86,16 @@ class UnitGroup:
             if remainder < 0:
                 self.pending_pop_loss = math.ceil(-remainder)
                 # print(f"  pending_pop_loss={self.pending_pop_loss}")
+                if self.faction:
+                    self.faction.notification_log.add(
+                        f"{self.pending_pop_loss} units don't have food!",
+                        key=_pop_loss_key,
+                        priority='Medium',
+                    )
+            else:
+                self.pending_pop_loss = 0
+                if self.faction:
+                    self.faction.notification_log.remove(_pop_loss_key)
 
         print(f"[allocate_food] units={len(self.units)} stockpile={self.food_stockpile:.1f}/{self.max_food_stockpile:.1f} food_allocated_to_stockpile={self.food_allocated_to_stockpile:.1f} pending_pop_loss={self.pending_pop_loss}")
         return self.food_allocated_from_routes

@@ -311,12 +311,21 @@ class City:
             g.food_allocated_from_city = (self.food_allocated_to_units * g.consumption_per_turn() / unit_consumption) if unit_consumption > 0 else 0.0
             g.allocate_food()
 
+        _pop_loss_key = ('pending_pop_loss_city', self.name)
         if self.food_stockpile + remaining - pop_consumption < 0:
             self.food_allocated_to_consumption = self.food_stockpile + remaining
             self.pending_pop_loss = math.ceil(-(self.food_stockpile + remaining - pop_consumption))
+            if self.faction:
+                self.faction.notification_log.add(
+                    f"{self.pending_pop_loss} pops don't have food in {self.name}!",
+                    key=_pop_loss_key,
+                    priority='Medium',
+                )
         else:
             self.food_allocated_to_consumption = pop_consumption
             self.pending_pop_loss = 0
+            if self.faction:
+                self.faction.notification_log.remove(_pop_loss_key)
 
         #self.food_shortfall = max(0.0, consumption - self.food_allocated_to_consumption)
         remaining -= self.food_allocated_to_consumption
@@ -746,6 +755,8 @@ class City:
             del self.pops[:self.pending_pop_loss]
             self.growth_progress = 0.0
             self.pending_pop_loss = 0
+            if self.faction:
+                self.faction.notification_log.remove(('pending_pop_loss_city', self.name))
             # print(f"  [shortfall] {self.food_shortfall:.1f} shortfall, stockpile={self.food_stockpile:.1f}, pops={self._get_population()}")
             #self._food_shortfall()
             # print(f"  [shortfall] after -> stockpile={self.food_stockpile:.1f}, pops={self._get_population()}")
