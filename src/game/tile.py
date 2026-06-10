@@ -39,8 +39,9 @@ EXTRACTION_YIELD_BASE = 1.0
 EXTRACTION_YIELD_AT_MAX_DISTANCE = 0.80
 EXTRACTION_YIELD_HILLS = 0.5
 
-DEPOSIT_STARTING_WOOD = 40 * GAME_SCALE
-DEPOSIT_STARTING_IRON = 10 * GAME_SCALE
+DEPOSIT_STARTING_WOOD = 60 * GAME_SCALE
+DEPOSIT_STARTING_IRON = 20 * GAME_SCALE
+DEPOSIT_STARTING_STONE = 5 * GAME_SCALE
 
 BIOMES = ['temperate',
         'arid',
@@ -202,6 +203,8 @@ class Tile:
             self.resource_deposits.setdefault('wood', DEPOSIT_STARTING_WOOD)
         if 'iron' in features:
             self.resource_deposits.setdefault('iron', DEPOSIT_STARTING_IRON)
+        if not self.water:
+            self.resource_deposits.setdefault('stone', DEPOSIT_STARTING_STONE)
 
     _ART_PRIORITY = ['river', 'mountain', 'forest', 'hills', 'water']
 

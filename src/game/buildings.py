@@ -31,10 +31,17 @@ class WoodenWalls(Building):
 
 class StoneWalls(Building):
     name = 'stone walls'
-    production_needed = 30
-    resource_cost = {'stone': 50}
+    production_needed = 20
+    resource_cost = {'stone': 20}
     multiple = True
     survives_city = True
 
 
-BUILDING_REGISTRY = {cls.name: cls for cls in [Workcamp, Workshop, WoodenWalls, StoneWalls]}
+class Wonder(Building):
+    name = 'wonder'
+    production_needed = 400
+    resource_cost = {'stone': 200}
+    survives_city = True
+
+
+BUILDING_REGISTRY = {cls.name: cls for cls in [Workcamp, Workshop, WoodenWalls, StoneWalls, Wonder]}

@@ -22,9 +22,9 @@ STOCKPILE_JOB_YIELD = 1.35
 
 
 from src.game.production import ProductionTarget
-from src.game.tile import DEPOSIT_STARTING_WOOD, DEPOSIT_STARTING_IRON
+from src.game.tile import DEPOSIT_STARTING_WOOD, DEPOSIT_STARTING_IRON, DEPOSIT_STARTING_STONE
 
-_DEPOSIT_STARTING = {'wood': DEPOSIT_STARTING_WOOD, 'iron': DEPOSIT_STARTING_IRON}
+_DEPOSIT_STARTING = {'wood': DEPOSIT_STARTING_WOOD, 'iron': DEPOSIT_STARTING_IRON, 'stone': DEPOSIT_STARTING_STONE}
 
 
 class City:
@@ -214,6 +214,13 @@ class City:
         elif pt.type == 'manufacturing':
             if pt.target_item:
                 self.production_complete = float(pt.target_item.production_needed)
+                self.production_progress = pt.progress
+            else:
+                self.production_complete = None
+                self.production_progress = 0.0
+        elif pt.type == 'construction':
+            if pt.target_building:
+                self.production_complete = float(pt.target_building.production_needed)
                 self.production_progress = pt.progress
             else:
                 self.production_complete = None

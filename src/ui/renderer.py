@@ -699,15 +699,18 @@ class Renderer:
         self.screen.blit(surf, (x + (w - surf.get_width()) // 2, y + (h - surf.get_height()) // 2))
         return rect
 
+    _ICON_ALIASES = {'stone': 'iron'}
+
     def _get_tile_job_icon(self, resource, tile):
         """Return the icon surface to display for a tile's active extraction job.
         Extend this to return resource-specific icons keyed by resource name."""
+        icon_key = self._ICON_ALIASES.get(resource, resource)
         faction = tile.owning_city.faction if tile.owning_city else None
         if faction:
-            icon = self._faction_resource_icons.get((faction.name, resource), {}).get('tinted')
+            icon = self._faction_resource_icons.get((faction.name, icon_key), {}).get('tinted')
             if icon:
                 return icon
-        return self.icons.get(resource) or self.icons.get('torch')
+        return self.icons.get(icon_key) or self.icons.get('torch')
 
     def _draw_city_bar_fill(self, city, bx, by, bar_w, bar_h, bar_type, tick_w=1, border_radius=0):
         if bar_type == 'food':

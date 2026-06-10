@@ -4,14 +4,15 @@ from src.game.buildings import BUILDING_REGISTRY
 PRODUCTION_CATEGORIES = ['extraction', 'manufacturing', 'construction']
 
 PRODUCTION_SUBTYPES = {
-    'extraction':    ['wood', 'iron'],
+    'extraction':    ['wood', 'iron', 'stone'],
     'manufacturing': ['swords', 'spears', 'bows'],
-    'construction':  ['workcamp', 'workshop', 'wooden walls', 'stone walls'],
+    'construction':  ['workcamp', 'workshop', 'wooden walls', 'stone walls', 'wonder'],
 }
 
 EXTRACTION_LABELS = {
     'wood': 'Chop Wood',
     'iron': 'Mine Iron',
+    'stone': 'Quarry Stone',
 }
 
 
