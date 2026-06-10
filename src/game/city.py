@@ -156,7 +156,7 @@ class City:
         return None
 
     def _stockpile_max(self):
-        return 2 * self._get_population()
+        return 4 * self._get_population()
 
     @property
     def growth_progress_display(self):
@@ -166,7 +166,8 @@ class City:
         pop = self._get_population()
         if pop == 0:
             return 0.0
-        return round(self.food_stockpile / pop, 1)
+        #return round(self.food_stockpile / pop, 1)
+        return self.food_stockpile / pop
 
     def has_job_in_queue(self, job_type):
         return any(entry.job_type == job_type for entry in self.job_queue)
@@ -555,6 +556,14 @@ class City:
                             self.pops_allocated_to_stockpile += 1
         self.focus_unassigned_pops = free_pops - focus_assigned
 
+        _notif_key = ('not_enough_farm_slots', self.name)
+        if self.focus_unassigned_pops > 0 and self.city_focus != 'Production':
+            if self.faction:
+                self.faction.notification_log.add(f"Not enough farm slots in {self.name}!", key=_notif_key)
+        else:
+            if self.faction:
+                self.faction.notification_log.remove(_notif_key)
+
         if self.focus_unassigned_pops > 0 and self.city_focus != 'Production':
             job_type = self.city_focus.lower()
             existing = next((e for e in self.job_queue if e.job_type == job_type), None)
@@ -571,6 +580,12 @@ class City:
         # Production yield
         self.production_yield = 0.0
         self.production_workers = prod_job.assigned if prod_job else 0
+        _prod_notif_key = ('no_workers_for_production', self.name)
+        if self.faction:
+            if self.production_target.type and self.production_workers == 0:
+                self.faction.notification_log.add(f"No workers assigned to production job in {self.name}!", key=_prod_notif_key)
+            else:
+                self.faction.notification_log.remove(_prod_notif_key)
         self.resources_allocated_to_production = {}
         self.production_limited_by = None
         if self.extraction_tile:
@@ -656,6 +671,17 @@ class City:
                     self.resources_allocated_to_production[resource] = work_done * rate
 
         self.update_production_bar()
+
+        _limited_key = ('production_limited_by', self.name)
+        if self.faction:
+            if self.production_limited_by:
+                self.faction.notification_log.add(
+                    f"Production in {self.name} limited by {self.production_limited_by}!",
+                    key=_limited_key,
+                )
+            else:
+                self.faction.notification_log.remove(_limited_key)
+
         self._update_food_allocations()
 
     def setup_jobs(self):

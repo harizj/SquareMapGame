@@ -329,6 +329,9 @@ class Renderer:
         self.battle_popup_cancel_rect = None
         self.battle_result_close_rect = None
         self.los_button_rects = {}
+        self.notification_popup_active = False
+        self.notification_bell_rect = None
+        self.notification_close_rect = None
         self.collapsed_sections = set()
         self.section_header_rects = {}
         self._recruit_slider_dragging = False
@@ -1341,6 +1344,12 @@ class Renderer:
             self._draw_console_overlay(console_input)
 
         self._draw_los_panel(los, factions or {})
+        self._draw_notification_indicator(los, factions or {})
+
+        if self.notification_popup_active:
+            faction = self._active_faction(los, factions or {})
+            if faction is not None:
+                self._draw_notification_popup(faction)
 
         pygame.display.flip()
 
@@ -1740,18 +1749,8 @@ class Renderer:
         self.rebalance_pops_button_rect = self._draw_button(pad, y, btn_w2, btn_h2, "Rebalance Pops")
         y += btn_h2 + 10
 
-        y, _city_focus_collapsed = self._draw_section_header('city_focus', 'CITY FOCUS', x, y)
-        focus_btn_h = 20
-        if not _city_focus_collapsed:
-            half_w = (CITY_PANEL_WIDTH - pad * 2 - 4) // 2
-            self.halt_growth_rect = self._draw_button(
-                pad, y, half_w, focus_btn_h, "Halt Growth", active=city.growth_halted)
-            self.gates_closed_rect = self._draw_button(
-                pad + half_w + 4, y, half_w, focus_btn_h, "Close Gates", active=city.gates_closed)
-            y += focus_btn_h + 10
-        else:
-            self.halt_growth_rect = None
-            self.gates_closed_rect = None
+        self.halt_growth_rect = None
+        self.gates_closed_rect = None
 
         y, _pops_collapsed = self._draw_section_header('pops', 'POPS', x, y)
 
@@ -1817,9 +1816,8 @@ class Renderer:
                     focus_widths = [60, 52, 72]
                     focus_x = x + 4
                     self.city_focus_rects = {}
-                    farm_full = city._get_population() > city.total_farm_slots
                     for label, fw in zip(("Stockpile", "Growth", "Production"), focus_widths):
-                        disabled = (label == 'Growth' and city.growth_halted) or (label in ('Growth', 'Stockpile') and farm_full)
+                        disabled = (label == 'Growth' and city.growth_halted)
                         rect = self._draw_button(focus_x, y, fw, 20, label,
                                                  active=(label == city.city_focus),
                                                  disabled=disabled)
@@ -2909,6 +2907,12 @@ class Renderer:
             self.add_job_popup_confirm_rect = None
         self.add_job_popup_cancel_rect = self._draw_button(sx + pad + btn_w2 + 8, y, btn_w2, 24, "Cancel")
 
+    @staticmethod
+    def _active_faction(los, factions):
+        if los is not None and los.mode == 'faction':
+            return los.faction
+        return None
+
     def _draw_los_panel(self, los, factions):
         sw = self.map_w + PANEL_WIDTH
         y = self.bottom_panel_y
@@ -3160,6 +3164,63 @@ class Renderer:
         y += 8
 
         self.battle_result_close_rect = self._draw_button(sx + pad, y, W - pad * 2, 24, "Close")
+
+    def _draw_notification_indicator(self, los, factions):
+        faction = self._active_faction(los, factions)
+        if faction is None:
+            self.notification_bell_rect = None
+            return
+        log = faction.notification_log
+        count = log.count
+        notif_text = f"[!] {count}" if count > 0 else "[ ] 0"
+        notif_color = (230, 160, 50) if count > 0 else TEXT_COLOR
+        notif_surf = self.font_body.render(notif_text, True, notif_color)
+        pad = 10
+        btn_h = 26
+        nw = notif_surf.get_width() + pad * 2
+        nx = self.map_start_x + 8
+        ny = self.bottom_panel_y - btn_h - 8
+        pygame.draw.rect(self.screen, BUTTON_NORMAL, (nx, ny, nw, btn_h), border_radius=4)
+        self.screen.blit(notif_surf, (nx + pad, ny + (btn_h - notif_surf.get_height()) // 2))
+        self.notification_bell_rect = pygame.Rect(nx, ny, nw, btn_h)
+
+    def _draw_notification_popup(self, faction):
+        messages = faction.notification_log.messages
+        line_h = 18
+        pad = 14
+        W = 340
+        H = (30                              # title + divider
+             + max(1, len(messages)) * line_h  # one line per notification
+             + 16                            # spacing
+             + 1 + 8                         # divider + gap
+             + 24 + pad)                     # close button + bottom pad
+        H = max(H, 80)
+
+        indicator_h = 26
+        sx = self.map_start_x + 8
+        sy = self.bottom_panel_y - indicator_h - 8 - H - 4
+        pygame.draw.rect(self.screen, (40, 40, 55), (sx, sy, W, H), border_radius=6)
+        pygame.draw.rect(self.screen, PANEL_DIVIDER, (sx, sy, W, H), 1, border_radius=6)
+
+        title = self.font_header.render("Notifications", True, HEADER_TEXT_COLOR)
+        self.screen.blit(title, (sx + pad, sy + 8))
+        pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, sy + 26), (sx + W - pad, sy + 26))
+
+        y = sy + 30
+        if messages:
+            for notif in messages:
+                surf = self.font_body.render(notif.text, True, TEXT_COLOR)
+                self.screen.blit(surf, (sx + pad, y))
+                y += line_h
+        else:
+            surf = self.font_body.render("No notifications", True, PANEL_DIVIDER)
+            self.screen.blit(surf, (sx + pad, y))
+            y += line_h
+
+        y += 8
+        pygame.draw.line(self.screen, PANEL_DIVIDER, (sx + pad, y), (sx + W - pad, y))
+        y += 8
+        self.notification_close_rect = self._draw_button(sx + pad, y, W - pad * 2, 24, "Close")
 
     def _draw_save_popup(self, text):
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)

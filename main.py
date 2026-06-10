@@ -370,6 +370,13 @@ def main():
                                 los.faction = factions.get(key)
                             break
 
+                elif renderer.notification_popup_active:
+                    if renderer.notification_close_rect and renderer.notification_close_rect.collidepoint(pos):
+                        renderer.notification_popup_active = False
+
+                elif renderer.notification_bell_rect and renderer.notification_bell_rect.collidepoint(pos):
+                    renderer.notification_popup_active = not renderer.notification_popup_active
+
                 elif battle_result_active:
                     if renderer.battle_result_close_rect and renderer.battle_result_close_rect.collidepoint(pos):
                         battle_result_active = False
@@ -1258,7 +1265,9 @@ def main():
         if do_end_turn:
             turn += 1
             game_log.append("")
+            renderer.notification_popup_active = False
             for faction in factions.values():
+                faction.notification_log.clear()
                 faction.do_turn(game_map, turn)
             for row in game_map.tiles:
                 for tile in row:

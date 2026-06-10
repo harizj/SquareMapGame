@@ -19,11 +19,13 @@ CITY_NAME_SETS = {'babylon': BABYLON_CITY_NAMES, 'assyria': ASSYRIA_CITY_NAMES}
 
 class Faction:
     def __init__(self, name, colors, city_names, director=None):
+        from src.game.notification_log import NotificationLog
         self.name = name
         self.colors = colors  # dict with keys: 'dark', 'light'
         self.city_names = city_names
         self._city_name_idx = 0
         self.director = director  # None = player controlled
+        self.notification_log = NotificationLog()
 
     @property
     def is_player_controlled(self):
