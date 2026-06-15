@@ -41,6 +41,8 @@ class UnitGroup:
             self.moves_remaining = min(u.moves_remaining for u in self.units)
 
     def consumption_per_turn(self):
+        if self.tether is not None and self.tether.route is not None:
+            return 0
         if self.tether is not None and not self.tether.catchup:
             tether_count = len(self.tether.tether_units)
         else:

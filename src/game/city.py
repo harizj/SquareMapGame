@@ -116,6 +116,8 @@ class City:
         for route in self.trade_routes:
             if route.missing_caravans or not route.established:
                 continue
+            if route.tether and route.city_a is not self:
+                continue
             if route.city_a is self:
                 if route.export_resource == 'food':
                     net -= route.max_amount
