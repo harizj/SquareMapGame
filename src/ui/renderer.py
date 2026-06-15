@@ -1850,43 +1850,43 @@ class Renderer:
             return f"+{v:.1f}" if v >= 0 else f"{v:.1f}"
 
         if not _yields_collapsed:
-            surf = self.font_body.render("Food", True, HEADER_TEXT_COLOR)
-            self.screen.blit(surf, (x + 4, y))
-            y += surf.get_height() + 2
+            # surf = self.font_body.render("Food", True, HEADER_TEXT_COLOR)
+            # self.screen.blit(surf, (x + 4, y))
+            # y += surf.get_height() + 2
 
-            farm_food  = city._food_produced() - city._food_from_routes()
-            route_food = city._food_from_routes()
+            # farm_food  = city._food_produced() - city._food_from_routes()
+            # route_food = city._food_from_routes()
 
-            positive_lines = [("Agriculture", farm_food)]
-            if route_food >= 0:
-                positive_lines.append(("Trade Routes", route_food))
+            # positive_lines = [("Agriculture", farm_food)]
+            # if route_food >= 0:
+            #     positive_lines.append(("Trade Routes", route_food))
 
-            negative_lines = []
-            if route_food < 0:
-                negative_lines.append(("Trade Routes", route_food, None))
-            unit_consumption = city._get_unit_consumption()
-            if unit_consumption > 0:
-                negative_lines.append(("Units", -unit_consumption, None))
-            negative_lines.append((f"Pops", -city.food_allocated_to_consumption, None))
-            negative_lines.append(("Growth", -city.food_allocated_to_growth, f"(Adds {round(city.growth_allocated)})"))
+            # negative_lines = []
+            # if route_food < 0:
+            #     negative_lines.append(("Trade Routes", route_food, None))
+            # unit_consumption = city._get_unit_consumption()
+            # if unit_consumption > 0:
+            #     negative_lines.append(("Units", -unit_consumption, None))
+            # negative_lines.append((f"Pops", -city.food_allocated_to_consumption, None))
+            # negative_lines.append(("Growth", -city.food_allocated_to_growth, f"(Adds {round(city.growth_allocated)})"))
 
-            for label, val in positive_lines:
-                surf = self.font_body.render(f"{label}  {_signed(val)}", True, TEXT_COLOR)
-                self.screen.blit(surf, (x + 12, y))
-                y += surf.get_height() + 2
+            # for label, val in positive_lines:
+            #     surf = self.font_body.render(f"{label}  {_signed(val)}", True, TEXT_COLOR)
+            #     self.screen.blit(surf, (x + 12, y))
+            #     y += surf.get_height() + 2
 
-            for label, val, suffix in negative_lines:
-                text = f"{label}  {_signed(val)}"
-                if suffix:
-                    text += f"  {suffix}"
-                surf = self.font_body.render(text, True, TEXT_COLOR)
-                self.screen.blit(surf, (x + 12, y))
-                y += surf.get_height() + 2
+            # for label, val, suffix in negative_lines:
+            #     text = f"{label}  {_signed(val)}"
+            #     if suffix:
+            #         text += f"  {suffix}"
+            #     surf = self.font_body.render(text, True, TEXT_COLOR)
+            #     self.screen.blit(surf, (x + 12, y))
+            #     y += surf.get_height() + 2
 
-            net = city.food_allocated_to_stockpile
-            net_surf = self.font_body.render(f"= {_signed(net)} Net Stockpile Change", True, HEADER_TEXT_COLOR)
-            self.screen.blit(net_surf, (x + 12, y))
-            y += net_surf.get_height() + 2
+            # net = city.food_allocated_to_stockpile
+            # net_surf = self.font_body.render(f"= {_signed(net)} Net Stockpile Change", True, HEADER_TEXT_COLOR)
+            # self.screen.blit(net_surf, (x + 12, y))
+            # y += net_surf.get_height() + 2
 
             y += 6
             pt = city.production_target
@@ -2298,7 +2298,7 @@ class Renderer:
             icon_raw = self._icons_raw.get(icon_name)
             if not icon_raw:
                 continue
-            size = int(icon_h * _unit_icon_scale.get(icon_name, 1.0))
+            size = int(icon_h * 0.75 * _unit_icon_scale.get(icon_name, 1.0))
             scaled = pygame.transform.scale(icon_raw, (size, size))
             tinted, _, _ = self._make_icon_pair(scaled, (180, 210, 255), (35, 65, 150), outline_r, pad=outline_r)
             entry = {'plain': scaled, 'default': tinted}
@@ -2322,7 +2322,17 @@ class Renderer:
             icon_overlap = 8       # overlap between icons of the same type
             icon_type_gap = 20     # center-to-center distance between last icon of one type and first of the next
             row_top_y = y
-            row_h = int(icon_h * 2)
+            if group.levy:
+                if group.tether is not None:
+                    _label_text = f"Army Of {group.tether.city.name.title()}"
+                else:
+                    _label_text = "Army"
+            else:
+                _label_text = "Settlers"
+            _label_surf = self.font_body.render(_label_text, True, BUTTON_TEXT)
+            self.screen.blit(_label_surf, (x + 4, y))
+            y += _label_surf.get_height() + 2
+            row_h = int(icon_h * 1.5)
             cur_x = x + 4
             for i, (unit_type, count) in enumerate(sorted_types):
                 icon_name = _unit_icon_names.get(unit_type)
@@ -2346,7 +2356,7 @@ class Renderer:
             if group.tether is not None:
                 ww_raw = self._icons_raw.get('wagon_wheel')
                 if ww_raw:
-                    ww_size = int(icon_h * 1.3)
+                    ww_size = int(icon_h * 0.75 * 1.3)
                     ww_scaled = pygame.transform.scale(ww_raw, (ww_size, ww_size))
                     light = group.faction.colors['light'] if group.faction else (180, 210, 255)
                     dark = group.faction.colors['dark'] if group.faction else (35, 65, 150)

@@ -99,7 +99,7 @@ class UnitGroup:
                 if self.faction:
                     self.faction.notification_log.remove(_pop_loss_key)
 
-        print(f"[allocate_food] units={len(self.units)} stockpile={self.food_stockpile:.1f}/{self.max_food_stockpile:.1f} food_allocated_to_stockpile={self.food_allocated_to_stockpile:.1f} pending_pop_loss={self.pending_pop_loss}")
+        # print(f"[allocate_food] units={len(self.units)} stockpile={self.food_stockpile:.1f}/{self.max_food_stockpile:.1f} food_allocated_to_stockpile={self.food_allocated_to_stockpile:.1f} pending_pop_loss={self.pending_pop_loss}")
         return self.food_allocated_from_routes
 
     def unit_deaths(self, dying, tile, game_map):

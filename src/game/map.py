@@ -179,12 +179,17 @@ class Map:
         city.rebalance_pops()
 
     def remove_city(self, city):
-        # Clean up tethers anchored to this city before detaching routes
+        # Minimal tether teardown: don't create replacement routes from a dying city
         for row in self.tiles:
             for tile in row:
                 for group in tile.unit_groups:
                     if group.tether is not None and group.tether.city is city:
-                        group.delete_tether(self)
+                        tether = group.tether
+                        if tether.route is not None:
+                            tether.route.detach()
+                            tether.route = None
+                        tether.tether_units.clear()
+                        group.tether = None
         # Detach routes before clearing city_tile.city so detach() can still
         # resolve dest_tile.city correctly for routes where this is the destination.
         # Tether routes originating from another city are migrated to the tile
