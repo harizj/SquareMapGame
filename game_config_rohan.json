@@ -5,9 +5,9 @@
     {"name": "Isengard", "colors": "red",  "city_names": "isengard"}
   ],
   "cities": [
-    {"row": 10, "col": 7, "name": "Edoras",      "faction": "Rohan",    "population": 20},
-    {"row": 9,  "col": 4, "name": "Helm's Deep", "faction": "Rohan",    "population": 20},
-    {"row": 4,  "col": 2, "name": "Isengard",    "faction": "Isengard", "population": 20}
+    {"row": 10, "col": 7, "name": "Edoras",      "faction": "Rohan",    "population": 40},
+    {"row": 9,  "col": 4, "name": "Helm's Deep", "faction": "Rohan",    "population": 20, "buildings": [{"name": "stone walls", "count": 3}]},
+    {"row": 4,  "col": 2, "name": "Isengard",    "faction": "Isengard", "population": 60}
   ],
   "unit_groups": []
 }

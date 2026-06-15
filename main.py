@@ -63,6 +63,10 @@ def _apply_game_config(game_map, game_config):
         city = City(r, c, name, faction=faction, population=population)
         game_map.cities[(r, c)] = city
         game_map.setup_city(city)
+        for b_data in city_data.get('buildings', []):
+            b_name = b_data['name']
+            count = b_data.get('count', 1)
+            city.tile.building_list[b_name] = city.tile.building_list.get(b_name, 0) + count
 
     return factions
 

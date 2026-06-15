@@ -1,6 +1,6 @@
 import random
 
-LETHALITY = 0.20
+LETHALITY = 0.15
 
 
 def drop_unit_items(units, tile):
