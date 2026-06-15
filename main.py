@@ -18,7 +18,7 @@ from src.ui.renderer import Renderer
 from src.game.constants import DEFAULT_MOVE_DISTANCE, RESTRICTED_STARTING_TICKER
 
 _DIR = os.path.dirname(os.path.abspath(__file__))
-GAME_CONFIG_PATH = os.path.join(_DIR, 'game_config.json')
+GAME_CONFIG_PATH = os.path.join(_DIR, 'game_config_rohan.json')
 
 
 def _load_game_config():
@@ -126,7 +126,7 @@ def main():
             else:
                 game_map = Map()
     else:
-        game_map = Map()
+        game_map = Map.make_plains(rows=13, cols=11)
     factions = _apply_game_config(game_map, game_config)
 
     renderer = Renderer(game_map)

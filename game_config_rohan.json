@@ -1,0 +1,13 @@
+{
+  "map": "rohan",
+  "factions": [
+    {"name": "Rohan",    "colors": "blue", "city_names": "rohan"},
+    {"name": "Isengard", "colors": "red",  "city_names": "isengard"}
+  ],
+  "cities": [
+    {"row": 10, "col": 7, "name": "Edoras",      "faction": "Rohan",    "population": 20},
+    {"row": 9,  "col": 4, "name": "Helm's Deep", "faction": "Rohan",    "population": 20},
+    {"row": 4,  "col": 2, "name": "Isengard",    "faction": "Isengard", "population": 20}
+  ],
+  "unit_groups": []
+}

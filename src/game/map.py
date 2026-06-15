@@ -53,6 +53,24 @@ class Map:
         t.update_terrain_properties()
         return t
 
+    @classmethod
+    def make_plains(cls, rows=13, cols=11):
+        """Create a blank map filled with temperate non-water plains tiles."""
+        m = cls.__new__(cls)
+        m.rows = rows
+        m.cols = cols
+        m.tiles = []
+        for r in range(rows):
+            row = []
+            for c in range(cols):
+                t = Tile(r, c, '', biome='temperate', terrain_features=[])
+                t.update_terrain_properties()
+                row.append(t)
+            m.tiles.append(row)
+        m._city_name_idx = 0
+        m.cities = {}
+        return m
+
     @property
     def unit_groups(self):
         result = {}

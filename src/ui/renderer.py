@@ -3233,7 +3233,8 @@ class Renderer:
         pad = 16
         btn_w = W - pad * 2
 
-        n_biome_rows = len(BIOMES)
+        _selectable_biomes = ['temperate', 'coastal']
+        n_biome_rows = len(_selectable_biomes)
         n_feat_rows = len([f for f in TERRAIN_FEATURES if f not in _NON_SELECTABLE_FEATURES])
         confirm_h = 28
         H = (pad + 18 + 6                        # title
@@ -3257,7 +3258,7 @@ class Renderer:
         self.screen.blit(sub, (sx + pad, y))
         y += sub.get_height() + 4
 
-        for biome in BIOMES:
+        for biome in _selectable_biomes:
             is_current = selected_tile and selected_tile.biome == biome
             rect = self._draw_button(sx + pad, y, btn_w, row_h - 2, "", active=is_current)
             color = BIOME_COLORS.get(biome, BUTTON_NORMAL)
