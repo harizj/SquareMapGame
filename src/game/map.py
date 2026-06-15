@@ -179,10 +179,23 @@ class Map:
         city.rebalance_pops()
 
     def remove_city(self, city):
+        # Clean up tethers anchored to this city before detaching routes
+        for row in self.tiles:
+            for tile in row:
+                for group in tile.unit_groups:
+                    if group.tether is not None and group.tether.city is city:
+                        group.delete_tether(self)
         # Detach routes before clearing city_tile.city so detach() can still
         # resolve dest_tile.city correctly for routes where this is the destination.
+        # Tether routes originating from another city are migrated to the tile
+        # rather than detached, so they continue supplying the unit group.
+        city_tile = self.tiles[city.row][city.col]
         for route in list(city.trade_routes):
-            route.detach()
+            if route.tether and route.city_a is not city:
+                city.trade_routes.remove(route)
+                city_tile.trade_routes.append(route)
+            else:
+                route.detach()
         for tile in city.owned_tiles:
             tile.owning_city = None
             tile.city_distance = None
@@ -190,7 +203,6 @@ class Map:
             for tile in row:
                 if city in tile.cities_in_range:
                     tile.cities_in_range.remove(city)
-        city_tile = self.tiles[city.row][city.col]
         city_tile.terrain_features = [f for f in city_tile.terrain_features if f not in ('city', 'water_access')]
         city_tile.update_terrain_properties()
         city_tile.city = None
@@ -228,6 +240,10 @@ class Map:
                 tile.city_distance = cost
                 city.owned_tiles.append(tile)
         city.unit_groups = list(city_tile.unit_groups)
+        for route in list(city_tile.trade_routes):
+            city_tile.trade_routes.remove(route)
+            city.trade_routes.append(route)
+        city.update_cumulative_farm_yield_net()
         city.setup_jobs()
 
     def move_group(self, group, row, col, cost):

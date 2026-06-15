@@ -319,7 +319,8 @@ def main():
                             path, _ = game_map.get_path_to(selected_tile.row, selected_tile.col, tile.row, tile.col)
                             if len(path) >= 2:
                                 stop_pos = path[-2]
-                                cost = reachable[(tile.row, tile.col)]
+                                cost = reachable.get((stop_pos[0], stop_pos[1]), 0)
+                                remaining_combat_cost = reachable[(tile.row, tile.col)] - cost
                                 for group in move_mode_unit_groups:
                                     game_map.move_group(group, stop_pos[0], stop_pos[1], cost)
                                 selected_tile = game_map.tiles[stop_pos[0]][stop_pos[1]]
@@ -591,26 +592,20 @@ def main():
                 elif renderer.recruit_popup_active:
                     if renderer.recruit_popup_confirm_rect and renderer.recruit_popup_confirm_rect.collidepoint(pos):
                         if selected_tile and selected_tile.city:
-                            from src.game.constants import MILITARY_CARRY_CAPACITY as MCC
                             city = selected_tile.city
                             n = renderer.recruit_popup_amount
-                            # recruitment_cost = n  # upfront food cost per recruit (disabled)
-                            stockpile_food   = renderer.recruit_popup_food * n
-                            total_food       = stockpile_food
-                            if total_food <= city.food_stockpile:
+                            if n > 0:
                                 recruited_pops = city.pops[:n]
                                 city.pops = city.pops[n:]
-                                city.food_stockpile -= total_food
                                 city.rebalance_pops()
                                 new_group = UnitGroup(selected_tile.row, selected_tile.col, units=[Militia(p) for p in recruited_pops], faction=city.faction)
                                 new_group.moves_remaining = 0
                                 new_group.move_exhausted = True
-                                new_group.add_food(stockpile_food)
                                 if renderer.recruit_popup_supply_train:
                                     new_group.tether = Tether(
                                         city=city,
                                         unit_group=new_group,
-                                        food_amount=renderer.recruit_popup_supply_food,
+                                        food_amount=n,
                                     )
                                 selected_tile.unit_groups.append(new_group)
                                 selected_tile.update_after_movement()
@@ -914,7 +909,10 @@ def main():
                         selected_on_tile = [g for g in game_map.get_unit_groups(selected_tile.row, selected_tile.col) if g in renderer.selected_unit_groups]
                         if not selected_on_tile:
                             selected_on_tile = game_map.get_unit_groups(selected_tile.row, selected_tile.col)
-                        if selected_on_tile:
+                        if selected_on_tile and not any(g.levy for g in selected_on_tile):
+                            for g in selected_on_tile:
+                                if g.tether is not None:
+                                    g.drop_tether(game_map)
                             settle_faction = selected_on_tile[0].faction
                             all_pops = [unit.pop for g in selected_on_tile for unit in g.units]
                             starting_food = sum(g.food_stockpile for g in selected_on_tile)
