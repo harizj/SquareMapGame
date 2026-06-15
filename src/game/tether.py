@@ -1,6 +1,6 @@
 import math
 from src.game.trade_route import TradeRoute, calculate_supply_pops
-from src.game.constants import LAND_CARRY_CAPACITY, DEFAULT_MOVE_DISTANCE
+from src.game.constants import LAND_CARRY_CAPACITY, DEFAULT_MOVE_DISTANCE, TETHER_CATCHUP
 
 
 class Tether:
@@ -151,7 +151,7 @@ class Tether:
             self.unit_group.delete_tether(game_map)
             return
 
-        if distance < prev_distance or src_tile.city is self.city:
+        if distance < prev_distance or src_tile.city is self.city or not TETHER_CATCHUP:
             if self.route is not None:
                 self.route.detach()
                 self.route = None

@@ -779,7 +779,7 @@ class City:
                     current = self.tile.resource_stockpiles.get(resource, 0.0)
                     self.tile.resource_stockpiles[resource] = max(0.0, current - amount)
             pt.progress += self.production_yield
-            if pt.progress >= pt.target_item.production_needed:
+            while pt.progress >= pt.target_item.production_needed:
                 if self.tile:
                     self.tile.item_stockpiles[pt.target_item.name] = self.tile.item_stockpiles.get(pt.target_item.name, 0) + 1
                 item = pt.target_item
@@ -787,13 +787,14 @@ class City:
                     pt.progress -= item.production_needed
                 else:
                     pt.clear()
+                    break
         if pt.type == 'construction' and pt.target_building and self.production_yield > 0:
             if self.tile:
                 for resource, amount in self.resources_allocated_to_production.items():
                     current = self.tile.resource_stockpiles.get(resource, 0.0)
                     self.tile.resource_stockpiles[resource] = max(0.0, current - amount)
             pt.progress += self.production_yield
-            if pt.progress >= pt.target_building.production_needed:
+            while pt.progress >= pt.target_building.production_needed:
                 if self.tile:
                     self.tile.building_list[pt.target_building.name] = self.tile.building_list.get(pt.target_building.name, 0) + 1
                 building = pt.target_building
@@ -801,6 +802,7 @@ class City:
                     pt.progress -= building.production_needed
                 else:
                     pt.clear()
+                    break
 
         # Step 5: spawn new pops
         spawned = 0
