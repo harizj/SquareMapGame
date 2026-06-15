@@ -2040,6 +2040,7 @@ class Renderer:
         self.disband_button_rect = None
         self.settle_button_rect = None
         self.equip_button_rect = None
+        self.change_city_button_rects = []
         panel_x = self.map_w
         pad = 16
         pygame.draw.rect(self.screen, PANEL_BG, (panel_x, 0, PANEL_WIDTH, self.screen.get_height()))
@@ -2105,11 +2106,16 @@ class Renderer:
                     surf = self.font_body.render("Cities In Range:", True, TEXT_COLOR)
                     self.screen.blit(surf, (x + 4, y))
                     y += surf.get_height() + 2
+                    _change_btn_w = 52
+                    _change_btn_h = self.font_body.get_height() + 2
                     for city in tile.cities_in_range:
                         faction_name = city.faction.name if city.faction else "none"
                         surf = self.font_body.render(f"  {city.name} ({faction_name})", True, TEXT_COLOR)
                         self.screen.blit(surf, (x + 4, y))
-                        y += surf.get_height() + 2
+                        _btn_x = panel_x + PANEL_WIDTH - pad - _change_btn_w
+                        _btn_rect = self._draw_button(_btn_x, y, _change_btn_w, _change_btn_h, "Change")
+                        self.change_city_button_rects.append((_btn_rect, city))
+                        y += _change_btn_h + 2
                 if tile.raided:
                     label = f"Raided ({tile._raided_ticker} turns left)" if tile._raided_ticker > 0 else "Raided"
                     surf = self.font_body.render(label, True, (200, 80, 80))

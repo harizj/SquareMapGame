@@ -696,12 +696,16 @@ class City:
 
         self._update_food_allocations()
 
-    def setup_jobs(self):
-        if not any(j.job_type == 'production' for j in self.jobs):
-            self.jobs.append(ProductionJob())
+    def refresh_owned_tile_jobs(self):
+        """Rebuild yield curve and reassign pops after owned_tiles changes."""
         self._build_cumulative_farm_yield()
         self.update_cumulative_farm_yield_net()
         self.rebalance_pops()
+
+    def setup_jobs(self):
+        if not any(j.job_type == 'production' for j in self.jobs):
+            self.jobs.append(ProductionJob())
+        self.refresh_owned_tile_jobs()
 
     def set_job_assignment(self, job, target):
         for pop in self.pops:

@@ -1050,9 +1050,14 @@ def main():
                         selected_tile.update_terrain_properties()
                         city = selected_tile.owning_city
                         if city:
-                            city._build_cumulative_farm_yield()
-                            city.update_cumulative_farm_yield_net()
-                            city.rebalance_pops()
+                            city.refresh_owned_tile_jobs()
+
+                elif any(r.collidepoint(pos) for r, _ in renderer.change_city_button_rects):
+                    for btn_rect, city in renderer.change_city_button_rects:
+                        if btn_rect.collidepoint(pos):
+                            if selected_tile:
+                                game_map.reassign_tile_owner(selected_tile, city)
+                            break
 
                 elif any(r.collidepoint(pos) for r in renderer.city_focus_rects.values()):
                     city = selected_tile.owning_city if selected_tile else None

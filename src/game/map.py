@@ -156,6 +156,25 @@ class Map:
                     heapq.heappush(queue, (new_cost, (nr, nc)))
         return [], []
 
+    def reassign_tile_owner(self, tile, new_city):
+        """Move a tile from its current owning city to new_city and refresh both."""
+        old_city = tile.owning_city
+        if old_city is new_city:
+            return
+        if old_city is not None and tile in old_city.owned_tiles:
+            old_city.owned_tiles.remove(tile)
+        tile.owning_city = new_city
+        if new_city is not None:
+            _, distances = self.get_path_to(new_city.row, new_city.col, tile.row, tile.col, mode='any')
+            tile.city_distance = distances[-1] if distances else None
+            if tile not in new_city.owned_tiles:
+                new_city.owned_tiles.append(tile)
+            new_city.refresh_owned_tile_jobs()
+        else:
+            tile.city_distance = None
+        if old_city is not None:
+            old_city.refresh_owned_tile_jobs()
+
     def recalculate_city_tiles(self, city):
         for tile in city.owned_tiles:
             tile.owning_city = None
