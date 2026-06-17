@@ -92,9 +92,11 @@ class Map:
         unit_groups = self.tiles[row][col].unit_groups
         return unit_groups[0] if unit_groups else None
 
-    def _step_cost(self, from_r, from_c, to_r, to_c):
+    def _step_cost(self, from_r, from_c, to_r, to_c, scheme):
         from_tile = self.tiles[from_r][from_c]
         to_tile = self.tiles[to_r][to_c]
+        if scheme == 'water':
+            return BASE_TERRAIN_COST
         if abs(to_r - from_r) == 1 and abs(to_c - from_c) == 1:
             return to_tile.diagonal_movement_cost
         from_river = 'river' in from_tile.terrain_features
@@ -103,18 +105,18 @@ class Map:
         if no_city and from_river and to_river:
             return MOVE_COSTS['with_river']
         elif no_city and from_river:
-            return to_tile.movement_cost  # was: MOVE_COSTS['cross_river']
+            return to_tile.movement_cost
         elif no_city and to_river:
             return to_tile.movement_cost
         return to_tile.movement_cost
 
-    def _tile_passable(self, r, c, mode):
+    def _tile_passable(self, r, c, scheme):
         tile = self.tiles[r][c]
-        if mode == 'land':  return tile.passable and not tile.water
-        if mode == 'water': return tile.water or tile.water_access or 'river' in tile.terrain_features
+        if scheme == 'land': return tile.passable and not tile.water
+        if scheme == 'water': return tile.water or tile.water_access or 'river' in tile.terrain_features
         return tile.passable  # 'any': blocks mountains, crosses water freely
 
-    def get_reachable_from(self, start_r, start_c, budget, mode='land', blocked=None, include_start=False):
+    def get_reachable_from(self, start_r, start_c, budget, scheme='land', blocked=None, include_start=False):
         """Bounded Dijkstra. Returns {(row, col): cost} for all tiles reachable within budget.
         blocked tiles count as destinations but are not pathed through.
         include_start controls whether the origin tile is in the result."""
@@ -130,9 +132,9 @@ class Map:
                 nr, nc = r + dr, c + dc
                 if not (0 <= nr < self.rows and 0 <= nc < self.cols):
                     continue
-                if not self._tile_passable(nr, nc, mode):
+                if not self._tile_passable(nr, nc, scheme):
                     continue
-                new_cost = cost + self._step_cost(r, c, nr, nc)
+                new_cost = cost + self._step_cost(r, c, nr, nc, scheme)
                 if new_cost <= budget and new_cost < best.get((nr, nc), float('inf')):
                     best[(nr, nc)] = new_cost
                     if (nr, nc) not in blocked:
@@ -141,7 +143,7 @@ class Map:
             del best[start]
         return best
 
-    def get_path_to(self, from_r, from_c, to_r, to_c, mode='land'):
+    def get_path_to(self, from_r, from_c, to_r, to_c, scheme='land'):
         """Unbounded Dijkstra from start to goal. Returns (path, distances) where path is a list of
         (r, c) tiles inclusive and distances[i] is the cumulative cost to path[i], or ([], []).
         Travel cost between two points is distances[-1] if path else None."""
@@ -165,9 +167,9 @@ class Map:
                 nr, nc = r + dr, c + dc
                 if not (0 <= nr < self.rows and 0 <= nc < self.cols):
                     continue
-                if not self._tile_passable(nr, nc, mode):
+                if not self._tile_passable(nr, nc, scheme):
                     continue
-                new_cost = cost + self._step_cost(r, c, nr, nc)
+                new_cost = cost + self._step_cost(r, c, nr, nc, scheme)
                 if new_cost < best.get((nr, nc), float('inf')):
                     best[(nr, nc)] = new_cost
                     prev[(nr, nc)] = (r, c)
@@ -183,7 +185,7 @@ class Map:
             old_city.owned_tiles.remove(tile)
         tile.owning_city = new_city
         if new_city is not None:
-            _, distances = self.get_path_to(new_city.row, new_city.col, tile.row, tile.col, mode='any')
+            _, distances = self.get_path_to(new_city.row, new_city.col, tile.row, tile.col, scheme='any')
             tile.city_distance = distances[-1] if distances else None
             if tile not in new_city.owned_tiles:
                 new_city.owned_tiles.append(tile)
@@ -203,7 +205,7 @@ class Map:
                     tile.cities_in_range.remove(city)
         self._apply_city_tile_features(city)
         city.owned_tiles = []
-        city_range = self.get_reachable_from(city.row, city.col, DEFAULT_MOVE_DISTANCE, mode='any', include_start=True)
+        city_range = self.get_reachable_from(city.row, city.col, DEFAULT_MOVE_DISTANCE, scheme='any', include_start=True)
         for (r, c), cost in city_range.items():
             tile = self.tiles[r][c]
             tile.cities_in_range.append(city)
@@ -272,7 +274,7 @@ class Map:
         city_tile.city = city
         city.tile = city_tile
         self._apply_city_tile_features(city)
-        city_range = self.get_reachable_from(city.row, city.col, DEFAULT_MOVE_DISTANCE, mode='any', include_start=True)
+        city_range = self.get_reachable_from(city.row, city.col, DEFAULT_MOVE_DISTANCE, scheme='any', include_start=True)
         city.owned_tiles = []
         for (r, c), cost in city_range.items():
             tile = self.tiles[r][c]

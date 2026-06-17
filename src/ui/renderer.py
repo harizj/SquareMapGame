@@ -1527,12 +1527,12 @@ class Renderer:
         if not self.one_way_route_pending:
             return
         city_a, dest_tile = self.one_way_route_pending
-        _, water_dists = self.map.get_path_to(city_a.row, city_a.col, dest_tile.row, dest_tile.col, mode='water')
+        _, water_dists = self.map.get_path_to(city_a.row, city_a.col, dest_tile.row, dest_tile.col, scheme='water')
         water_reachable = bool(water_dists)
         if not water_reachable and self.one_way_route_type == 'water':
             self.one_way_route_type = 'land'
         water = self.one_way_route_type == 'water'
-        _, route_dists = self.map.get_path_to(city_a.row, city_a.col, dest_tile.row, dest_tile.col, mode='water' if water else 'land')
+        _, route_dists = self.map.get_path_to(city_a.row, city_a.col, dest_tile.row, dest_tile.col, scheme='water' if water else 'land')
         dist = route_dists[-1] if route_dists else None
 
         pad = 16

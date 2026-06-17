@@ -32,7 +32,7 @@ class LineOfSight:
             for group in groups:
                 if group.faction is faction:
                     reachable = game_map.get_reachable_from(
-                        r, c, DEFAULT_MOVE_DISTANCE, mode='any', include_start=True
+                        r, c, DEFAULT_MOVE_DISTANCE, scheme='any', include_start=True
                     )
                     visible.update(reachable.keys())
 
@@ -40,7 +40,7 @@ class LineOfSight:
         for (r, c), city in game_map.cities.items():
             if city.faction is faction:
                 reachable = game_map.get_reachable_from(
-                    r, c, CITY_VISION_DISTANCE, mode='any', include_start=True
+                    r, c, CITY_VISION_DISTANCE, scheme='any', include_start=True
                 )
                 visible.update(reachable.keys())
                 for route in city.trade_routes:

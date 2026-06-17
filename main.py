@@ -835,7 +835,7 @@ def main():
                     city_a, dest_tile = renderer.one_way_route_pending
                     water = renderer.one_way_route_type == 'water'
                     two_way = renderer.one_way_route_style == 'two_way'
-                    path, path_distances = game_map.get_path_to(city_a.row, city_a.col, dest_tile.row, dest_tile.col, mode='water' if water else 'land')
+                    path, path_distances = game_map.get_path_to(city_a.row, city_a.col, dest_tile.row, dest_tile.col, scheme='water' if water else 'land')
                     total_pops = renderer.one_way_pops_required_whole
                     if two_way:
                         pops_a = (total_pops + 1) // 2
@@ -1206,7 +1206,7 @@ def main():
                             detached_unit.pop.assigned_job = None
                             friendly_city.pops.append(detached_unit.pop)
                             selected_tile.owning_city = friendly_city
-                            _, dists = game_map.get_path_to(friendly_city.row, friendly_city.col, selected_tile.row, selected_tile.col, mode='any')
+                            _, dists = game_map.get_path_to(friendly_city.row, friendly_city.col, selected_tile.row, selected_tile.col, scheme='any')
                             selected_tile.city_distance = dists[-1] if dists else None
                             friendly_city.owned_tiles.append(selected_tile)
                             friendly_city._build_cumulative_farm_yield()
