@@ -137,12 +137,14 @@ class Tether:
         _, prev_distances = game_map.get_path_to(
             self.city.row, self.city.col,
             src_tile.row, src_tile.col,
+            scheme='supply',
         )
         prev_distance = prev_distances[-1] if prev_distances else 0.0
 
         path, distances = game_map.get_path_to(
             self.city.row, self.city.col,
             dst_tile.row, dst_tile.col,
+            scheme='supply',
         )
         distance = distances[-1] if distances else 0.0
 

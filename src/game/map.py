@@ -1,7 +1,7 @@
 import heapq
 import random
 from src.game.city import City
-from src.game.constants import DEFAULT_MOVE_DISTANCE, BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST, MIN_TERRAIN_COST
+from src.game.constants import DEFAULT_MOVE_DISTANCE, BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST, MIN_TERRAIN_COST, LAND_CARRY_CAPACITY, WATER_CARRY_CAPACITY
 from src.game.tile import Tile
 from src.game.unit_group import UnitGroup
 from src.game.unit import Unit
@@ -103,6 +103,8 @@ class Map:
         to_river = 'river' in to_tile.terrain_features
         no_city = 'city' not in from_tile.terrain_features and 'city' not in to_tile.terrain_features
         if no_city and from_river and to_river:
+            if scheme == 'supply':
+                return BASE_TERRAIN_COST * LAND_CARRY_CAPACITY / WATER_CARRY_CAPACITY
             return MOVE_COSTS['with_river']
         elif no_city and from_river:
             return to_tile.movement_cost
@@ -112,7 +114,7 @@ class Map:
 
     def _tile_passable(self, r, c, scheme):
         tile = self.tiles[r][c]
-        if scheme == 'land': return tile.passable and not tile.water
+        if scheme in ('land', 'supply'): return tile.passable and not tile.water
         if scheme == 'water': return tile.water or tile.water_access or 'river' in tile.terrain_features
         return tile.passable  # 'any': blocks mountains, crosses water freely
 

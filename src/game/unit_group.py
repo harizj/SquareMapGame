@@ -201,7 +201,7 @@ class UnitGroup:
         #         print(f"  group units={len(g.units)} consumption={g.consumption_per_turn()} food_from_routes={current_tile._food_from_routes():.1f} food_allocated_from_city={g.food_allocated_from_city:.1f} stockpile={g.food_stockpile:.1f} from_stockpile={from_stockpile:.1f}")
         # _print_tile_groups("before route creation")
 
-        path, distances = game_map.get_path_to(city.row, city.col, self.row, self.col)
+        path, distances = game_map.get_path_to(city.row, city.col, self.row, self.col, scheme='supply')
         dist = distances[-1] if distances else 0.0
 
         travel_time = dist / DEFAULT_MOVE_DISTANCE
