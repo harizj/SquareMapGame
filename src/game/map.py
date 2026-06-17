@@ -101,15 +101,10 @@ class Map:
             return to_tile.diagonal_movement_cost
         from_river = 'river' in from_tile.terrain_features
         to_river = 'river' in to_tile.terrain_features
-        no_city = 'city' not in from_tile.terrain_features and 'city' not in to_tile.terrain_features
-        if no_city and from_river and to_river:
+        if from_river and to_river:
             if scheme == 'supply':
                 return BASE_TERRAIN_COST * LAND_CARRY_CAPACITY / WATER_CARRY_CAPACITY
             return MOVE_COSTS['with_river']
-        elif no_city and from_river:
-            return to_tile.movement_cost
-        elif no_city and to_river:
-            return to_tile.movement_cost
         return to_tile.movement_cost
 
     def _tile_passable(self, r, c, scheme):

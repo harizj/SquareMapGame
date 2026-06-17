@@ -171,7 +171,7 @@ class Tether:
                 import_amount=0,
                 path=path,
                 path_distances=distances,
-                water=False,
+
                 one_way=True,
                 establish_progress=distances[-1] if distances else 0.0,
                 established=True,

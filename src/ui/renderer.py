@@ -231,8 +231,6 @@ class Renderer:
         self.one_way_route_pending = None
         self.one_way_route_style = 'one_way'
         self.one_way_route_style_rects = {}
-        self.one_way_route_type = 'land'
-        self.one_way_route_type_rects = {}
         self.one_way_export_material = 'food'
         self.one_way_export_rects = {}
         self.one_way_import_material = 'wood'
@@ -1404,7 +1402,7 @@ class Renderer:
         if not self.trade_route_pending or not self.trade_route_amount_slider_rect:
             return
         city_a, city_b = self.trade_route_pending
-        _, dists = self.map.get_path_to(city_a.row, city_a.col, city_b.row, city_b.col)
+        _, dists = self.map.get_path_to(city_a.row, city_a.col, city_b.row, city_b.col, scheme='supply')
         dist = dists[-1] if dists else None
         self._snap_route_amount(pos_x, self.trade_route_amount_slider_rect, 'trade_route_export_amount', dist, 2)
 
@@ -1412,7 +1410,7 @@ class Renderer:
         if not self.trade_route_pending or not self.trade_route_import_slider_rect:
             return
         city_a, city_b = self.trade_route_pending
-        _, dists = self.map.get_path_to(city_a.row, city_a.col, city_b.row, city_b.col)
+        _, dists = self.map.get_path_to(city_a.row, city_a.col, city_b.row, city_b.col, scheme='supply')
         dist = dists[-1] if dists else None
         self._snap_route_amount(pos_x, self.trade_route_import_slider_rect, 'trade_route_import_amount', dist, 1)
 
@@ -1420,7 +1418,7 @@ class Renderer:
         if not self.trade_route_pending:
             return
         city_a, city_b = self.trade_route_pending
-        _, dists = self.map.get_path_to(city_a.row, city_a.col, city_b.row, city_b.col)
+        _, dists = self.map.get_path_to(city_a.row, city_a.col, city_b.row, city_b.col, scheme='supply')
         dist = dists[-1] if dists else None
 
         pad = 16
@@ -1527,18 +1525,13 @@ class Renderer:
         if not self.one_way_route_pending:
             return
         city_a, dest_tile = self.one_way_route_pending
-        _, water_dists = self.map.get_path_to(city_a.row, city_a.col, dest_tile.row, dest_tile.col, scheme='water')
-        water_reachable = bool(water_dists)
-        if not water_reachable and self.one_way_route_type == 'water':
-            self.one_way_route_type = 'land'
-        water = self.one_way_route_type == 'water'
-        _, route_dists = self.map.get_path_to(city_a.row, city_a.col, dest_tile.row, dest_tile.col, scheme='water' if water else 'land')
+        _, route_dists = self.map.get_path_to(city_a.row, city_a.col, dest_tile.row, dest_tile.col, scheme='supply')
         dist = route_dists[-1] if route_dists else None
 
         pad = 16
         popup_w = 280
         two_way = self.one_way_route_style == 'two_way'
-        popup_h = 420 if two_way else 370
+        popup_h = 390 if two_way else 340
         sw, sh = self.screen.get_size()
         px = (sw - popup_w) // 2
         py = (sh - popup_h) // 2
@@ -1571,20 +1564,6 @@ class Renderer:
                                      disabled=disabled)
             if not disabled:
                 self.one_way_route_style_rects[label] = rect
-            x += btn_w + 4
-        x = px + pad
-        y += 30
-
-        # Transport type: Land / Water
-        self.one_way_route_type_rects = {}
-        for label in ('Land', 'Water'):
-            is_water = label == 'Water'
-            disabled = is_water and not water_reachable
-            rect = self._draw_button(x, y, btn_w, 22, label,
-                                     active=(self.one_way_route_type == label.lower()),
-                                     disabled=disabled)
-            if not disabled:
-                self.one_way_route_type_rects[label] = rect
             x += btn_w + 4
         x = px + pad
         y += 30
@@ -1649,7 +1628,7 @@ class Renderer:
         self.one_way_partial_pops = None
         if dist:
             travel_time = dist / DEFAULT_MOVE_DISTANCE
-            carry_capacity = WATER_CARRY_CAPACITY if water else LAND_CARRY_CAPACITY
+            carry_capacity = LAND_CARRY_CAPACITY
             denom = carry_capacity + 1 - travel_time if two_way else carry_capacity + 1 - 2 * travel_time
             if denom > 0 and travel_time > 0:
                 raw = (self.one_way_amount * 2 * travel_time) / denom

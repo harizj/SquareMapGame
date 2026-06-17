@@ -1,13 +1,12 @@
 from src.game.jobs import CaravanJob
-from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, WATER_CARRY_CAPACITY
+from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY
 import math
 import random
 
 
-def calculate_supply_pops(amount, travel_time, one_way=True, water=False):
+def calculate_supply_pops(amount, travel_time, one_way=True):
     """Return the number of caravan pops needed to sustain a supply route."""
-    carry_capacity = WATER_CARRY_CAPACITY if water else LAND_CARRY_CAPACITY
-    denom = carry_capacity + 1 - (2 * travel_time if one_way else travel_time)
+    denom = LAND_CARRY_CAPACITY + 1 - (2 * travel_time if one_way else travel_time)
     if denom <= 0 or travel_time <= 0:
         return 0
     return max(1, math.ceil((amount * 2 * travel_time) / denom))
@@ -20,7 +19,7 @@ class TradeRoute:
                  export_resource, export_amount, max_amount,
                  import_resource, import_amount,
                  path=None, path_distances=None,
-                 water=False, one_way=True,
+                 one_way=True,
                  establish_progress=None, established=None,
                  tether=False):
         self.city_a = city_a          # origin — allocates pops
@@ -41,7 +40,6 @@ class TradeRoute:
         self.path = path or []
         self.path_distances = path_distances or []
         self.distance = path_distances[-1] if path_distances else 0.0
-        self.water = water
         self.travel_time = self.distance / DEFAULT_MOVE_DISTANCE if self.distance > 0 else 0.0
         self.one_way = one_way
         self.missing_caravans = False
@@ -191,7 +189,7 @@ class TradeRoute:
             return
 
         self.max_amount -= 1
-        total_pops = calculate_supply_pops(self.max_amount, self.travel_time, self.one_way, self.water)
+        total_pops = calculate_supply_pops(self.max_amount, self.travel_time, self.one_way)
         if total_pops > 0:
             if not self.one_way:
                 self.pops_a = (total_pops + 1) // 2

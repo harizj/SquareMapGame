@@ -223,7 +223,6 @@ class UnitGroup:
                 import_amount=0,
                 path=path,
                 path_distances=distances,
-                water=False,
                 one_way=True,
                 establish_progress=dist,
                 established=True,

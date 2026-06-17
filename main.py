@@ -813,12 +813,6 @@ def main():
                             renderer.one_way_route_style = label.lower().replace(' ', '_')
                             break
 
-                elif renderer.one_way_route_pending and any(r.collidepoint(pos) for r in renderer.one_way_route_type_rects.values()):
-                    for label, rect in renderer.one_way_route_type_rects.items():
-                        if rect.collidepoint(pos):
-                            renderer.one_way_route_type = label.lower()
-                            break
-
                 elif renderer.one_way_route_pending and any(r.collidepoint(pos) for r in renderer.one_way_export_rects.values()):
                     for label, rect in renderer.one_way_export_rects.items():
                         if rect.collidepoint(pos):
@@ -833,9 +827,8 @@ def main():
 
                 elif renderer.one_way_route_pending and renderer.one_way_confirm_rect and renderer.one_way_confirm_rect.collidepoint(pos):
                     city_a, dest_tile = renderer.one_way_route_pending
-                    water = renderer.one_way_route_type == 'water'
                     two_way = renderer.one_way_route_style == 'two_way'
-                    path, path_distances = game_map.get_path_to(city_a.row, city_a.col, dest_tile.row, dest_tile.col, scheme='water' if water else 'land')
+                    path, path_distances = game_map.get_path_to(city_a.row, city_a.col, dest_tile.row, dest_tile.col, scheme='supply')
                     total_pops = renderer.one_way_pops_required_whole
                     if two_way:
                         pops_a = (total_pops + 1) // 2
@@ -857,15 +850,12 @@ def main():
                         import_amount=0,
                         path=path,
                         path_distances=path_distances,
-                        water=water,
                         one_way=not two_way,
                     )
                     renderer.one_way_route_pending = None
-                    renderer.one_way_route_type = 'land'
 
                 elif renderer.one_way_route_pending and renderer.one_way_cancel_rect and renderer.one_way_cancel_rect.collidepoint(pos):
                     renderer.one_way_route_pending = None
-                    renderer.one_way_route_type = 'land'
 
                 elif any(r.collidepoint(pos) for r, _ in renderer.group_icon_rects):
                     for rect, group in renderer.group_icon_rects:
