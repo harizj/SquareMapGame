@@ -3,7 +3,7 @@ import math
 import os
 import pygame
 from src.game.city import STOCKPILE_MAX
-from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, MILITARY_CARRY_CAPACITY, WATER_CARRY_CAPACITY, MOVE_CARRY_OVER, GAME_SCALE, POP_FOOD_CONSUMPTION
+from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, MILITARY_CARRY_CAPACITY, WATER_CARRY_CAPACITY, MOVE_CARRY_OVER, GAME_SCALE, POP_FOOD_CONSUMPTION, INTER_FACTION_BORDERS
 from src.game.map import TERRAIN_TYPES
 from src.game.tile import BIOMES, TERRAIN_FEATURES, BIOME_COLORS
 from src.game.unit import unit_list as UNIT_DISPLAY_ORDER, UNIT_REGISTRY
@@ -922,6 +922,7 @@ class Renderer:
                 cx, cy = all_centers[(r, c)]
                 corners = all_corners[(r, c)]
                 border_lines = []
+                friendly_border_lines = []
                 for (dr, dc), (ci, cj) in _SQUARE_EDGE_CORNERS.items():
                     nr, nc = r + dr, c + dc
                     if not (0 <= nr < self.map.rows and 0 <= nc < self.map.cols):
@@ -929,8 +930,11 @@ class Renderer:
                     else:
                         neighbor_city = self.map.tiles[nr][nc].owning_city
                     if neighbor_city is not tile.owning_city:
-                        border_lines.append((corners[ci], corners[cj]))
-                if not border_lines:
+                        if neighbor_city is not None and neighbor_city.faction is tile.owning_city.faction:
+                            friendly_border_lines.append((corners[ci], corners[cj]))
+                        else:
+                            border_lines.append((corners[ci], corners[cj]))
+                if not border_lines and not friendly_border_lines:
                     continue
                 sz = CELL_SIZE * self.zoom
                 border_line_w = 8
@@ -940,32 +944,46 @@ class Renderer:
                 surf_h = int(sz) + pad * 2
                 scx = surf_w // 2
                 scy = surf_h // 2
-                edge_surf = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
-                for (p1, p2) in border_lines:
-                    lp1 = (int(p1[0] - cx + scx), int(p1[1] - cy + scy))
-                    lp2 = (int(p2[0] - cx + scx), int(p2[1] - cy + scy))
-                    pygame.draw.line(edge_surf, (255, 255, 255, 255), lp1, lp2, border_line_w)
+                half_sz = int(sz / 2)
                 border_dark  = tile.owning_city.get_city_color('dark')  or (35, 65, 150)
                 border_light = tile.owning_city.get_city_color('light') or (160, 200, 255)
-                lb_surf = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
-                lb_surf.fill((*border_light, 170))
-                lb_surf.blit(edge_surf, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-                base_surf = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
-                base_surf.fill((*border_dark, 255))
-                base_surf.blit(edge_surf, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-                result = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
-                r2 = outline_radius * outline_radius
-                for dx in range(-outline_radius, outline_radius + 1):
-                    for dy in range(-outline_radius, outline_radius + 1):
-                        if (dx, dy) != (0, 0) and dx * dx + dy * dy <= r2:
-                            result.blit(lb_surf, (dx, dy))
-                result.blit(base_surf, (0, 0))
-                half_sz = int(sz / 2)
                 clip_mask = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
                 pygame.draw.rect(clip_mask, (255, 255, 255, 255),
                                  (scx - half_sz, scy - half_sz, int(sz), int(sz)))
-                result.blit(clip_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-                self.screen.blit(result, (int(cx) - scx, int(cy) - scy))
+                if border_lines:
+                    edge_surf = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
+                    for (p1, p2) in border_lines:
+                        lp1 = (int(p1[0] - cx + scx), int(p1[1] - cy + scy))
+                        lp2 = (int(p2[0] - cx + scx), int(p2[1] - cy + scy))
+                        pygame.draw.line(edge_surf, (255, 255, 255, 255), lp1, lp2, border_line_w)
+                    lb_surf = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
+                    lb_surf.fill((*border_light, 170))
+                    lb_surf.blit(edge_surf, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                    base_surf = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
+                    base_surf.fill((*border_dark, 255))
+                    base_surf.blit(edge_surf, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                    result = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
+                    r2 = outline_radius * outline_radius
+                    for dx in range(-outline_radius, outline_radius + 1):
+                        for dy in range(-outline_radius, outline_radius + 1):
+                            if (dx, dy) != (0, 0) and dx * dx + dy * dy <= r2:
+                                result.blit(lb_surf, (dx, dy))
+                    result.blit(base_surf, (0, 0))
+                    result.blit(clip_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                    self.screen.blit(result, (int(cx) - scx, int(cy) - scy))
+                if friendly_border_lines and INTER_FACTION_BORDERS:
+                    edge_surf = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
+                    for (p1, p2) in friendly_border_lines:
+                        lp1 = (int(p1[0] - cx + scx), int(p1[1] - cy + scy))
+                        lp2 = (int(p2[0] - cx + scx), int(p2[1] - cy + scy))
+                        pygame.draw.line(edge_surf, (255, 255, 255, 255), lp1, lp2, border_line_w)
+                    base_surf = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
+                    base_surf.fill((*border_light, 255))
+                    base_surf.blit(edge_surf, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                    result = pygame.Surface((surf_w, surf_h), pygame.SRCALPHA)
+                    result.blit(base_surf, (0, 0))
+                    result.blit(clip_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+                    self.screen.blit(result, (int(cx) - scx, int(cy) - scy))
 
         # Pass 4: movement range borders
         if move_mode and selected_tile:
