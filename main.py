@@ -144,6 +144,9 @@ def main():
     city_drag_active = False
     save_popup_active = False
     save_popup_text = ""
+    name_city_popup_active = False
+    name_city_popup_text = ""
+    _pending_settle = None
     terrain_popup_active = False
     terrain_popup_snapshot = None
     river_popup_active = False
@@ -192,6 +195,33 @@ def main():
                         console_input = console_input[:-1]
                     elif event.unicode.isprintable():
                         console_input += event.unicode
+                elif name_city_popup_active:
+                    if event.key == pygame.K_RETURN and _pending_settle:
+                        settle_faction = _pending_settle['faction']
+                        auto_name = settle_faction.take_city_name() if settle_faction else game_map._take_city_name()
+                        city_name = name_city_popup_text.strip() or auto_name
+                        settle_tile = _pending_settle['tile']
+                        new_city = City(settle_tile.row, settle_tile.col, city_name, faction=settle_faction, population=0)
+                        new_city.pops = _pending_settle['pops']
+                        game_map.cities[(settle_tile.row, settle_tile.col)] = new_city
+                        for group in _pending_settle['groups']:
+                            settle_tile.unit_groups.remove(group)
+                            renderer.selected_unit_groups.discard(group)
+                        game_map.setup_city(new_city)
+                        new_city.rebalance_pops()
+                        new_city.food_stockpile = min(_pending_settle['starting_food'], new_city._stockpile_max())
+                        settle_tile.update_after_movement()
+                        name_city_popup_active = False
+                        name_city_popup_text = ""
+                        _pending_settle = None
+                    elif event.key == pygame.K_ESCAPE:
+                        name_city_popup_active = False
+                        name_city_popup_text = ""
+                        _pending_settle = None
+                    elif event.key == pygame.K_BACKSPACE:
+                        name_city_popup_text = name_city_popup_text[:-1]
+                    elif event.unicode.isprintable():
+                        name_city_popup_text += event.unicode
                 elif save_popup_active:
                     if event.key == pygame.K_RETURN and save_popup_text.strip():
                         name = save_popup_text.strip().replace(' ', '_')
@@ -470,6 +500,9 @@ def main():
                                     reachable = game_map.get_reachable_from(group.row, group.col, group.moves_remaining)
                             break
                     river_popup_active = False
+
+                elif name_city_popup_active:
+                    pass
 
                 elif save_popup_active:
                     pass
@@ -917,20 +950,20 @@ def main():
                             for g in selected_on_tile:
                                 if g.tether is not None:
                                     g.drop_tether(game_map)
-                            settle_faction = selected_on_tile[0].faction
-                            all_pops = [unit.pop for g in selected_on_tile for unit in g.units]
-                            starting_food = sum(g.food_stockpile for g in selected_on_tile)
-                            city_name = settle_faction.take_city_name() if settle_faction else game_map._take_city_name()
-                            new_city = City(selected_tile.row, selected_tile.col, city_name, faction=settle_faction, population=0)
-                            new_city.pops = all_pops
-                            game_map.cities[(selected_tile.row, selected_tile.col)] = new_city
-                            for group in selected_on_tile:
-                                selected_tile.unit_groups.remove(group)
-                                renderer.selected_unit_groups.discard(group)
-                            game_map.setup_city(new_city)
-                            new_city.rebalance_pops()
-                            new_city.food_stockpile = min(starting_food, new_city._stockpile_max())
-                            selected_tile.update_after_movement()
+                            _pending_settle = {
+                                'tile': selected_tile,
+                                'groups': selected_on_tile,
+                                'faction': selected_on_tile[0].faction,
+                                'pops': [unit.pop for g in selected_on_tile for unit in g.units],
+                                'starting_food': sum(g.food_stockpile for g in selected_on_tile),
+                            }
+                            name_city_popup_active = True
+                            _f = selected_on_tile[0].faction
+                            if _f:
+                                name_city_popup_text = _f.city_names[_f._city_name_idx % len(_f.city_names)]
+                            else:
+                                from src.game.map import CITY_NAMES as _MAP_NAMES
+                                name_city_popup_text = _MAP_NAMES[game_map._city_name_idx % len(_MAP_NAMES)]
                     move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
                     if not move_mode:
                         move_hover_tile = None
@@ -1316,7 +1349,7 @@ def main():
             move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
             game_log.append(f"TURN {turn}")
 
-        if not console_active and not save_popup_active:
+        if not console_active and not save_popup_active and not name_city_popup_active:
             keys = pygame.key.get_pressed()
             pan_speed = 6 * renderer.zoom ** 2
             if keys[pygame.K_w]: renderer.offset_y += pan_speed
@@ -1327,6 +1360,8 @@ def main():
         renderer.draw(selected_tile, reachable, move_mode,
                       save_popup_active, save_popup_text,
                       terrain_popup_active, river_popup_active,
+                      name_city_popup_active=name_city_popup_active,
+                      name_city_popup_text=name_city_popup_text,
                       moves_remaining=min(g.moves_remaining for g in move_mode_unit_groups) if move_mode_unit_groups else None,
                       game_log=game_log,
                       move_hover_tile=move_hover_tile,

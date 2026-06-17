@@ -11,14 +11,14 @@ ASSYRIA_CITY_NAMES = [
 
 
 ROHAN_CITY_NAMES = [
-    'Edoras', 'Aldburg', 'Dunharrow', 'Underharrow', 'Upbourn',
+    'Aldburg', 'Dunharrow', 'Underharrow', 'Upbourn',
     'Snowbourn', 'Grimslade', 'Entwade', 'Harrowdale', 'Westfold',
-    'Eastfold', 'Hornburg', 'Deeping Coomb', 'Langstrand', 'Calembel',
+    'Eastfold', 'Deeping Coomb', 'Langstrand', 'Calembel',
     'Ethring', 'Erelas', 'Nardol', 'Amon Din', 'Eilenach',
 ]
 
 ISENGARD_CITY_NAMES = [
-    'Isengard', 'Pliska', 'Preslav', 'Ohrid', 'Sredets',
+    'Preslav', 'Ohrid', 'Sredets',
     'Varna', 'Tarnovo', 'Lovech', 'Shumen', 'Silistra',
     'Vidin', 'Sozopol', 'Nesebar', 'Anchialos', 'Devnya',
     'Madara', 'Provat', 'Odesos', 'Melnik', 'Cherven',

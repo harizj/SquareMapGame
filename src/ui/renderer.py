@@ -791,7 +791,8 @@ class Renderer:
              console_active=False, console_input="",
              battle_popup_active=False, battle_popup_preview=None,
              battle_result_active=False, battle_result=None, battle_result_preview=None,
-             los=None, factions=None):
+             los=None, factions=None,
+             name_city_popup_active=False, name_city_popup_text=""):
         if reachable is None:
             reachable = {}
         self.section_header_rects.clear()
@@ -1316,6 +1317,8 @@ class Renderer:
             self._draw_terrain_popup(selected_tile)
         elif save_popup_active:
             self._draw_save_popup(save_popup_text)
+        elif name_city_popup_active:
+            self._draw_name_city_popup(name_city_popup_text)
 
         if self.recruit_popup_active and selected_tile and selected_tile.city:
             self._draw_recruit_popup(selected_tile.city)
@@ -3220,6 +3223,29 @@ class Renderer:
         self.screen.blit(surf, (input_rect.x + 6, input_rect.y + (input_rect.height - surf.get_height()) // 2))
 
         surf = self.font_body.render("Enter to save  •  Esc to cancel", True, (110, 110, 130))
+        self.screen.blit(surf, (sx + 16, sy + 85))
+
+    def _draw_name_city_popup(self, text):
+        overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        self.screen.blit(overlay, (0, 0))
+
+        W, H = 300, 115
+        sx = (self.screen.get_width() - W) // 2
+        sy = (self.screen.get_height() - H) // 2
+        pygame.draw.rect(self.screen, (40, 40, 55), (sx, sy, W, H), border_radius=6)
+        pygame.draw.rect(self.screen, PANEL_DIVIDER, (sx, sy, W, H), 1, border_radius=6)
+
+        surf = self.font_header.render("NAME CITY", True, HEADER_TEXT_COLOR)
+        self.screen.blit(surf, (sx + 16, sy + 14))
+
+        input_rect = pygame.Rect(sx + 16, sy + 42, W - 32, 26)
+        pygame.draw.rect(self.screen, (25, 25, 35), input_rect, border_radius=3)
+        pygame.draw.rect(self.screen, PANEL_DIVIDER, input_rect, 1, border_radius=3)
+        surf = self.font_body.render(text + "|", True, TEXT_COLOR)
+        self.screen.blit(surf, (input_rect.x + 6, input_rect.y + (input_rect.height - surf.get_height()) // 2))
+
+        surf = self.font_body.render("Enter to confirm  •  Esc to cancel", True, (110, 110, 130))
         self.screen.blit(surf, (sx + 16, sy + 85))
 
     def _draw_terrain_popup(self, selected_tile):
