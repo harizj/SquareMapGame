@@ -335,7 +335,7 @@ class Renderer:
         self.section_header_rects = {}
         self._recruit_slider_dragging = False
         self._recruit_food_slider_dragging = False
-        self.recruit_popup_supply_train = False
+        self.recruit_popup_supply_train = True
         self.recruit_popup_supply_food = 1
         self.recruit_popup_supply_checkbox_rect = None
         self.recruit_popup_supply_food_slider_rect = None
@@ -2225,21 +2225,21 @@ class Renderer:
                     for g in selected_on_tile
                 )
                 disband_disabled = not has_city or len(selected_on_tile) == 0 or any(g.move_exhausted for g in selected_on_tile) or any_levy_away
-                recruit_label = "Recruit"
-                if has_city:
-                    _cur = max(0, len(tile.city.pops) - tile.city.total_farm_slots)
-                    _max = tile.city.non_food_pop_limit
-                    recruit_label = f"Recruit {_cur}/{_max}"
-                self.recruit_unit_button_rect = self._draw_button(panel_x + pad, y, half_w, btn_h, recruit_label, disabled=recruit_disabled)
+                self.raise_levies_button_rect = self._draw_button(panel_x + pad, y, half_w, btn_h, "Raise Army", disabled=not has_city)
+                if not has_city:
+                    self.raise_levies_button_rect = None
                 self.disband_button_rect = self._draw_button(panel_x + pad + half_w + 4, y, half_w, btn_h, "Disband", disabled=disband_disabled)
-                if recruit_disabled:
-                    self.recruit_unit_button_rect = None
                 if disband_disabled:
                     self.disband_button_rect = None
                 y += btn_h + 6
-                self.raise_levies_button_rect = self._draw_button(panel_x + pad, y, PANEL_WIDTH - pad * 2, btn_h, "Raise Levies", disabled=not has_city)
-                if not has_city:
-                    self.raise_levies_button_rect = None
+                recruit_label = "Recruit Settlers"
+                if has_city:
+                    _cur = max(0, len(tile.city.pops) - tile.city.total_farm_slots)
+                    _max = tile.city.non_food_pop_limit
+                    recruit_label = f"Recruit Settlers [{_cur}/{_max}]"
+                self.recruit_unit_button_rect = self._draw_button(panel_x + pad, y, PANEL_WIDTH - pad * 2, btn_h, recruit_label, disabled=recruit_disabled)
+                if recruit_disabled:
+                    self.recruit_unit_button_rect = None
                 y += btn_h + 6
 
         first_group = unit_groups[0] if unit_groups else None
@@ -2679,7 +2679,7 @@ class Renderer:
                 pygame.draw.rect(self.screen, (160, 190, 240), cb_rect.inflate(-4, -4), border_radius=1)
             else:
                 pygame.draw.rect(self.screen, PANEL_DIVIDER, cb_rect, 1, border_radius=2)
-            label_surf = self.font_body.render("Supply Train", True, TEXT_COLOR)
+            label_surf = self.font_body.render("Tether", True, TEXT_COLOR)
             self.screen.blit(label_surf, (cb_x + cb_size + 6, cb_y - 1))
             self.recruit_popup_supply_checkbox_rect = pygame.Rect(cb_x, cb_y - 2, cb_size + 6 + label_surf.get_width(), cb_size + 4)
         else:
