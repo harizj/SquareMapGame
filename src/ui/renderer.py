@@ -1021,6 +1021,7 @@ class Renderer:
         # Pass 5: selected border (moved to pass 8 to draw over everything)
 
         # Pass 6b: worked farm dots (top-left of each tile, one dot per assigned pop)
+        selected_city = selected_tile.city if selected_tile else None
         dot_radius = 1
         dot_spacing = 5
         dot_offset_x = int(apothem * 0.72)
@@ -1058,12 +1059,20 @@ class Renderer:
                     row_i = i % 3
                     dot_positions.append((dx + col_i * dot_spacing, dy + row_i * dot_spacing, tile.owning_city))
         for ddx, ddy, city in dot_positions:
-            dot_dark = city.get_city_color('dark') if city else (30, 60, 120)
+            is_selected = city is selected_city
+            dot_dark  = city.get_city_color('dark')  if city else (30, 60, 120)
+            dot_light = city.get_city_color('light') if city else (160, 200, 255)
             pygame.draw.circle(self.screen, dot_dark, (ddx, ddy), dot_radius + 4)
         for ddx, ddy, city in dot_positions:
+            is_selected = city is selected_city
+            dot_dark  = city.get_city_color('dark')  if city else (30, 60, 120)
             dot_light = city.get_city_color('light') if city else (160, 200, 255)
-            pygame.draw.circle(self.screen, dot_light, (ddx, ddy), dot_radius + 1)
-            pygame.draw.circle(self.screen, (255, 255, 255), (ddx, ddy), dot_radius)
+            if is_selected:
+                pygame.draw.circle(self.screen, dot_light, (ddx, ddy), dot_radius + 1)
+                pygame.draw.circle(self.screen, (255, 255, 255), (ddx, ddy), dot_radius)
+            else:
+                pygame.draw.circle(self.screen, dot_light, (ddx, ddy), dot_radius + 1)
+                pygame.draw.circle(self.screen, dot_light, (ddx, ddy), dot_radius)
 
         # Pass 6: city icons (castle, drawn below units)
         selected_city_pos = (selected_tile.row, selected_tile.col) if selected_tile else None
