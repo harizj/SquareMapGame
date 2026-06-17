@@ -1,4 +1,15 @@
-from src.game.constants import DEFAULT_MOVE_DISTANCE, CITY_VISION_DISTANCE
+from src.game.constants import FAR_VISION_BUDGET, NORMAL_VISION_BUDGET, RESTRICTED_VISION_BUDGET
+
+
+def _vision_budget(tile):
+    features = tile.terrain_features
+    has_hills = 'hills' in features
+    has_forest = 'forest' in features
+    if 'mountain' in features or (has_hills and not has_forest):
+        return FAR_VISION_BUDGET
+    if has_forest and not has_hills:
+        return RESTRICTED_VISION_BUDGET
+    return NORMAL_VISION_BUDGET
 
 
 class LineOfSight:
@@ -31,16 +42,18 @@ class LineOfSight:
         for (r, c), groups in game_map.unit_groups.items():
             for group in groups:
                 if group.faction is faction:
+                    budget = _vision_budget(game_map.tiles[r][c])
                     reachable = game_map.get_reachable_from(
-                        r, c, DEFAULT_MOVE_DISTANCE, scheme='any', include_start=True
+                        r, c, budget, scheme='vision', include_start=True
                     )
                     visible.update(reachable.keys())
 
         seen_routes = set()
         for (r, c), city in game_map.cities.items():
             if city.faction is faction:
+                budget = _vision_budget(game_map.tiles[r][c])
                 reachable = game_map.get_reachable_from(
-                    r, c, CITY_VISION_DISTANCE, scheme='any', include_start=True
+                    r, c, budget, scheme='vision', include_start=True
                 )
                 visible.update(reachable.keys())
                 for route in city.trade_routes:

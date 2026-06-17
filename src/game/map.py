@@ -1,7 +1,7 @@
 import heapq
 import random
 from src.game.city import City
-from src.game.constants import DEFAULT_MOVE_DISTANCE, BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST, MIN_TERRAIN_COST, LAND_CARRY_CAPACITY, WATER_CARRY_CAPACITY
+from src.game.constants import DEFAULT_MOVE_DISTANCE, BASE_TERRAIN_COST, DIFFICULT_TERRAIN_COST, MIN_TERRAIN_COST, LAND_CARRY_CAPACITY, WATER_CARRY_CAPACITY, DIAGONAL_DIFFICULT_COST
 from src.game.tile import Tile
 from src.game.unit_group import UnitGroup
 from src.game.unit import Unit
@@ -97,21 +97,25 @@ class Map:
         to_tile = self.tiles[to_r][to_c]
         if scheme == 'water':
             return BASE_TERRAIN_COST
-        if abs(to_r - from_r) == 1 and abs(to_c - from_c) == 1:
-            return to_tile.diagonal_movement_cost
+        diagonal = abs(to_r - from_r) == 1 and abs(to_c - from_c) == 1
         from_river = 'river' in from_tile.terrain_features
         to_river = 'river' in to_tile.terrain_features
-        if from_river and to_river:
-            if scheme == 'supply':
-                return BASE_TERRAIN_COST * LAND_CARRY_CAPACITY / WATER_CARRY_CAPACITY
-            return MOVE_COSTS['with_river']
-        return to_tile.movement_cost
+        if scheme in ('land', 'supply'):
+            if to_river and not from_river:
+                if 'city' in from_tile.terrain_features:
+                    return BASE_TERRAIN_COST
+                return DIAGONAL_DIFFICULT_COST if diagonal else MOVE_COSTS['cross_river']
+            if from_river and to_river:
+                if scheme == 'supply':
+                    return BASE_TERRAIN_COST * LAND_CARRY_CAPACITY / WATER_CARRY_CAPACITY
+                return MOVE_COSTS['with_river']
+        return to_tile.diagonal_movement_cost if diagonal else to_tile.movement_cost
 
     def _tile_passable(self, r, c, scheme):
         tile = self.tiles[r][c]
         if scheme in ('land', 'supply'): return tile.passable and not tile.water
         if scheme == 'water': return tile.water or tile.water_access or 'river' in tile.terrain_features
-        return tile.passable  # 'any': blocks mountains, crosses water freely
+        return tile.passable  # 'any', 'vision': all tiles passable, mountains costly not blocked
 
     def get_reachable_from(self, start_r, start_c, budget, scheme='land', blocked=None, include_start=False):
         """Bounded Dijkstra. Returns {(row, col): cost} for all tiles reachable within budget.
