@@ -21,6 +21,7 @@ class TradeRoute:
                  path=None, path_distances=None,
                  one_way=True,
                  establish_progress=None, established=None,
+                 establish_distance=None,
                  tether=False):
         self.city_a = city_a          # origin — allocates pops
         self.dest_tile = dest_tile    # destination tile (may or may not have a city)
@@ -43,8 +44,12 @@ class TradeRoute:
         self.travel_time = self.distance / DEFAULT_MOVE_DISTANCE if self.distance > 0 else 0.0
         self.one_way = one_way
         self.missing_caravans = False
+        self.establish_distance = establish_distance if establish_distance is not None else self.distance
         self.establish_progress = establish_progress if establish_progress is not None else DEFAULT_MOVE_DISTANCE
-        self.established = established if established is not None else (self.establish_progress >= self.distance)
+        self.established = established if established is not None else (self.establish_progress >= self.establish_distance)
+        if not self.tether:
+            print(f"[TradeRoute init] {city_a.name} -> {dest_tile.city.name if dest_tile.city else (dest_tile.row, dest_tile.col)}")
+            print(f"  supply_distance={self.distance:.2f}  establish_distance={self.establish_distance:.2f}  establish_progress={self.establish_progress:.2f}  established={self.established}")
 
         # Register with both endpoints
         self.city_a.trade_routes.append(self)
@@ -106,9 +111,9 @@ class TradeRoute:
     def end_turn(self):
         if self.established == False:
             self.establish_progress += DEFAULT_MOVE_DISTANCE
-            if self.establish_progress >= self.distance:
+            if self.establish_progress >= self.establish_distance:
                 # print('Trade route established!')
-                self.establish_progress = self.distance
+                self.establish_progress = self.establish_distance
                 self.established = True
                 self.city_a.update_cumulative_farm_yield_net()
                 self.city_a.rebalance_pops()
@@ -124,7 +129,7 @@ class TradeRoute:
         return self.pops_a if self.city_a is city else self.pops_b
 
     def turns_until_established(self):
-        return math.ceil((self.distance - self.establish_progress) / DEFAULT_MOVE_DISTANCE)
+        return math.ceil((self.establish_distance - self.establish_progress) / DEFAULT_MOVE_DISTANCE)
 
     def check_if_established(self):
         return self.established
@@ -132,7 +137,11 @@ class TradeRoute:
     def get_visual_path(self):
         if self.established:
             return self.path
-        result = [node for node, d in zip(self.path, self.path_distances) if d <= self.establish_progress]
+        if self.establish_distance > 0:
+            supply_cutoff = (self.establish_progress / self.establish_distance) * self.distance
+        else:
+            supply_cutoff = 0.0
+        result = [node for node, d in zip(self.path, self.path_distances) if d <= supply_cutoff]
         return result
 
     def update_resource_amounts(self):

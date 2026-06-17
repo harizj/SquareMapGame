@@ -140,6 +140,17 @@ class Map:
             del best[start]
         return best
 
+    def path_distances(self, path, scheme):
+        """Recompute cumulative distances along an existing path using the given scheme."""
+        if not path:
+            return []
+        dists = [0.0]
+        for i in range(1, len(path)):
+            fr, fc = path[i - 1]
+            tr, tc = path[i]
+            dists.append(dists[-1] + self._step_cost(fr, fc, tr, tc, scheme))
+        return dists
+
     def get_path_to(self, from_r, from_c, to_r, to_c, scheme='land'):
         """Unbounded Dijkstra from start to goal. Returns (path, distances) where path is a list of
         (r, c) tiles inclusive and distances[i] is the cumulative cost to path[i], or ([], []).

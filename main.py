@@ -829,6 +829,15 @@ def main():
                     city_a, dest_tile = renderer.one_way_route_pending
                     two_way = renderer.one_way_route_style == 'two_way'
                     path, path_distances = game_map.get_path_to(city_a.row, city_a.col, dest_tile.row, dest_tile.col, scheme='supply')
+                    land_distances = game_map.path_distances(path, scheme='land')
+                    print(f"[route create] {city_a.name} -> {dest_tile.city.name if dest_tile.city else (dest_tile.row, dest_tile.col)}")
+                    print(f"  supply distance={path_distances[-1] if path_distances else None:.2f}  establish distance={land_distances[-1] if land_distances else None:.2f}")
+                    for i, rc in enumerate(path):
+                        tile = game_map.tiles[rc[0]][rc[1]]
+                        features = [f for f in tile.terrain_features if f in ('river', 'city', 'hills', 'forest', 'water')]
+                        s_step = path_distances[i] - path_distances[i-1] if i > 0 else 0.0
+                        l_step = land_distances[i] - land_distances[i-1] if i > 0 else 0.0
+                        print(f"  {rc} features={features} supply_step={s_step:.2f} land_step={l_step:.2f} supply_cum={path_distances[i]:.2f} land_cum={land_distances[i]:.2f}")
                     total_pops = renderer.one_way_pops_required_whole
                     if two_way:
                         pops_a = (total_pops + 1) // 2
@@ -851,6 +860,7 @@ def main():
                         path=path,
                         path_distances=path_distances,
                         one_way=not two_way,
+                        establish_distance=land_distances[-1] if land_distances else None,
                     )
                     renderer.one_way_route_pending = None
 
