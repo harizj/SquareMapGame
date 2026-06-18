@@ -13,7 +13,7 @@ from src.game.map import Map
 from src.game.save_load import load_map_data, save_map
 from src.game.trade_route import TradeRoute
 from src.game.items import ITEM_REGISTRY
-from src.game.constants import HOTSEAT, GAME_SCALE
+from src.game.constants import HOTSEAT, GAME_SCALE, MIN_TERRAIN_COST
 from src.game.unit import Militia, UNIT_REGISTRY
 from src.ui.renderer import Renderer
 from src.game.constants import DEFAULT_MOVE_DISTANCE, RESTRICTED_STARTING_TICKER
@@ -160,6 +160,7 @@ def main():
     battle_popup_active = False
     pending_combat_preview = None
     pending_combat_tile = None
+    pending_combat_cost = 0
     battle_result_active = False
     pending_battle_result = None
     pending_battle_result_preview = None
@@ -368,16 +369,19 @@ def main():
                             path, _ = game_map.get_path_to(selected_tile.row, selected_tile.col, tile.row, tile.col)
                             if len(path) >= 2:
                                 stop_pos = path[-2]
-                                cost = reachable.get((stop_pos[0], stop_pos[1]), 0)
+                                already_adjacent = (stop_pos[0] == selected_tile.row and stop_pos[1] == selected_tile.col)
+                                cost = 0 if already_adjacent else reachable.get((stop_pos[0], stop_pos[1]), 0)
                                 remaining_combat_cost = reachable[(tile.row, tile.col)] - cost
-                                for group in move_mode_unit_groups:
-                                    game_map.move_group(group, stop_pos[0], stop_pos[1], cost)
+                                if not already_adjacent:
+                                    for group in move_mode_unit_groups:
+                                        game_map.move_group(group, stop_pos[0], stop_pos[1], cost)
                                 selected_tile = game_map.tiles[stop_pos[0]][stop_pos[1]]
                                 renderer.selected_unit_groups = {g for g in move_mode_unit_groups}
                                 attacker_tile = selected_tile
                                 defender_tile = game_map.tiles[tile.row][tile.col]
                                 pending_combat_preview = compute_battle_preview(list(move_mode_unit_groups), list(enemy_groups), attacker_tile, defender_tile)
                                 pending_combat_tile = defender_tile
+                                pending_combat_cost = remaining_combat_cost
                                 battle_popup_active = True
                                 move_hover_tile = None
                         else:
@@ -442,6 +446,10 @@ def main():
 
                 elif battle_popup_active:
                     if renderer.battle_popup_confirm_rect and renderer.battle_popup_confirm_rect.collidepoint(pos):
+                        for group in pending_combat_preview['attacker_groups']:
+                            group.moves_remaining = max(0, group.moves_remaining - pending_combat_cost)
+                            if group.moves_remaining < MIN_TERRAIN_COST:
+                                group.move_exhausted = True
                         result = resolve_battle(pending_combat_preview)
                         survivors = apply_battle_result(pending_combat_preview, result, game_map, pending_combat_tile)
                         if result['outcome'] == 'attacker_wins':
@@ -464,10 +472,13 @@ def main():
                         battle_popup_active = False
                         pending_combat_preview = None
                         pending_combat_tile = None
+                        pending_combat_cost = 0
                     elif renderer.battle_popup_cancel_rect and renderer.battle_popup_cancel_rect.collidepoint(pos):
                         battle_popup_active = False
                         pending_combat_preview = None
                         pending_combat_tile = None
+                        pending_combat_cost = 0
+                        move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
 
                 elif terrain_popup_active:
                     if renderer.terrain_confirm_rect and renderer.terrain_confirm_rect.collidepoint(pos):
