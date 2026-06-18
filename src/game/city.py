@@ -592,11 +592,16 @@ class City:
         self.production_yield = 0.0
         self.production_workers = prod_job.assigned if prod_job else 0
         _prod_notif_key = ('no_workers_for_production', self.name)
+        _idle_notif_key = ('idle_workers', self.name)
         if self.faction:
             if self.production_target.type and self.production_workers == 0:
                 self.faction.notification_log.add(f"No workers assigned to production job in {self.name}!", key=_prod_notif_key, priority='High')
             else:
                 self.faction.notification_log.remove(_prod_notif_key)
+            if not self.production_target.type and self.production_workers > 0:
+                self.faction.notification_log.add(f"Idle workers in {self.name}!", key=_idle_notif_key, priority='High')
+            else:
+                self.faction.notification_log.remove(_idle_notif_key)
         self.resources_allocated_to_production = {}
         self.production_limited_by = None
         if self.extraction_tile:

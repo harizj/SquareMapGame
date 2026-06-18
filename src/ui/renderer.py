@@ -285,6 +285,7 @@ class Renderer:
         self.select_extraction_tile_button_rect = None
         self.selecting_extraction_city = None
         self.production_popup_rects = {}
+        self.production_none_rect = None
         self.recruit_popup_food = 0
         self.recruit_popup_slider_rect = None
         self.recruit_popup_food_slider_rect = None
@@ -2545,7 +2546,7 @@ class Renderer:
         W = 560
 
         n_rows = sum(max(1, len(PRODUCTION_SUBTYPES[c])) for c in PRODUCTION_CATEGORIES)
-        H = pad + 20 + 6 + len(PRODUCTION_CATEGORIES) * (18 + 4 + category_gap) + n_rows * row_h + pad
+        H = pad + 20 + 6 + len(PRODUCTION_CATEGORIES) * (18 + 4 + category_gap) + n_rows * row_h + row_h + pad
         sx = (self.screen.get_width() - W) // 2
         sy = (self.screen.get_height() - H) // 2
         desc_x = sx + pad + btn_w + 8
@@ -2565,7 +2566,12 @@ class Renderer:
             return ", ".join(parts) + f" ({', '.join(rate_parts)} Per Production)"
 
         self.production_popup_rects = {}
+        self.production_none_rect = None
         for category in PRODUCTION_CATEGORIES:
+            if category == 'extraction':
+                none_active = not city.production_target.type
+                self.production_none_rect = self._draw_button(sx + pad, y, btn_w, btn_h, "None", active=none_active)
+                y += row_h + category_gap
             cat_surf = self.font_body.render(category.capitalize(), True, HEADER_TEXT_COLOR)
             self.screen.blit(cat_surf, (sx + pad, y))
             y += cat_surf.get_height() + 4

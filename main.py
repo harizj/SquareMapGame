@@ -523,18 +523,33 @@ def main():
 
                 elif renderer.production_popup_active:
                     hit = False
-                    for (category, subtype), rect in renderer.production_popup_rects.items():
-                        if rect.collidepoint(pos):
-                            if selected_tile and selected_tile.city:
-                                city = selected_tile.city
-                                pt = city.production_target
-                                if pt.type == 'manufacturing' and pt.target_item and pt.progress > 0:
-                                    pt.unfinished_items.append({'item': pt.target_item, 'progress': pt.progress})
-                                city.production_target.set(category, subtype)
-                                city.rebalance_pops()
-                            renderer.production_popup_active = False
-                            hit = True
-                            break
+                    if renderer.production_none_rect and renderer.production_none_rect.collidepoint(pos):
+                        if selected_tile and selected_tile.city:
+                            city = selected_tile.city
+                            pt = city.production_target
+                            if pt.type == 'manufacturing' and pt.target_item and pt.progress > 0:
+                                pt.unfinished_items.append({'item': pt.target_item, 'progress': pt.progress})
+                            if pt.type == 'construction' and pt.target_building and pt.progress > 0:
+                                pt.unfinished_buildings.append({'building': pt.target_building, 'progress': pt.progress})
+                            pt.clear()
+                            city.rebalance_pops()
+                        renderer.production_popup_active = False
+                        hit = True
+                    if not hit:
+                        for (category, subtype), rect in renderer.production_popup_rects.items():
+                            if rect.collidepoint(pos):
+                                if selected_tile and selected_tile.city:
+                                    city = selected_tile.city
+                                    pt = city.production_target
+                                    if pt.type == 'manufacturing' and pt.target_item and pt.progress > 0:
+                                        pt.unfinished_items.append({'item': pt.target_item, 'progress': pt.progress})
+                                    if pt.type == 'construction' and pt.target_building and pt.progress > 0:
+                                        pt.unfinished_buildings.append({'building': pt.target_building, 'progress': pt.progress})
+                                    city.production_target.set(category, subtype)
+                                    city.rebalance_pops()
+                                renderer.production_popup_active = False
+                                hit = True
+                                break
                     if not hit:
                         renderer.production_popup_active = False
 
