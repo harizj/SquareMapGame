@@ -3,7 +3,7 @@ import math
 import os
 import pygame
 from src.game.city import STOCKPILE_MAX
-from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, MILITARY_CARRY_CAPACITY, WATER_CARRY_CAPACITY, MOVE_CARRY_OVER, GAME_SCALE, POP_FOOD_CONSUMPTION, INTER_FACTION_BORDERS
+from src.game.constants import DEFAULT_MOVE_DISTANCE, LAND_CARRY_CAPACITY, MILITARY_CARRY_CAPACITY, WATER_CARRY_CAPACITY, MOVE_CARRY_OVER, GAME_SCALE, POP_FOOD_CONSUMPTION, INTER_FACTION_BORDERS, MINIMAL_TILE_UI, MINIMAL_UNIT_UI
 from src.game.map import TERRAIN_TYPES
 from src.game.tile import BIOMES, TERRAIN_FEATURES, BIOME_COLORS
 from src.game.unit import unit_list as UNIT_DISPLAY_ORDER, UNIT_REGISTRY
@@ -1786,7 +1786,7 @@ class Renderer:
             surf = self.font_body.render(f"{free} Free {_jlabel('Pops', free)}", True, TEXT_COLOR)
             self.screen.blit(surf, (x + 4, y))
             y += surf.get_height() + 8
-            alloc_surf = self.font_body.render("Allocations", True, HEADER_TEXT_COLOR)
+            alloc_surf = self.font_body.render("Priorities", True, HEADER_TEXT_COLOR)
             self.screen.blit(alloc_surf, (x + 4, y))
             y += alloc_surf.get_height() + 2
             _jq_labels = {'growth': 'Growth', 'stockpile': 'Stockpile', 'production': 'Production'}
@@ -1850,7 +1850,7 @@ class Renderer:
             self.city_focus_rects = {}
         pygame.draw.line(self.screen, PANEL_DIVIDER, (x, y), (CITY_PANEL_WIDTH - pad, y), 1)
         y += 10
-        y, _yields_collapsed = self._draw_section_header('yields', 'YIELDS', x, y)
+        y, _yields_collapsed = self._draw_section_header('yields', 'PRODUCTION', x, y)
 
         def _fmt_res(v):
             return str(int(v)) if v == int(v) else f"{v:.1f}"
@@ -2068,49 +2068,50 @@ class Renderer:
                 self.draw_river_button_rect = None
                 self.restrict_tile_button_rect = None
             else:
-                row_h = 22
-                dr_btn_w = 78
-                t_surf = self.font_body.render(tile.terrain.capitalize(), True, TEXT_COLOR)
-                self.screen.blit(t_surf, (x + 4, y + (row_h - t_surf.get_height()) // 2))
-                no_river = tile.terrain in ('hills', 'mountain')
-                self.draw_river_button_rect = self._draw_button(
-                    panel_x + PANEL_WIDTH - pad - dr_btn_w, y, dr_btn_w, row_h,
-                    "Draw River", disabled=no_river,
-                )
-                if no_river:
-                    self.draw_river_button_rect = None
-                y += row_h + 8
-                coords_surf = self.font_body.render(f"Row {tile.row}, Col {tile.col}", True, TEXT_COLOR)
-                self.screen.blit(coords_surf, (x + 4, y))
-                y += coords_surf.get_height() + 4
-                biome_surf = self.font_body.render(f"Biome: {tile.biome.capitalize()}", True, TEXT_COLOR)
-                self.screen.blit(biome_surf, (x + 4, y))
-                y += biome_surf.get_height() + 4
-                features_text = ", ".join(
-                    "Water Access" if f == "water_access" else f.capitalize()
-                    for f in tile.terrain_features
-                ) if tile.terrain_features else "None"
-                features_surf = self.font_body.render(f"Features: {features_text}", True, TEXT_COLOR)
-                self.screen.blit(features_surf, (x + 4, y))
-                y += features_surf.get_height() + 4
-                self.change_terrain_button_rect = self._draw_button(panel_x + pad, y, btn_w, btn_h, "Change Terrain")
-                y += btn_h + 6
-                if tile.owning_city:
-                    owned_surf = self.font_body.render(f"Owned By {tile.owning_city.name}", True, TEXT_COLOR)
-                    self.screen.blit(owned_surf, (x + 4, y))
-                    y += owned_surf.get_height() + 2
-                    dist_surf = self.font_body.render(f"Distance {tile.city_distance:.2f}", True, TEXT_COLOR)
-                    self.screen.blit(dist_surf, (x + 4, y))
-                    y += dist_surf.get_height() + 2
-                    yield_surf = self.font_body.render(f"Food Yield: {tile.farm_yield:.2f}", True, TEXT_COLOR)
-                    self.screen.blit(yield_surf, (x + 4, y))
-                    y += yield_surf.get_height() + 2
-                    extraction_surf = self.font_body.render(f"Extraction Rate: {tile.extraction_yield:.2f}", True, TEXT_COLOR)
-                    self.screen.blit(extraction_surf, (x + 4, y))
-                    y += extraction_surf.get_height() + 2
-                    farms_surf = self.font_body.render(f"{tile.worked_farms} Farms", True, TEXT_COLOR)
-                    self.screen.blit(farms_surf, (x + 4, y))
-                    y += farms_surf.get_height() + 4
+                if not MINIMAL_TILE_UI:
+                    row_h = 22
+                    dr_btn_w = 78
+                    t_surf = self.font_body.render(tile.terrain.capitalize(), True, TEXT_COLOR)
+                    self.screen.blit(t_surf, (x + 4, y + (row_h - t_surf.get_height()) // 2))
+                    no_river = tile.terrain in ('hills', 'mountain')
+                    self.draw_river_button_rect = self._draw_button(
+                        panel_x + PANEL_WIDTH - pad - dr_btn_w, y, dr_btn_w, row_h,
+                        "Draw River", disabled=no_river,
+                    )
+                    if no_river:
+                        self.draw_river_button_rect = None
+                    y += row_h + 8
+                    coords_surf = self.font_body.render(f"Row {tile.row}, Col {tile.col}", True, TEXT_COLOR)
+                    self.screen.blit(coords_surf, (x + 4, y))
+                    y += coords_surf.get_height() + 4
+                    biome_surf = self.font_body.render(f"Biome: {tile.biome.capitalize()}", True, TEXT_COLOR)
+                    self.screen.blit(biome_surf, (x + 4, y))
+                    y += biome_surf.get_height() + 4
+                    features_text = ", ".join(
+                        "Water Access" if f == "water_access" else f.capitalize()
+                        for f in tile.terrain_features
+                    ) if tile.terrain_features else "None"
+                    features_surf = self.font_body.render(f"Features: {features_text}", True, TEXT_COLOR)
+                    self.screen.blit(features_surf, (x + 4, y))
+                    y += features_surf.get_height() + 4
+                    self.change_terrain_button_rect = self._draw_button(panel_x + pad, y, btn_w, btn_h, "Change Terrain")
+                    y += btn_h + 6
+                    if tile.owning_city:
+                        owned_surf = self.font_body.render(f"Owned By {tile.owning_city.name}", True, TEXT_COLOR)
+                        self.screen.blit(owned_surf, (x + 4, y))
+                        y += owned_surf.get_height() + 2
+                        dist_surf = self.font_body.render(f"Distance {tile.city_distance:.2f}", True, TEXT_COLOR)
+                        self.screen.blit(dist_surf, (x + 4, y))
+                        y += dist_surf.get_height() + 2
+                        yield_surf = self.font_body.render(f"Food Yield: {tile.farm_yield:.2f}", True, TEXT_COLOR)
+                        self.screen.blit(yield_surf, (x + 4, y))
+                        y += yield_surf.get_height() + 2
+                        extraction_surf = self.font_body.render(f"Extraction Rate: {tile.extraction_yield:.2f}", True, TEXT_COLOR)
+                        self.screen.blit(extraction_surf, (x + 4, y))
+                        y += extraction_surf.get_height() + 2
+                        farms_surf = self.font_body.render(f"{tile.worked_farms} Farms", True, TEXT_COLOR)
+                        self.screen.blit(farms_surf, (x + 4, y))
+                        y += farms_surf.get_height() + 4
                 if tile.cities_in_range:
                     surf = self.font_body.render("Cities In Range:", True, TEXT_COLOR)
                     self.screen.blit(surf, (x + 4, y))
@@ -2125,16 +2126,17 @@ class Renderer:
                         _btn_rect = self._draw_button(_btn_x, y, _change_btn_w, _change_btn_h, "Change")
                         self.change_city_button_rects.append((_btn_rect, city))
                         y += _change_btn_h + 2
-                if tile.raided:
-                    label = f"Raided ({tile._raided_ticker} turns left)" if tile._raided_ticker > 0 else "Raided"
-                    surf = self.font_body.render(label, True, (200, 80, 80))
-                    self.screen.blit(surf, (x + 4, y))
-                    y += surf.get_height() + 2
-                if tile.restricted:
-                    label = f"Restricted ({tile._restricted_ticker} turns left)" if tile._restricted_ticker > 0 else "Restricted"
-                    surf = self.font_body.render(label, True, (200, 160, 60))
-                    self.screen.blit(surf, (x + 4, y))
-                    y += surf.get_height() + 2
+                if not MINIMAL_TILE_UI:
+                    if tile.raided:
+                        label = f"Raided ({tile._raided_ticker} turns left)" if tile._raided_ticker > 0 else "Raided"
+                        surf = self.font_body.render(label, True, (200, 80, 80))
+                        self.screen.blit(surf, (x + 4, y))
+                        y += surf.get_height() + 2
+                    if tile.restricted:
+                        label = f"Restricted ({tile._restricted_ticker} turns left)" if tile._restricted_ticker > 0 else "Restricted"
+                        surf = self.font_body.render(label, True, (200, 160, 60))
+                        self.screen.blit(surf, (x + 4, y))
+                        y += surf.get_height() + 2
                 btn_label = "Unrestrict Tile" if tile.restricted else "Restrict Tile"
                 disabled = tile._restricted_ticker > 0
                 self.restrict_tile_button_rect = self._draw_button(x, y, PANEL_WIDTH - pad * 2, 20, btn_label, disabled=disabled)
@@ -2143,8 +2145,9 @@ class Renderer:
                 y += 26
             y += 6
 
-        self.save_map_button_rect = self._draw_button(panel_x + pad, y, btn_w, btn_h, "Save Map")
-        y += btn_h + 6
+        if not MINIMAL_TILE_UI:
+            self.save_map_button_rect = self._draw_button(panel_x + pad, y, btn_w, btn_h, "Save Map")
+            y += btn_h + 6
 
         # Resources section
         has_deposits = bool(tile and tile.resource_deposits)
@@ -2152,7 +2155,7 @@ class Renderer:
         has_items = bool(tile and tile.item_stockpiles)
         has_buildings = bool(tile and tile.building_list)
         if has_deposits or has_resources or has_items or has_buildings:
-            y, _inventory_collapsed = self._draw_section_header('inventory', 'TILE INVENTORY', x, y)
+            y, _inventory_collapsed = self._draw_section_header('inventory', 'INVENTORY', x, y)
             if not _inventory_collapsed:
                 def _qty_label(name, count):
                     return name.title() if count == 1 else f"{name.title()} x{count}"
@@ -2250,11 +2253,12 @@ class Renderer:
             selected_on_tile = [g for g in unit_groups if g in self.selected_unit_groups]
             min_moves = min(g.moves_remaining for g in unit_groups)
             any_exhausted = any(g.move_exhausted for g in selected_on_tile)
-            self.move_button_rect = self._draw_button(
-                x, y, full_w, btn_h, "Move",
-                active=move_mode, disabled=min_moves == 0 or not selected_on_tile or any_exhausted,
-            )
-            y += btn_h + 4
+            if not MINIMAL_UNIT_UI:
+                self.move_button_rect = self._draw_button(
+                    x, y, full_w, btn_h, "Move",
+                    active=move_mode, disabled=min_moves == 0 or not selected_on_tile or any_exhausted,
+                )
+                y += btn_h + 4
             unit_faction = first_group.faction if first_group else None
             tile_faction = tile.owning_city.faction if tile and tile.owning_city else None
             tile_farm_jobs = [j for j in tile.jobs if j.job_type == 'farm'] if tile else []
@@ -2280,14 +2284,8 @@ class Renderer:
             if not raid_enabled:
                 self.raid_button_rect = None
             y += btn_h + 6
-            plunder_enabled = (
-                bool(selected_on_tile) and
-                not any(g.move_exhausted for g in selected_on_tile) and
-                all(g.moves_remaining >= 2 for g in selected_on_tile)
-            )
-            self.plunder_route_button_rect = self._draw_button(x, y, half_w, btn_h, "Plunder Route", disabled=not plunder_enabled)
-            if not plunder_enabled:
-                self.plunder_route_button_rect = None
+            self.plunder_route_button_rect = self._draw_button(x, y, half_w, btn_h, "Plunder Route", disabled=True)
+            self.plunder_route_button_rect = None
             settle_group = selected_on_tile[0] if selected_on_tile else (first_group if first_group else None)
             settle_faction = settle_group.faction if settle_group else None
             tile_owned_by_other = (
@@ -2470,15 +2468,16 @@ class Renderer:
                 self.equip_button_rect = None
             y += btn_h + 4
             any_levy = any(g.levy for g in selected_on_tile)
-            merge_disabled = len(selected_on_tile) < 2 or any_levy
-            self.merge_button_rect = self._draw_button(x, y, half_w, btn_h, "Merge", disabled=merge_disabled)
-            if merge_disabled:
-                self.merge_button_rect = None
-            separate_disabled = len(selected_on_tile) != 1 or len(selected_on_tile[0].units) < 2 or any_levy
-            self.separate_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Separate", disabled=separate_disabled)
-            if separate_disabled:
-                self.separate_button_rect = None
-            y += btn_h + 4
+            if not MINIMAL_UNIT_UI:
+                merge_disabled = len(selected_on_tile) < 2 or any_levy
+                self.merge_button_rect = self._draw_button(x, y, half_w, btn_h, "Merge", disabled=merge_disabled)
+                if merge_disabled:
+                    self.merge_button_rect = None
+                separate_disabled = len(selected_on_tile) != 1 or len(selected_on_tile[0].units) < 2 or any_levy
+                self.separate_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Separate", disabled=separate_disabled)
+                if separate_disabled:
+                    self.separate_button_rect = None
+                y += btn_h + 4
             restock_disabled = not has_city or not selected_on_tile
             self.restock_button_rect = self._draw_button(x, y, half_w, btn_h, "Restock", disabled=restock_disabled)
             if restock_disabled:
