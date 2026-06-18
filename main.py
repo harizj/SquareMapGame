@@ -13,6 +13,7 @@ from src.game.map import Map
 from src.game.save_load import load_map_data, save_map
 from src.game.trade_route import TradeRoute
 from src.game.items import ITEM_REGISTRY
+from src.game.constants import HOTSEAT
 from src.game.unit import Militia, UNIT_REGISTRY
 from src.ui.renderer import Renderer
 from src.game.constants import DEFAULT_MOVE_DISTANCE, RESTRICTED_STARTING_TICKER
@@ -132,9 +133,14 @@ def main():
     else:
         game_map = Map.make_plains(rows=13, cols=11)
     factions = _apply_game_config(game_map, game_config)
+    hotseat_order = list(factions.values())
+    hotseat_index = 0
 
     renderer = Renderer(game_map)
     los = LineOfSight(game_map)
+    if HOTSEAT and hotseat_order:
+        los.mode = 'faction'
+        los.faction = hotseat_order[0]
     clock = pygame.time.Clock()
     selected_tile = None
     move_mode = False
@@ -244,7 +250,15 @@ def main():
                         terrain_popup_active = False
                         river_popup_active = False
                 elif event.key == pygame.K_SPACE:
-                    do_end_turn = True
+                    if HOTSEAT and hotseat_order:
+                        if hotseat_index < len(hotseat_order) - 1:
+                            hotseat_index += 1
+                            los.mode = 'faction'
+                            los.faction = hotseat_order[hotseat_index]
+                        else:
+                            do_end_turn = True
+                    else:
+                        do_end_turn = True
                 elif event.key in (pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4,
                                    pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9):
                     if selected_tile:
@@ -1263,7 +1277,15 @@ def main():
                         game_log.append(f"Plunder: {', '.join(f'{v:.0f} {k}' for k, v in plunder.items()) or 'nothing found'}.")
 
                 elif renderer.end_turn_button_rect and renderer.end_turn_button_rect.collidepoint(pos):
-                    do_end_turn = True
+                    if HOTSEAT and hotseat_order:
+                        if hotseat_index < len(hotseat_order) - 1:
+                            hotseat_index += 1
+                            los.mode = 'faction'
+                            los.faction = hotseat_order[hotseat_index]
+                        else:
+                            do_end_turn = True
+                    else:
+                        do_end_turn = True
 
                 elif renderer.selecting_extraction_city and renderer.map_start_x <= pos[0] < renderer.map_w:
                     clicked_tile = renderer.get_tile_at(*pos)
@@ -1348,6 +1370,10 @@ def main():
             move_hover_tile = None
             move_mode, move_mode_unit_groups, reachable = _compute_move_state(renderer.selected_unit_groups, selected_tile, game_map)
             game_log.append(f"TURN {turn}")
+            if HOTSEAT and hotseat_order:
+                hotseat_index = 0
+                los.mode = 'faction'
+                los.faction = hotseat_order[0]
 
         if not console_active and not save_popup_active and not name_city_popup_active:
             keys = pygame.key.get_pressed()
