@@ -166,6 +166,19 @@ class UnitGroup:
                 del item_stockpiles[item_name]
         # print(f"[equip] after:  units=[{_summary(self.units)}] stockpile={dict(item_stockpiles)}")
 
+    def unequip_to_stockpile(self, item_stockpiles):
+        from src.game.items import ITEM_REGISTRY
+        from src.game.unit import Militia, UNIT_REGISTRY
+        unit_to_item = {cls.upgrades_to: cls.name for cls in ITEM_REGISTRY.values()}
+        for i, u in enumerate(self.units):
+            item_name = unit_to_item.get(u.unit_type)
+            if item_name:
+                new_unit = Militia(u.pop)
+                new_unit.max_moves = u.max_moves
+                new_unit.moves_remaining = u.moves_remaining
+                self.units[i] = new_unit
+                item_stockpiles[item_name] = item_stockpiles.get(item_name, 0) + 1
+
     def remove_pops(self, n):
         """Remove up to n units from the group and return them as Unit objects."""
         n = min(n, len(self.units))

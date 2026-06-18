@@ -13,7 +13,7 @@ from src.game.map import Map
 from src.game.save_load import load_map_data, save_map
 from src.game.trade_route import TradeRoute
 from src.game.items import ITEM_REGISTRY
-from src.game.constants import HOTSEAT
+from src.game.constants import HOTSEAT, GAME_SCALE
 from src.game.unit import Militia, UNIT_REGISTRY
 from src.ui.renderer import Renderer
 from src.game.constants import DEFAULT_MOVE_DISTANCE, RESTRICTED_STARTING_TICKER
@@ -49,18 +49,19 @@ def _apply_game_config(game_map, game_config):
         faction = factions.get(ug_data.get('faction'))
         unit_type_names = ug_data.get('units')
         if unit_type_names:
-            units = [UNIT_REGISTRY.get(t, Militia)(Pop()) for t in unit_type_names]
+            scaled_names = [t for t in unit_type_names for _ in range(GAME_SCALE)]
+            units = [UNIT_REGISTRY.get(t, Militia)(Pop()) for t in scaled_names]
         else:
-            units = [Militia(Pop()) for _ in range(ug_data.get('num_units', 0))]
+            units = [Militia(Pop()) for _ in range(ug_data.get('num_units', 0) * GAME_SCALE)]
         group = UnitGroup(r, c, units=units, faction=faction)
-        group.add_food(ug_data['food'])
+        group.add_food(ug_data['food'] * GAME_SCALE)
         game_map.tiles[r][c].unit_groups.append(group)
 
     for city_data in game_config.get('cities', []):
         r, c = city_data['row'], city_data['col']
         faction = factions.get(city_data.get('faction'))
         name = city_data.get('name') or (faction.take_city_name() if faction else game_map._take_city_name())
-        population = city_data.get('population', 20)
+        population = city_data.get('population', 20) * GAME_SCALE
         city = City(r, c, name, faction=faction, population=population)
         game_map.cities[(r, c)] = city
         game_map.setup_city(city)
@@ -1040,17 +1041,19 @@ def main():
                                 group.add_food(transfer)
 
                 elif renderer.drop_button_rect and renderer.drop_button_rect.collidepoint(pos):
-                    if selected_tile and selected_tile.city:
+                    if selected_tile:
                         from src.game.constants import POP_FOOD_CONSUMPTION
-                        city = selected_tile.city
                         selected_on_tile = [g for g in game_map.get_unit_groups(selected_tile.row, selected_tile.col) if g in renderer.selected_unit_groups]
                         for group in selected_on_tile:
-                            amount = len(group.units) * POP_FOOD_CONSUMPTION
-                            space = city._stockpile_max() - city.food_stockpile
-                            transfer = min(amount, group.food_stockpile, space)
-                            if transfer > 0:
-                                group.food_stockpile -= transfer
-                                city.food_stockpile += transfer
+                            if selected_tile.city:
+                                city = selected_tile.city
+                                amount = len(group.units) * POP_FOOD_CONSUMPTION
+                                space = city._stockpile_max() - city.food_stockpile
+                                transfer = min(amount, group.food_stockpile, space)
+                                if transfer > 0:
+                                    group.food_stockpile -= transfer
+                                    city.food_stockpile += transfer
+                            group.unequip_to_stockpile(selected_tile.item_stockpiles)
 
                 elif renderer.add_tether_button_rect and renderer.add_tether_button_rect.collidepoint(pos):
                     selected_on_tile = [g for g in game_map.get_unit_groups(selected_tile.row, selected_tile.col) if g in renderer.selected_unit_groups]

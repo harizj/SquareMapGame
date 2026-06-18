@@ -2483,7 +2483,7 @@ class Renderer:
             self.restock_button_rect = self._draw_button(x, y, half_w, btn_h, "Restock", disabled=restock_disabled)
             if restock_disabled:
                 self.restock_button_rect = None
-            drop_disabled = not has_city or not selected_on_tile
+            drop_disabled = not selected_on_tile
             self.drop_button_rect = self._draw_button(x + half_w + 4, y, half_w, btn_h, "Drop", disabled=drop_disabled)
             if drop_disabled:
                 self.drop_button_rect = None
