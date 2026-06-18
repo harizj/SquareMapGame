@@ -7,8 +7,11 @@
   "cities": [
     {"row": 10, "col": 7, "name": "Edoras",      "faction": "Rohan",    "population": 40},
     {"row": 9,  "col": 4, "name": "Hornburg", "faction": "Rohan",    "population": 20, "buildings": [{"name": "stone walls", "count": 3}]},
-    {"row": 4,  "col": 2, "name": "Isengard",    "faction": "Isengard", "population": 60},
+    {"row": 4,  "col": 2, "name": "Isengard",    "faction": "Isengard", "population": 43},
     {"row": 5,  "col": 9, "name": "Entwash",    "faction": "Rohan", "population": 20}
   ],
-  "unit_groups": []
+  "unit_groups": [
+    {"row": 4, "col": 2, "faction": "Isengard", "num_units": 20, "food": 80},
+    {"row": 5, "col": 2, "faction": "Isengard", "num_units": 20, "food": 80}
+  ]
 }
